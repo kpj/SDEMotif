@@ -11,10 +11,12 @@ def solve_system(system, tmax=100, dt=0.1):
     """
     J = system.jacobian
     D = system.fluctuation_vector
+    E = system.external_influence
 
     eq = lambda X, i: \
         sum([J[i, j]*X[j] for j in range(J.shape[1])]) \
-        + np.sqrt(2 * D[i]) * npr.normal(scale=np.sqrt(dt))
+        + np.sqrt(2 * D[i]) * np.sqrt(dt) * npr.normal() \
+        + E[i]
 
     state = system.initial_state
     evolution = []
