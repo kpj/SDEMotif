@@ -10,6 +10,8 @@ import matplotlib.pylab as plt
 def plot_system_evolution(sol):
     """ Plot solution of integration
     """
+    plt.figure(figsize=(10, 5))
+
     for i, series in enumerate(sol):
         plt.plot(series, label=r'$S_%d$' % (i+1))
 
@@ -17,7 +19,8 @@ def plot_system_evolution(sol):
     plt.ylabel('concentration')
     plt.legend(loc='best')
 
-    plt.show()
+    plt.savefig('images/evolution.png', bbox_inches='tight', dpi=300)
+    #plt.show()
 
 def plot_ss_scatter(steadies):
     """ Plot scatter plots of steady states
@@ -36,7 +39,7 @@ def plot_ss_scatter(steadies):
         ax.set_title(r'Corr: $%.2f$' % cc)
 
     dim = steadies.shape[1]
-    fig, axarr = plt.subplots(1, dim)
+    fig, axarr = plt.subplots(1, dim, figsize=(20, 5))
 
     axc = 0
     for i in range(dim):
@@ -49,4 +52,5 @@ def plot_ss_scatter(steadies):
 
     plt.suptitle('Correlation overview')
 
-    plt.show()
+    plt.savefig('images/correlations.png', bbox_inches='tight', dpi=300)
+    #plt.show()

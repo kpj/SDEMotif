@@ -15,9 +15,9 @@ def main():
     system = generate_system()
 
     ss_data = []
-    for _ in range(100):
+    for i in range(100):
         sol = solve_system(system)
-        #plot_system_evolution(sol)
+        if i == 0: plot_system_evolution(sol)
 
         ss = get_steady_state(sol)
         ss_data.append(ss)
