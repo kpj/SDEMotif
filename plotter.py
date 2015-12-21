@@ -8,6 +8,8 @@ import scipy.stats as scis
 import matplotlib.pylab as plt
 import networkx as nx
 
+from utils import get_nonconst_data
+
 
 def plot_system_evolution(sol):
     """ Plot solution of integration
@@ -30,8 +32,7 @@ def plot_ss_scatter(steadies):
     def do_scatter(i, j, ax):
         """ Draw single scatter plot
         """
-        xs, ys = steadies[:,i], steadies[:,j]
-
+        xs, ys = get_nonconst_data(i, j, steadies)
         ax.scatter(xs, ys)
 
         ax.set_xlabel(r'$S_%d$' % (i+1))
@@ -65,7 +66,7 @@ def plot_ss_heat(steadies, ax):
     mat = np.empty((dim, dim))
     for i in range(dim):
         for j in range(dim):
-            xs, ys = steadies[:,i], steadies[:,j]
+            xs, ys = get_nonconst_data(i, j, steadies)
             cc, pval = scis.pearsonr(xs, ys)
             mat[i, j] = cc
 
