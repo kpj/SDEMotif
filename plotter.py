@@ -70,6 +70,8 @@ def plot_ss_heat(steadies, ax):
             cc, pval = scis.pearsonr(xs, ys)
             mat[i, j] = cc
 
+    ax.set_xticks(np.arange(dim, dtype=np.int))
+    ax.set_yticks(np.arange(dim, dtype=np.int))
     ax.imshow(
         mat,
         interpolation='nearest', cmap='bwr_r',
