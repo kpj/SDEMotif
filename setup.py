@@ -3,6 +3,7 @@ Setup system
 """
 
 import numpy as np
+import numpy.random as npr
 
 
 class SDESystem(object):
@@ -35,3 +36,13 @@ def generate_system():
         jacobian, fluctuation_vector,
         external_influence, initial_state)
     return system
+
+def generate_system_selection(num=5):
+    """ Generate multiple systems in order to get further insights
+    """
+    res = [generate_system()]
+    for _ in range(num-1):
+        s = generate_system()
+        s.jacobian = npr.choice([0, 1], s.jacobian.shape)
+        res.append(s)
+    return res
