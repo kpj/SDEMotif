@@ -4,7 +4,7 @@ Reproduce figure 6 from Steuer et al., (2003)
 
 import numpy as np
 
-from setup import generate_system_selection
+from setup import generate_systems
 from solver import solve_system, get_steady_state
 from plotter import plot_system_overview
 
@@ -23,7 +23,7 @@ def get_steady_states(system, repetition_num=100):
 def main():
     """ Main interface
     """
-    systems = generate_system_selection()
+    systems = generate_systems()
 
     data = []
     for syst in systems:
