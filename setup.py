@@ -50,6 +50,41 @@ def generate_random_plus(num=5):
         res.append(s)
     return res
 
+def generate_plus():
+    """ Generate initial system plus one node
+    """
+    def with_fourth_node(hs, vs):
+        s = generate_basic_system()
+
+        # adjust other vectors
+        s.fluctuation_vector = np.append(s.fluctuation_vector, 0)
+        s.external_influence = np.append(s.external_influence, 0)
+        s.initial_state = np.append(s.initial_state, 0)
+
+        # check validity of input
+        dim = s.jacobian.shape[0]
+        assert len(hs) == dim, 'Horizontal stack must have length %d' % dim
+        assert len(vs) == dim+1, 'Vertical stack must have length %d' % (dim+1)
+
+        # adjust jacobian
+        s.jacobian = np.hstack((s.jacobian, np.array(hs).reshape(-1, 1)))
+        s.jacobian = np.vstack((s.jacobian, vs))
+
+        return s
+
+    res = [generate_basic_system()]
+
+    res.append(with_fourth_node(
+        [0, 0, 0], [0, 0, 0, 0]))
+    res.append(with_fourth_node(
+        [0, 0, 1], [1, 0, 0, 0]))
+    res.append(with_fourth_node(
+        [0, 1, 0], [1, 0, 0, 0]))
+    res.append(with_fourth_node(
+        [1, 0, 0], [1, 0, 0, 0]))
+
+    return res
+
 def generate_varied_parameters(num=5):
     """ Vary parameters of initial system
     """
@@ -62,4 +97,4 @@ def generate_varied_parameters(num=5):
     return res
 
 
-generate_systems = generate_varied_parameters
+generate_systems = generate_plus
