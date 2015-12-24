@@ -56,8 +56,8 @@ def generate_varied_parameters(num=5):
     res = [generate_basic_system()]
     for _ in range(num-1):
         s = generate_basic_system(
-            k_m=npr.uniform(0.5, 1.5),
-            k_23=npr.uniform(1.5, 2.5))
+            k_m=npr.uniform(0, 3),
+            k_23=npr.uniform(0, 3))
         res.append(s)
     return res
 
