@@ -70,12 +70,19 @@ def plot_ss_heat(steadies, ax):
             cc, pval = scis.pearsonr(xs, ys)
             mat[i, j] = cc
 
+    # plot colors
     ax.set_xticks(np.arange(dim, dtype=np.int))
     ax.set_yticks(np.arange(dim, dtype=np.int))
     ax.imshow(
         mat,
         interpolation='nearest', cmap='bwr_r',
         vmin=-1, vmax=1)
+
+    # add labels
+    xms, yms = np.meshgrid(range(dim), range(dim))
+    for i, j in zip(xms.flatten(), yms.flatten()):
+        val = round(mat[i, j], 2)
+        ax.text(i, j, val, va='center', ha='center')
 
 def plot_system(system, ax):
     """ Plot network specified by Jacobian of system
