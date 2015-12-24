@@ -18,7 +18,7 @@ def get_steady_states(system, repetition_num=100):
 
         ss = get_steady_state(sol)
         ss_data.append(ss)
-    return np.array(ss_data)
+    return np.array(ss_data), sol
 
 def main():
     """ Main interface
@@ -27,8 +27,8 @@ def main():
 
     data = []
     for syst in systems:
-        ss_data = get_steady_states(syst)
-        data.append((syst, ss_data))
+        ss_data, sol = get_steady_states(syst)
+        data.append((syst, ss_data, sol))
 
     plot_system_overview(data)
 

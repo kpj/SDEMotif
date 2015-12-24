@@ -4,27 +4,23 @@ Visualization related functions
 
 import numpy as np
 import scipy.stats as scis
+import networkx as nx
 
 import matplotlib.pylab as plt
-import networkx as nx
+from matplotlib import gridspec
 
 from utils import get_nonconst_data
 
 
-def plot_system_evolution(sol):
+def plot_system_evolution(sol, ax):
     """ Plot solution of integration
     """
-    plt.figure(figsize=(10, 5))
-
     for i, series in enumerate(sol):
-        plt.plot(series, label=r'$S_%d$' % (i+1))
+        ax.plot(series, label=r'$S_%d$' % (i+1))
 
-    plt.xlabel('time')
-    plt.ylabel('concentration')
-    plt.legend(loc='best')
-
-    plt.savefig('images/evolution.png', bbox_inches='tight', dpi=300)
-    #plt.show()
+    ax.set_xlabel('time')
+    ax.set_ylabel('concentration')
+    ax.legend(loc='best')
 
 def plot_ss_scatter(steadies):
     """ Plot scatter plots of steady states
@@ -56,7 +52,7 @@ def plot_ss_scatter(steadies):
     plt.suptitle('Correlation overview')
 
     plt.savefig('images/correlations.png', bbox_inches='tight', dpi=300)
-    #plt.show()
+    plt.close()
 
 def plot_ss_heat(steadies, ax):
     """ Plot heatmap of steady state correlation coefficients
@@ -111,13 +107,14 @@ def plot_system(system, ax):
 def plot_system_overview(data):
     """ Plot systems vs correlations
     """
-    fac = 5
-    fig, axarr = plt.subplots(len(data), 2, figsize=(fac, fac*len(data)))
+    fig = plt.figure(figsize=(13, 4*len(data)))
+    gs = gridspec.GridSpec(len(data), 3, width_ratios=[1, 1, 2])
 
-    for i, (system, steadies) in enumerate(data):
-        plot_system(system, axarr[i][0])
-        plot_ss_heat(steadies, axarr[i][1])
+    for i, (system, steadies, solution) in enumerate(data):
+        plot_system(system, plt.subplot(gs[i, 0]))
+        plot_ss_heat(steadies, plt.subplot(gs[i, 1]))
+        plot_system_evolution(solution, plt.subplot(gs[i, 2]))
 
     plt.tight_layout()
     plt.savefig('images/overview.png', bbox_inches='tight', dpi=300)
-    #plt.show()
+    plt.close()
