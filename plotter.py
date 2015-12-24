@@ -97,8 +97,8 @@ def plot_system(system, ax):
     for i in range(dim):
         for j in range(dim):
             if J[i, j] != 0:
-                graph.add_edge(i, j, weigth=J[i, j])
-                edge_label_map[(i, j)] = round(J[i, j], 2)
+                graph.add_edge(j, i, weigth=J[i, j])
+                edge_label_map[(j, i)] = round(J[i, j], 2)
 
     pos = nx.drawing.spring_layout(graph)
     nx.draw(
