@@ -2,12 +2,15 @@
 Visualization related functions
 """
 
+import io
+
 import numpy as np
 import scipy.stats as scis
 import networkx as nx
 
 import matplotlib.pylab as plt
 from matplotlib import gridspec
+import matplotlib.image as mpimg
 
 from utils import get_nonconst_data
 
@@ -86,16 +89,15 @@ def plot_system(system, ax):
     for i in range(dim):
         for j in range(dim):
             if J[i, j] != 0:
-                graph.add_edge(j, i, weigth=J[i, j])
+                graph.add_edge(j, i, label=J[i, j])
                 edge_label_map[(j, i)] = round(J[i, j], 2)
 
-    pos = nx.drawing.spring_layout(graph)
-    nx.draw(
-        graph, pos, ax=ax,
-        with_labels=True)
-    nx.draw_networkx_edge_labels(
-        graph, pos, ax=ax,
-        edge_labels=edge_label_map)
+    pydot_graph = nx.to_pydot(graph)
+    png_str = pydot_graph.create_png(prog=['dot', '-Gdpi=300'])
+    img = mpimg.imread(io.BytesIO(png_str))
+
+    ax.imshow(img, aspect='equal')
+    ax.axis('off')
 
 def plot_system_overview(data):
     """ Plot systems vs correlations
