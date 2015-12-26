@@ -54,30 +54,23 @@ def plot_ss_scatter(steadies):
     plt.savefig('images/correlations.png', bbox_inches='tight', dpi=300)
     plt.close()
 
-def plot_ss_heat(steadies, ax):
+def plot_corr_mat(corr_mat, ax):
     """ Plot heatmap of steady state correlation coefficients
     """
-    dim = steadies.shape[1]
-
-    mat = np.empty((dim, dim))
-    for i in range(dim):
-        for j in range(dim):
-            xs, ys = get_nonconst_data(i, j, steadies)
-            cc, pval = scis.pearsonr(xs, ys)
-            mat[i, j] = cc
+    dim = corr_mat.shape[0]
 
     # plot colors
     ax.set_xticks(np.arange(dim, dtype=np.int))
     ax.set_yticks(np.arange(dim, dtype=np.int))
     ax.imshow(
-        mat,
+        corr_mat,
         interpolation='nearest', cmap='bwr_r',
         vmin=-1, vmax=1)
 
     # add labels
     xms, yms = np.meshgrid(range(dim), range(dim))
     for i, j in zip(xms.flatten(), yms.flatten()):
-        val = round(mat[i, j], 2)
+        val = round(corr_mat[i, j], 2)
         ax.text(i, j, val, va='center', ha='center')
 
 def plot_system(system, ax):
@@ -110,9 +103,9 @@ def plot_system_overview(data):
     fig = plt.figure(figsize=(13, 4*len(data)))
     gs = gridspec.GridSpec(len(data), 3, width_ratios=[1, 1, 2])
 
-    for i, (system, steadies, solution) in enumerate(data):
+    for i, (system, corr_mat, solution) in enumerate(data):
         plot_system(system, plt.subplot(gs[i, 0]))
-        plot_ss_heat(steadies, plt.subplot(gs[i, 1]))
+        plot_corr_mat(corr_mat, plt.subplot(gs[i, 1]))
         plot_system_evolution(solution, plt.subplot(gs[i, 2]))
 
     plt.tight_layout()

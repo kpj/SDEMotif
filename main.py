@@ -3,13 +3,15 @@ Reproduce figure 6 from Steuer et al., (2003)
 """
 
 import numpy as np
+from tqdm import tqdm
 
 from setup import generate_systems
 from solver import solve_system, get_steady_state
+from utils import compute_correlation_matrix
 from plotter import plot_system_overview
 
 
-def get_steady_states(system, repetition_num=100):
+def analyze_system(system, repetition_num=100):
     """ Generate steady states for given system
     """
     ss_data = []
@@ -18,7 +20,15 @@ def get_steady_states(system, repetition_num=100):
 
         ss = get_steady_state(sol)
         ss_data.append(ss)
-    return np.array(ss_data), sol
+
+    corr_mat = compute_correlation_matrix(np.array(ss_data))
+
+    return corr_mat, sol
+
+def cluster_data(data):
+    """ Order data according to correlation matrices
+    """
+    return sorted(data, key=lambda e: np.sum(e[1]))
 
 def main():
     """ Main interface
@@ -26,10 +36,11 @@ def main():
     systems = generate_systems()
 
     data = []
-    for syst in systems:
-        ss_data, sol = get_steady_states(syst)
-        data.append((syst, ss_data, sol))
+    for syst in tqdm(systems):
+        cmat, sol = analyze_system(syst)
+        data.append((syst, cmat, sol))
 
+    data = cluster_data(data)
     plot_system_overview(data)
 
 
