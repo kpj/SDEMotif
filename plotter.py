@@ -16,7 +16,7 @@ def plot_system_evolution(sol, ax):
     """ Plot solution of integration
     """
     for i, series in enumerate(sol):
-        ax.plot(series, label=r'$S_%d$' % (i+1))
+        ax.plot(series, label=r'$S_%d$' % i)
 
     ax.set_xlabel('time')
     ax.set_ylabel('concentration')
@@ -116,5 +116,5 @@ def plot_system_overview(data):
         plot_system_evolution(solution, plt.subplot(gs[i, 2]))
 
     plt.tight_layout()
-    plt.savefig('images/overview.png', bbox_inches='tight', dpi=300)
+    plt.savefig('images/overview.pdf', bbox_inches='tight', dpi=300)
     plt.close()
