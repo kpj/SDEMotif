@@ -98,7 +98,7 @@ def generate_varied_parameters(num=5):
         res.append(s)
     return res
 
-def generate_all(size=3):
+def generate_all(size=3, force_self_inhibition=True):
     """ Generate all networks of given size
     """
     assert size > 0, 'Require positive network size'
@@ -123,7 +123,7 @@ def generate_all(size=3):
         # input only on first node
         external_influence = np.array([v_in] + [0] * (size-1))
         fluctuation_vector = np.array([D] + [0] * (size-1))
-        initial_state = np.array([0] * size)
+        initial_state = np.array([1] * size)
 
         # create fitting jacobian
         jacobian = np.zeros((size, size))
@@ -133,10 +133,15 @@ def generate_all(size=3):
             else:
                 jacobian[i, j] = k
 
-        # append system
+        if force_self_inhibition:
+            if not (np.diagonal(jacobian) < 0).all():
+                continue
+
+        # assemble system
         system = SDESystem(
             jacobian, fluctuation_vector,
             external_influence, initial_state)
+
         res.append(system)
 
     return res
