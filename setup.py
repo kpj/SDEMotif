@@ -2,6 +2,8 @@
 Setup system
 """
 
+import itertools
+
 import numpy as np
 import numpy.random as npr
 
@@ -96,5 +98,48 @@ def generate_varied_parameters(num=5):
         res.append(s)
     return res
 
+def generate_all(size=3):
+    """ Generate all networks of given size
+    """
+    assert size > 0, 'Require positive network size'
 
-generate_systems = generate_plus
+    # get all possible edges as node pairs
+    all_edges = list(itertools.product(range(size), repeat=2))
+
+    # compute all possible subsets
+    def powerset(inp):
+        return itertools.chain.from_iterable(
+            itertools.combinations(inp, r) for r in range(len(inp)+1))
+
+    all_subgraphs = powerset(all_edges)
+
+    # generate system definitions
+    v_in = 5
+    D = 1
+    k = 1
+
+    res = []
+    for graph in all_subgraphs:
+        # input only on first node
+        external_influence = np.array([v_in] + [0] * (size-1))
+        fluctuation_vector = np.array([D] + [0] * (size-1))
+        initial_state = np.array([0] * size)
+
+        # create fitting jacobian
+        jacobian = np.zeros((size, size))
+        for i, j in graph:
+            if i == j:
+                jacobian[i, j] = -k
+            else:
+                jacobian[i, j] = k
+
+        # append system
+        system = SDESystem(
+            jacobian, fluctuation_vector,
+            external_influence, initial_state)
+        res.append(system)
+
+    return res
+
+
+generate_systems = generate_all
