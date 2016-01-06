@@ -37,7 +37,7 @@ def network_density():
     #plt.xlim((0.5, 1.01))
 
     plt.tight_layout()
-    plt.savefig('images/edens_quot.pdf', bbox_inches='tight', dpi=300)
+    plt.savefig('images/edens_quot.pdf', bbox_inches='tight')
     plt.show()
 
 def main():

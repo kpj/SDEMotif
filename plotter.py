@@ -54,7 +54,8 @@ def plot_ss_scatter(steadies):
 
     plt.suptitle('Correlation overview')
 
-    plt.savefig('images/correlation_scatter.pdf', bbox_inches='tight', dpi=300)
+    plt.tight_layout()
+    plt.savefig('images/correlation_scatter.pdf', bbox_inches='tight')
     plt.close()
 
 def plot_corr_mat(corr_mat, ax):
@@ -109,5 +110,5 @@ def plot_system_overview(data):
         plot_system_evolution(solution, plt.subplot(gs[i, 2]))
 
     plt.tight_layout()
-    plt.savefig('images/overview.pdf', bbox_inches='tight', dpi=300)
+    plt.savefig('images/overview.pdf', bbox_inches='tight')
     plt.close()
