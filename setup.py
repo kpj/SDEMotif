@@ -75,15 +75,14 @@ def generate_plus():
         return s
 
     res = [generate_basic_system()]
+    res.append(with_fourth_node(
+        [0, 0, 0], [0, 0, 0, -2]))
 
-    res.append(with_fourth_node(
-        [0, 0, 0], [0, 0, 0, 0]))
-    res.append(with_fourth_node(
-        [0, 0, 1], [1, 0, 0, 0]))
-    res.append(with_fourth_node(
-        [0, 1, 0], [1, 0, 0, 0]))
-    res.append(with_fourth_node(
-        [1, 0, 0], [1, 0, 0, 0]))
+    for conn in itertools.product([0, 1], repeat=3):
+        cur = list(conn) + [-2]
+        for foo in [[1,0,0], [0,1,0], [0,0,1]]:
+            res.append(with_fourth_node(
+                foo, cur))
 
     return res
 
