@@ -145,5 +145,31 @@ def generate_all(size=3, force_self_inhibition=True):
 
     return res
 
+def steadystate_and_divergence():
+    """ Contrast correlation of SS and diverging case
+    """
+    external_influence = np.array([1, 0, 0])
+    fluctuation_vector = np.array([1, 0, 0])
+    initial_state = np.array([1, 1, 1])
+    jacobian = np.array([
+        [0, 0, 0],
+        [1, 0, 0],
+        [1, 1, 0]
+    ])
+
+    # diverging case
+    d_sys = SDESystem(
+        jacobian, fluctuation_vector,
+        external_influence, initial_state)
+
+    # steady state
+    selfinh_jacobian = jacobian.copy()
+    np.fill_diagonal(selfinh_jacobian, -1)
+    ss_sys = SDESystem(
+        selfinh_jacobian, fluctuation_vector,
+        external_influence, initial_state)
+
+
+    return [d_sys, ss_sys]
 
 generate_systems = generate_all
