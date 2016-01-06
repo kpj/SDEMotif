@@ -29,7 +29,7 @@ def generate_basic_system(v_in=5, k_m=1, k_23=2, D=1):
     ])
     external_influence = np.array([v_in, 0, 0])
     fluctuation_vector = np.array([D, 0, 0])
-    initial_state = np.array([0, 0, 0])
+    initial_state = np.array([1, 1, 1])
 
     system = SDESystem(
         jacobian, fluctuation_vector,
@@ -46,7 +46,7 @@ def generate_random_plus(num=5):
         # extend by fourth node
         s.fluctuation_vector = np.append(s.fluctuation_vector, 0)
         s.external_influence = np.append(s.external_influence, 0)
-        s.initial_state = np.append(s.initial_state, 0)
+        s.initial_state = np.append(s.initial_state, 1)
 
         s.jacobian = npr.choice([0, 1], (4, 4))
         res.append(s)
@@ -61,7 +61,7 @@ def generate_plus():
         # adjust other vectors
         s.fluctuation_vector = np.append(s.fluctuation_vector, 0)
         s.external_influence = np.append(s.external_influence, 0)
-        s.initial_state = np.append(s.initial_state, 0)
+        s.initial_state = np.append(s.initial_state, 1)
 
         # check validity of input
         dim = s.jacobian.shape[0]
