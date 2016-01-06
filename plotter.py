@@ -34,14 +34,14 @@ def plot_ss_scatter(steadies):
         xs, ys = get_nonconst_data(i, j, steadies)
         ax.scatter(xs, ys)
 
-        ax.set_xlabel(r'$S_%d$' % (i+1))
-        ax.set_ylabel(r'$S_%d$' % (j+1))
+        ax.set_xlabel(r'$S_%d$' % i)
+        ax.set_ylabel(r'$S_%d$' % j)
 
         cc, pval = scis.pearsonr(xs, ys)
         ax.set_title(r'Corr: $%.2f$' % cc)
 
     dim = steadies.shape[1]
-    fig, axarr = plt.subplots(1, dim, figsize=(20, 5))
+    fig, axarr = plt.subplots(1, int((dim**2-dim)/2), figsize=(20, 5))
 
     axc = 0
     for i in range(dim):
@@ -54,7 +54,7 @@ def plot_ss_scatter(steadies):
 
     plt.suptitle('Correlation overview')
 
-    plt.savefig('images/correlations.png', bbox_inches='tight', dpi=300)
+    plt.savefig('images/correlation_scatter.pdf', bbox_inches='tight', dpi=300)
     plt.close()
 
 def plot_corr_mat(corr_mat, ax):

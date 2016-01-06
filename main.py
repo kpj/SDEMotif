@@ -8,7 +8,7 @@ from tqdm import tqdm
 from setup import generate_systems
 from solver import solve_system, get_steady_state
 from utils import compute_correlation_matrix
-from plotter import plot_system_overview
+from plotter import plot_system_overview, plot_ss_scatter
 
 
 def analyze_system(system, repetition_num=100):
@@ -20,6 +20,8 @@ def analyze_system(system, repetition_num=100):
 
         ss = get_steady_state(sol)
         ss_data.append(ss)
+
+    plot_ss_scatter(np.array(ss_data))
 
     corr_mat = compute_correlation_matrix(np.array(ss_data))
 
