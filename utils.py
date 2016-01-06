@@ -12,8 +12,8 @@ def get_nonconst_data(i, j, data):
     xs, ys = data[:,i], data[:,j]
 
     # fix series with stdev == 0
-    xs[0] += 1e-20
-    ys[0] += 1e-20
+    xs[0] += 1e-10
+    ys[0] += 1e-10
 
     return xs, ys
 
