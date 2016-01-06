@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from setup import generate_systems
 from solver import solve_system, get_steady_state
-from utils import compute_correlation_matrix
+from utils import compute_correlation_matrix, cache_data
 from plotter import plot_system_overview, plot_ss_scatter
 
 
@@ -42,6 +42,7 @@ def main():
         cmat, sol = analyze_system(syst)
         data.append((syst, cmat, sol))
 
+    cache_data(data)
     data = cluster_data(data)
     plot_system_overview(data)
 

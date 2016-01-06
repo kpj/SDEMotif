@@ -30,3 +30,8 @@ def compute_correlation_matrix(data):
             mat[i, j] = cc
 
     return mat
+
+def cache_data(data, fname='results/data_cache'):
+    """ Save data for later processing steps
+    """
+    np.save(fname, data)
