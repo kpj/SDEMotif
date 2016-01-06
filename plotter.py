@@ -85,12 +85,10 @@ def plot_system(system, ax):
     dim = J.shape[0]
     graph.add_nodes_from(range(dim))
 
-    edge_label_map = {}
     for i in range(dim):
         for j in range(dim):
             if J[i, j] != 0:
-                graph.add_edge(j, i, label=J[i, j])
-                edge_label_map[(j, i)] = round(J[i, j], 2)
+                graph.add_edge(j, i, label=round(J[i, j], 2))
 
     pydot_graph = nx.to_pydot(graph)
     png_str = pydot_graph.create_png(prog=['dot', '-Gdpi=300'])
