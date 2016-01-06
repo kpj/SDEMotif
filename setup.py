@@ -169,7 +169,6 @@ def steadystate_and_divergence():
         selfinh_jacobian, fluctuation_vector,
         external_influence, initial_state)
 
-
     return [d_sys, ss_sys]
 
 generate_systems = generate_all
