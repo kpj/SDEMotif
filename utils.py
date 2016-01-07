@@ -6,16 +6,19 @@ import numpy as np
 import scipy.stats as scis
 
 
-def get_nonconst_data(i, j, data):
-    """ Return data along some axis and make sure it's not constant
+def get_correlation(xs, ys):
+    """ Compute correlation and handle equal series
     """
-    xs, ys = data[:,i], data[:,j]
+    try:
+        cc, pval = scis.pearsonr(xs, ys)
+    except FloatingPointError:
+        cc, pval = 0, 0
+    return cc
 
-    # fix series with stdev == 0
-    xs[0] += 1e-10
-    ys[0] += 1e-10
-
-    return xs, ys
+def extract(i, j, data):
+    """ Extract data vectors
+    """
+    return data[:,i], data[:,j]
 
 def compute_correlation_matrix(data):
     """ Compute correlation matrix of given data points
@@ -25,8 +28,8 @@ def compute_correlation_matrix(data):
     mat = np.empty((dim, dim))
     for i in range(dim):
         for j in range(dim):
-            xs, ys = get_nonconst_data(i, j, data)
-            cc, pval = scis.pearsonr(xs, ys)
+            xs, ys = extract(i, j, data)
+            cc = get_correlation(xs, ys)
             mat[i, j] = cc
 
     return mat

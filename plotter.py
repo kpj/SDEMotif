@@ -12,7 +12,7 @@ import matplotlib.pylab as plt
 from matplotlib import gridspec
 import matplotlib.image as mpimg
 
-from utils import get_nonconst_data
+from utils import get_correlation, extract
 
 
 def plot_system_evolution(sol, ax):
@@ -32,13 +32,13 @@ def plot_ss_scatter(steadies):
     def do_scatter(i, j, ax):
         """ Draw single scatter plot
         """
-        xs, ys = get_nonconst_data(i, j, steadies)
+        xs, ys = extract(i, j, steadies)
         ax.scatter(xs, ys)
 
         ax.set_xlabel(r'$S_%d$' % i)
         ax.set_ylabel(r'$S_%d$' % j)
 
-        cc, pval = scis.pearsonr(xs, ys)
+        cc = get_correlation(xs, ys)
         ax.set_title(r'Corr: $%.2f$' % cc)
 
     dim = steadies.shape[1]
