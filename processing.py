@@ -11,7 +11,7 @@ import matplotlib.pylab as plt
 def network_density():
     """ Plot network edge density vs correlation quotient
     """
-    data = np.load('results/data_cache_addnode.npy')
+    data = np.load('results/data_cache.npy')
 
     points = collections.defaultdict(list)
     for syst, mat, sol in data:
