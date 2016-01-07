@@ -15,7 +15,7 @@ def network_density():
 
     points = collections.defaultdict(list)
     for syst, mat, sol in data:
-        max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]-1)
+        max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
         dens = np.count_nonzero(syst.jacobian) / max_edge_num
         quot = mat[0, 2] / mat[1, 2] if mat[1, 2] != 0 else 0
         points[dens].append(quot)
