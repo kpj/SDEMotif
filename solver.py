@@ -6,7 +6,7 @@ import numpy as np
 import numpy.random as npr
 
 
-def solve_system(system, tmax=100, dt=0.1):
+def solve_system(system, tmax=50, dt=0.1, seed=None):
     """ Solve stochastic differential equation (SDE)
     """
     J = system.jacobian
@@ -20,6 +20,9 @@ def solve_system(system, tmax=100, dt=0.1):
 
     state = system.initial_state
     evolution = []
+
+    np.seterr(all='raise')
+    npr.seed(seed)
 
     t = 0
     while t < tmax:
