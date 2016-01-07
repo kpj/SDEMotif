@@ -11,7 +11,7 @@ from utils import compute_correlation_matrix, cache_data
 from plotter import plot_system_overview, plot_ss_scatter
 
 
-def analyze_system(system, repetition_num=100):
+def analyze_system(system, repetition_num=100, filter_trivial_ss=True):
     """ Generate steady states for given system
     """
     ss_data = []
@@ -19,10 +19,12 @@ def analyze_system(system, repetition_num=100):
         sol = solve_system(system)
 
         ss = get_steady_state(sol)
-        ss_data.append(ss)
+        if not filter_trivial_ss or not any(ss <= 1e-10):
+            ss_data.append(ss)
+        else:
+            return None
 
     plot_ss_scatter(np.array(ss_data))
-
     corr_mat = compute_correlation_matrix(np.array(ss_data))
 
     return corr_mat, sol
@@ -39,8 +41,10 @@ def main():
 
     data = []
     for syst in tqdm(systems):
-        cmat, sol = analyze_system(syst)
-        data.append((syst, cmat, sol))
+        res = analyze_system(syst)
+        if not res is None:
+            cmat, sol = res
+            data.append((syst, cmat, sol))
 
     cache_data(data)
     data = cluster_data(data)
