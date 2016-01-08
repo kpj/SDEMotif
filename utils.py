@@ -2,6 +2,8 @@
 Useful functions and more
 """
 
+import os
+
 import numpy as np
 import scipy.stats as scis
 
@@ -37,4 +39,8 @@ def compute_correlation_matrix(data):
 def cache_data(data, fname='results/data_cache'):
     """ Save data for later processing steps
     """
+    fdir = os.path.dirname(fname)
+    if not os.path.isdir(fdir):
+        os.makedirs(fdir)
+
     np.save(fname, data)

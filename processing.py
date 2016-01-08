@@ -7,6 +7,8 @@ import collections
 import numpy as np
 import matplotlib.pylab as plt
 
+from plotter import save_figure
+
 
 def network_density():
     """ Plot network edge density vs correlation quotient
@@ -37,7 +39,7 @@ def network_density():
     #plt.xlim((0.5, 1.01))
 
     plt.tight_layout()
-    plt.savefig('images/edens_quot.pdf', bbox_inches='tight')
+    save_figure('images/edens_quot.pdf', bbox_inches='tight')
     plt.show()
 
 def main():

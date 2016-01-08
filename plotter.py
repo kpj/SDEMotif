@@ -2,10 +2,9 @@
 Visualization related functions
 """
 
-import io
+import io, os
 
 import numpy as np
-import scipy.stats as scis
 import networkx as nx
 
 import matplotlib.pylab as plt
@@ -14,6 +13,15 @@ import matplotlib.image as mpimg
 
 from utils import get_correlation, extract
 
+
+def save_figure(fname, **kwargs):
+    """ Save current plot and check that directory exists
+    """
+    fdir = os.path.dirname(fname)
+    if not os.path.isdir(fdir):
+        os.makedirs(fdir)
+
+    plt.savefig(fname, **kwargs)
 
 def plot_system_evolution(sol, ax):
     """ Plot solution of integration
@@ -56,7 +64,7 @@ def plot_ss_scatter(steadies):
     plt.suptitle('Correlation overview')
 
     plt.tight_layout()
-    plt.savefig('images/correlation_scatter.pdf', bbox_inches='tight')
+    save_figure('images/correlation_scatter.pdf', bbox_inches='tight')
     plt.close()
 
 def plot_corr_mat(corr_mat, ax):
@@ -111,5 +119,5 @@ def plot_system_overview(data):
         plot_system_evolution(solution, plt.subplot(gs[i, 2]))
 
     plt.tight_layout()
-    plt.savefig('images/overview.pdf', bbox_inches='tight', dpi=300)
+    save_figure('images/overview.pdf', bbox_inches='tight', dpi=300)
     plt.close()
