@@ -10,7 +10,6 @@ from tqdm import tqdm
 from setup import generate_systems
 from solver import solve_system, get_steady_state
 from utils import compute_correlation_matrix, cache_data
-from plotter import plot_system_overview, plot_ss_scatter
 
 
 def analyze_system(system, repetition_num=100, filter_trivial_ss=True):
@@ -26,9 +25,7 @@ def analyze_system(system, repetition_num=100, filter_trivial_ss=True):
         else:
             return None
 
-    #plot_ss_scatter(np.array(ss_data))
     corr_mat = compute_correlation_matrix(np.array(ss_data))
-
     return system, corr_mat, sol
 
 def cluster_data(data):
@@ -52,9 +49,8 @@ def main():
                     data.append(res)
                 pbar.update()
 
-    cache_data(data)
     data = cluster_data(data)
-    plot_system_overview(data)
+    cache_data(data)
 
 
 if __name__ == '__main__':

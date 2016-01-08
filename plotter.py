@@ -8,7 +8,6 @@ import numpy as np
 import networkx as nx
 
 import matplotlib.pylab as plt
-from matplotlib import gridspec
 import matplotlib.image as mpimg
 
 from utils import get_correlation, extract
@@ -106,18 +105,3 @@ def plot_system(system, ax):
 
     ax.imshow(img, aspect='equal')
     ax.axis('off')
-
-def plot_system_overview(data):
-    """ Plot systems vs correlations
-    """
-    fig = plt.figure(figsize=(13, 4*len(data)))
-    gs = gridspec.GridSpec(len(data), 3, width_ratios=[1, 1, 2])
-
-    for i, (system, corr_mat, solution) in enumerate(data):
-        plot_system(system, plt.subplot(gs[i, 0]))
-        plot_corr_mat(corr_mat, plt.subplot(gs[i, 1]))
-        plot_system_evolution(solution, plt.subplot(gs[i, 2]))
-
-    plt.tight_layout()
-    save_figure('images/overview.pdf', bbox_inches='tight', dpi=300)
-    plt.close()
