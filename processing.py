@@ -2,6 +2,7 @@
 Data processing facilities
 """
 
+import sys
 import collections
 
 import numpy as np
@@ -56,14 +57,18 @@ def network_density(data):
     save_figure('images/edens_quot.pdf', bbox_inches='tight')
     plt.close()
 
-def main():
+def main(fname, data_step=1):
     """ Main interface
     """
-    data = np.load('results/data_cache.npy')
+    data = np.load(fname)[::data_step]
 
     plot_system_overview(data)
     network_density(data)
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) != 2:
+        print('Usage: %s <data file>' % sys.argv[0])
+        sys.exit(1)
+
+    main(sys.argv[1])
