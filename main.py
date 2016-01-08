@@ -41,7 +41,7 @@ def main():
     """
     systems = generate_systems()
 
-    core_num = int(multiprocessing.cpu_count()/2)
+    core_num = int(multiprocessing.cpu_count() * 4/5)
     print('Using %d cores' % core_num)
 
     data = []
