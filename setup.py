@@ -97,7 +97,7 @@ def generate_varied_parameters(num=5):
         res.append(s)
     return res
 
-def generate_all(size=3, force_self_inhibition=True):
+def generate_all(size=3, force_self_inhibition=False):
     """ Generate all networks of given size
     """
     assert size > 0, 'Require positive network size'

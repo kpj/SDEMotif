@@ -26,7 +26,7 @@ def analyze_system(system, repetition_num=100, filter_trivial_ss=True):
         else:
             return None
 
-    plot_ss_scatter(np.array(ss_data))
+    #plot_ss_scatter(np.array(ss_data))
     corr_mat = compute_correlation_matrix(np.array(ss_data))
 
     return system, corr_mat, sol
