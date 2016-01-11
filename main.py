@@ -10,6 +10,7 @@ from tqdm import tqdm
 from setup import generate_systems
 from solver import solve_system, get_steady_state
 from utils import compute_correlation_matrix, cache_data
+from filters import filter_steady_state, filter_correlation_matrix
 
 
 def analyze_system(system, repetition_num=100, filter_trivial_ss=True):
@@ -20,12 +21,16 @@ def analyze_system(system, repetition_num=100, filter_trivial_ss=True):
         sol = solve_system(system)
 
         ss = get_steady_state(sol)
-        if not filter_trivial_ss or not any(ss <= 1e-10):
+        if not filter_trivial_ss or not filter_steady_state(ss):
             ss_data.append(ss)
         else:
             return None
 
     corr_mat = compute_correlation_matrix(np.array(ss_data))
+
+    if filter_correlation_matrix(corr_mat):
+        return None
+
     return system, corr_mat, sol
 
 def cluster_data(data):
