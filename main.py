@@ -1,5 +1,5 @@
 """
-Reproduce figure 6 from Steuer et al., (2003)
+Infer metabolite correlation patterns from network motifs
 """
 
 import multiprocessing
