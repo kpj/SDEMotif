@@ -12,14 +12,12 @@ def solve_system(system, tmax=50, dt=0.1, seed=None):
     J = system.jacobian
     D = system.fluctuation_vector
     E = system.external_influence
-
-    eq = lambda X, i: \
-        sum([J[i, j]*X[j] for j in range(J.shape[1])]) \
-        + np.sqrt(2 * D[i]) * np.sqrt(dt) * npr.normal() \
-        + E[i]
+    dim = J.shape[0]
 
     state = system.initial_state
     evolution = []
+    dtsq = np.sqrt(dt)
+    tdsq = np.sqrt(2*D)
 
     np.seterr(all='raise')
     npr.seed(seed)
@@ -27,7 +25,10 @@ def solve_system(system, tmax=50, dt=0.1, seed=None):
     t = 0
     while t < tmax:
         evolution.append(state)
-        state = state + dt * np.array([eq(state, i) for i in range(J.shape[0])])
+
+        delta = J.dot(state) + tdsq * dtsq * npr.normal(size=(dim,)) + E
+        state = state + dt * delta
+
         t += dt
 
     return np.array(evolution).T
