@@ -103,8 +103,9 @@ def node_degree(data, bin_num_x=100, bin_num_y=100):
         graph = nx.DiGraph(syst.jacobian)
         for i in graph.nodes():
             ndegs.append(graph.degree(i))
+            ncorrs = [abs(mat[i, j]) for j in graph.neighbors(i) if i != j]
             avg_corrs.append(
-                np.mean([abs(mat[i, j]) for j in graph.nodes() if i != j]))
+                np.mean(ncorrs) if len(ncorrs) > 0 else 0)
         node_num = graph.number_of_nodes()
     assert node_num >= 0, 'Invalid data found'
 
