@@ -10,6 +10,8 @@ import itertools
 import numpy as np
 import numpy.random as npr
 
+from tqdm import tqdm
+
 from system import SDESystem
 from utils import cache_data
 
@@ -115,30 +117,32 @@ def generate_all(size=3, force_self_inhibition=False):
     k = 1
 
     res = []
-    for graph in all_subgraphs:
-        # input only on first node
-        external_influence = np.array([v_in] + [0] * (size-1))
-        fluctuation_vector = np.array([D] + [D] * (size-1))
-        initial_state = np.array([1] * size)
+    with tqdm(total=2**len(all_edges)) as pbar:
+        for graph in all_subgraphs:
+            # input only on first node
+            external_influence = np.array([v_in] + [0] * (size-1))
+            fluctuation_vector = np.array([D] + [D] * (size-1))
+            initial_state = np.array([1] * size)
 
-        # create fitting jacobian
-        jacobian = np.zeros((size, size))
-        for i, j in graph:
-            if i == j:
-                jacobian[i, j] = -k
-            else:
-                jacobian[i, j] = k
+            # create fitting jacobian
+            jacobian = np.zeros((size, size))
+            for i, j in graph:
+                if i == j:
+                    jacobian[i, j] = -k
+                else:
+                    jacobian[i, j] = k
 
-        if force_self_inhibition:
-            if not (np.diagonal(jacobian) < 0).all():
-                continue
+            if force_self_inhibition:
+                if not (np.diagonal(jacobian) < 0).all():
+                    continue
 
-        # assemble system
-        system = SDESystem(
-            jacobian, fluctuation_vector,
-            external_influence, initial_state)
+            # assemble system
+            system = SDESystem(
+                jacobian, fluctuation_vector,
+                external_influence, initial_state)
 
-        res.append(system)
+            res.append(system)
+            pbar.update()
 
     return res
 
