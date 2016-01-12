@@ -43,6 +43,7 @@ def main(fname):
     """ Main interface
     """
     systems = load_systems(fname)
+    print('Integrating %d systems' % systems.size)
 
     core_num = int(multiprocessing.cpu_count() * 4/5)
     print('Using %d cores' % core_num)
@@ -54,6 +55,7 @@ def main(fname):
                 if not res is None:
                     data.append(res)
                 pbar.update()
+    print('Found result for %d systems' % len(data))
 
     data = cluster_data(data)
     cache_data(data)
