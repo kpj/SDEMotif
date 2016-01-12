@@ -1,5 +1,6 @@
 """
-Generate and save system configurations
+Generate and save system configurations.
+All generator functions must start with `generate_`
 """
 
 import sys
@@ -141,7 +142,7 @@ def generate_all(size=3, force_self_inhibition=False):
 
     return res
 
-def steadystate_and_divergence():
+def generate_steadystate_and_divergence():
     """ Contrast correlation of SS and diverging case
     """
     external_influence = np.array([1, 0, 0])
