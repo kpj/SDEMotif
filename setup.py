@@ -118,7 +118,7 @@ def generate_all(size=3, force_self_inhibition=False):
     for graph in all_subgraphs:
         # input only on first node
         external_influence = np.array([v_in] + [0] * (size-1))
-        fluctuation_vector = np.array([D] + [0] * (size-1))
+        fluctuation_vector = np.array([D] + [D] * (size-1))
         initial_state = np.array([1] * size)
 
         # create fitting jacobian
