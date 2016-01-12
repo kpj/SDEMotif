@@ -3,6 +3,7 @@ Data processing facilities
 """
 
 import sys
+import random
 import collections
 
 import numpy as np
@@ -15,13 +16,18 @@ from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evoluti
 from utils import get_correlation
 
 
-def plot_system_overview(data):
+def plot_system_overview(data, sample_size=20):
     """ Plot systems vs correlations
     """
-    fig = plt.figure(figsize=(13, 4*len(data)))
-    gs = gridspec.GridSpec(len(data), 3, width_ratios=[1, 1, 2])
+    # extract sample
+    dsample = [data[i]
+        for i in sorted(random.sample(range(len(data)), min(len(data), sample_size)))]
 
-    for i, (system, corr_mat, solution) in enumerate(data):
+    # plot sample
+    fig = plt.figure(figsize=(13, 4*len(dsample)))
+    gs = gridspec.GridSpec(len(dsample), 3, width_ratios=[1, 1, 2])
+
+    for i, (system, corr_mat, solution) in enumerate(dsample):
         plot_system(system, plt.subplot(gs[i, 0]))
         plot_corr_mat(corr_mat, plt.subplot(gs[i, 1]))
         plot_system_evolution(solution, plt.subplot(gs[i, 2]))
