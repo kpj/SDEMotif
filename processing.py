@@ -4,6 +4,7 @@ Data processing facilities
 
 import sys
 import random
+import itertools
 import collections
 
 import numpy as np
@@ -39,27 +40,53 @@ def plot_system_overview(data, sample_size=20):
 def network_density(data):
     """ Plot network edge density vs correlation quotient
     """
-    points = collections.defaultdict(list)
+    def gen(it):
+        """ Compute all possible heterogeneous pairs of `it`
+        """
+        return filter(lambda e: e[0] < e[1], itertools.product(it, repeat=2))
+
+    points = collections.defaultdict(
+        lambda: collections.defaultdict(list))
     for syst, mat, _ in data:
         max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
         dens = np.count_nonzero(syst.jacobian) / max_edge_num
-        quot = mat[0, 2] / mat[1, 2] if mat[1, 2] != 0 else 0
-        points[dens].append(quot)
 
-    densities = []
-    quotients = []
-    errbars = []
-    for dens, quots in points.items():
-        densities.append(dens)
-        quotients.append(np.mean(quots))
-        errbars.append(np.std(quots))
+        dim = syst.jacobian.shape[0]
+        indices = gen(range(dim))
+        quot_pairs = gen(indices)
 
-    plt.errorbar(
-        densities, quotients, yerr=errbars,
-        fmt='o', clip_on=False)
+        for pair in quot_pairs:
+            p1, p2 = pair
+            quot = mat[p1] / mat[p2] if mat[p2] != 0 else 0
+            points[pair][dens].append(quot)
 
-    plt.xlabel('motif edge density')
-    plt.ylabel('correlation quotient')
+    # plot figure
+    fig = plt.figure(figsize=(6, 4*len(points)))
+    gs = gridspec.GridSpec(len(points), 1)
+
+    def plot(ax, data, title):
+        """ Plot given data
+        """
+        densities = []
+        quotients = []
+        errbars = []
+        for dens, quots in data.items():
+            densities.append(dens)
+            quotients.append(np.mean(quots))
+            errbars.append(np.std(quots))
+
+        ax.errorbar(
+            densities, quotients, yerr=errbars,
+            fmt='o', clip_on=False)
+
+        ax.set_title(title)
+        ax.set_xlabel('motif edge density')
+        ax.set_ylabel('correlation quotient')
+
+    for i, (spec, dat) in enumerate(points.items()):
+        (x1, y1), (x2, y2) = spec
+        plot(plt.subplot(gs[i]), dat,
+            r'Quotient: $C_{%d%d} / C_{%d%d}$' % (x1, y1, x2, y2))
 
     plt.tight_layout()
     save_figure('images/edens_quot.pdf', bbox_inches='tight')
