@@ -2,6 +2,7 @@
 Generate and save system configurations
 """
 
+import sys
 import typing
 import itertools
 
@@ -172,13 +173,23 @@ def load_systems(fname):
     return np.load(fname)
 
 if __name__ == '__main__':
+    if not len(sys.argv) in (1, 2):
+        print('Usage: %s [function selector]' % sys.argv[0])
+        sys.exit(1)
+
     print('Choose generator:')
     keys = sorted(globals().keys())
     for i, name in enumerate(keys):
         if name.startswith('generate_') and isinstance(globals()[name], typing.Callable):
             print(' [%d] - %s' % (i, name))
 
-    choice = int(input('-> '))
+    if len(sys.argv) == 1:
+        choice = int(input('-> '))
+    elif len(sys.argv) == 2:
+        choice = int(sys.argv[1])
+        print('-> %d' % choice)
+    else:
+        raise RuntimeError('This should never happen :-)')
     func = globals()[keys[choice]]
 
     res = func()
