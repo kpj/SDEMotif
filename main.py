@@ -2,12 +2,13 @@
 Infer metabolite correlation patterns from network motifs
 """
 
+import sys
 import multiprocessing
 
 import numpy as np
 from tqdm import tqdm
 
-from setup import generate_systems
+from setup import load_systems
 from solver import solve_system, get_steady_state
 from utils import compute_correlation_matrix, cache_data
 from filters import filter_steady_state, filter_correlation_matrix
@@ -38,10 +39,10 @@ def cluster_data(data):
     """
     return sorted(data, key=lambda e: np.sum(e[1]))
 
-def main():
+def main(fname):
     """ Main interface
     """
-    systems = generate_systems()
+    systems = load_systems(fname)
 
     core_num = int(multiprocessing.cpu_count() * 4/5)
     print('Using %d cores' % core_num)
@@ -59,4 +60,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) != 2:
+        print('Usage: %s <systems file>' % sys.argv[0])
+        sys.exit(1)
+
+    main(sys.argv[1])

@@ -1,21 +1,16 @@
 """
-Setup system
+Generate and save system configurations
 """
 
+import typing
 import itertools
 
 import numpy as np
 import numpy.random as npr
 
+from system import SDESystem
+from utils import cache_data
 
-class SDESystem(object):
-    """ Bundle import SDE information
-    """
-    def __init__(self, J, D, E, I):
-        self.jacobian = J
-        self.fluctuation_vector = D
-        self.external_influence = E
-        self.initial_state = I
 
 def generate_basic_system(v_in=5, k_m=1, k_23=2, D=1):
     """ Generate system according to paper
@@ -171,4 +166,20 @@ def steadystate_and_divergence():
 
     return [d_sys, ss_sys]
 
-generate_systems = generate_all
+def load_systems(fname):
+    """ Support for loading pickled systems from given file
+    """
+    return np.load(fname)
+
+if __name__ == '__main__':
+    print('Choose generator:')
+    keys = sorted(globals().keys())
+    for i, name in enumerate(keys):
+        if name.startswith('generate_') and isinstance(globals()[name], typing.Callable):
+            print(' [%d] - %s' % (i, name))
+
+    choice = int(input('-> '))
+    func = globals()[keys[choice]]
+
+    res = func()
+    cache_data(res, fname='results/systems')
