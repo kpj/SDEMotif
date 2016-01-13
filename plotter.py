@@ -31,7 +31,7 @@ def plot_system_evolution(sol, ax):
     ax.set_ylim((0, ax.get_ylim()[1]))
     ax.set_xlabel('time')
     ax.set_ylabel('concentration')
-    ax.legend(loc='best')
+    ax.legend(loc='best', ncol=2)
 
 def plot_ss_scatter(steadies):
     """ Plot scatter plots of steady states
