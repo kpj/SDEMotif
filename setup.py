@@ -172,6 +172,53 @@ def generate_steadystate_and_divergence():
 
     return [d_sys, ss_sys]
 
+def generate_cycles(size=10):
+    """ Generate one cycle and start adding interfering edges
+    """
+    def get_system(jacobian):
+        """ Create proper system from given Jacobian
+        """
+        external_influence = np.array([5] + [0] * (size-1))
+        fluctuation_vector = np.full((size,), 0)
+        fluctuation_vector[0] = 1
+        initial_state = np.full((size,), 1)
+
+        return SDESystem(
+            jacobian, fluctuation_vector,
+            external_influence, initial_state)
+
+    # generate cycle
+    mat = np.zeros((size, size))
+    np.fill_diagonal(mat, -1)
+    ind = np.arange(size)
+    mat[ind, ind-1] = 1
+
+    systs = [get_system(mat)]
+
+    # generate variants
+    foo = np.copy(mat)
+    foo[0, 1] = -1
+    systs.append(get_system(foo))
+
+    foo = np.copy(mat)
+    foo[0, 3] = -1
+    systs.append(get_system(foo))
+
+    foo = np.copy(mat)
+    foo[0, 5] = -1
+    systs.append(get_system(foo))
+
+    foo = np.copy(mat)
+    foo[0, 7] = -1
+    systs.append(get_system(foo))
+
+    foo = np.copy(mat)
+    foo[0, 9] = -1
+    systs.append(get_system(foo))
+
+    return systs
+
+
 def load_systems(fname):
     """ Support for loading pickled systems from given file
     """
