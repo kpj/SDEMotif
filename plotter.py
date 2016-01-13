@@ -94,10 +94,25 @@ def plot_system(system, ax):
     dim = J.shape[0]
     graph.add_nodes_from(range(dim))
 
+    # add system interactions
     for i in range(dim):
         for j in range(dim):
             if J[i, j] != 0:
                 graph.add_edge(j, i, label=round(J[i, j], 2))
+
+    # mark external input
+    for i, inp in enumerate(system.external_influence):
+        if inp != 0:
+            graph.add_node('ext_inp_%d' % i, style='invis')
+            graph.add_edge(
+                'ext_inp_%d' % i, i,
+                color='"black:white:black"',
+                label=round(inp, 2)) # "" are required
+
+    # mark fluctuating nodes
+    for i, fluc in enumerate(system.fluctuation_vector):
+        if fluc != 0:
+            graph.node[i]['shape'] = 'doublecircle'
 
     pydot_graph = nx.to_pydot(graph)
     png_str = pydot_graph.create_png(prog=['dot', '-Gdpi=300'])
