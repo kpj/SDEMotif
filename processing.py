@@ -93,13 +93,8 @@ def network_density(data):
     plt.close()
 
 def network_density_avg(data):
-    """ Plot network edge density vs correlation quotient
+    """ Plot network edge density vs absolute, average correlation quotient
     """
-    def gen(it):
-        """ Compute all possible heterogeneous pairs of `it`
-        """
-        return filter(lambda e: e[0] < e[1], itertools.product(it, repeat=2))
-
     points = collections.defaultdict(list)
     for syst, mat, _ in data:
         max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
@@ -129,6 +124,40 @@ def network_density_avg(data):
 
     plt.tight_layout()
     save_figure('images/edens_avg.pdf', bbox_inches='tight')
+    plt.close()
+
+def network_density_clustering(data):
+    """ Plot network edge density vs clustering coefficient
+    """
+    points = collections.defaultdict(list)
+    for syst, mat, _ in data:
+        max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
+        dens = np.count_nonzero(syst.jacobian) / max_edge_num
+
+        graph = nx.from_numpy_matrix(syst.jacobian)
+        clus = nx.average_clustering(graph)
+
+        points[dens].append(clus)
+
+    # plot figure
+    densities = []
+    averages = []
+    errbars = []
+    for dens, avgs in points.items():
+        densities.append(dens)
+        averages.append(np.mean(avgs))
+        errbars.append(np.std(avgs))
+
+    plt.errorbar(
+        densities, averages, yerr=errbars,
+        fmt='o', clip_on=False)
+
+    plt.title('')
+    plt.xlabel('motif edge density')
+    plt.ylabel('clustering coefficient')
+
+    plt.tight_layout()
+    save_figure('images/edens_clus.pdf', bbox_inches='tight')
     plt.close()
 
 def node_degree(data, bin_num_x=100, bin_num_y=100):
@@ -178,6 +207,7 @@ def main(fname, data_step=1):
     plot_system_overview(data)
     network_density(data)
     network_density_avg(data)
+    network_density_clustering(data)
     node_degree(data)
 
 
