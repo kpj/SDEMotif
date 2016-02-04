@@ -160,6 +160,47 @@ def network_density_clustering(data):
     save_figure('images/edens_clus.pdf', bbox_inches='tight')
     plt.close()
 
+def network_density_spl(data):
+    """ Plot network edge density vs average shortest path length
+    """
+    points = collections.defaultdict(list)
+    for syst, mat, _ in data:
+        max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
+        dens = np.count_nonzero(syst.jacobian) / max_edge_num
+
+        graph = nx.from_numpy_matrix(syst.jacobian)
+        try:
+            spl = nx.average_shortest_path_length(graph)
+        except nx.exception.NetworkXError:
+            try:
+                spl = np.mean([nx.average_shortest_path_length(g) \
+                    for g in nx.connected_component_subgraphs(graph)])
+            except ZeroDivisionError:
+                continue
+
+        points[dens].append(spl)
+
+    # plot figure
+    densities = []
+    averages = []
+    errbars = []
+    for dens, avgs in points.items():
+        densities.append(dens)
+        averages.append(np.mean(avgs))
+        errbars.append(np.std(avgs))
+
+    plt.errorbar(
+        densities, averages, yerr=errbars,
+        fmt='o', clip_on=False)
+
+    plt.title('')
+    plt.xlabel('motif edge density')
+    plt.ylabel('average shortest path length')
+
+    plt.tight_layout()
+    save_figure('images/edens_spl.pdf', bbox_inches='tight')
+    plt.close()
+
 def node_degree(data, bin_num_x=100, bin_num_y=100):
     """ Compare node degree and correlation
     """
@@ -208,6 +249,7 @@ def main(fname, data_step=1):
     network_density(data)
     network_density_avg(data)
     network_density_clustering(data)
+    network_density_spl(data)
     node_degree(data)
 
 
