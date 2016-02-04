@@ -92,6 +92,45 @@ def network_density(data):
     save_figure('images/edens_quot.pdf', bbox_inches='tight')
     plt.close()
 
+def network_density_avg(data):
+    """ Plot network edge density vs correlation quotient
+    """
+    def gen(it):
+        """ Compute all possible heterogeneous pairs of `it`
+        """
+        return filter(lambda e: e[0] < e[1], itertools.product(it, repeat=2))
+
+    points = collections.defaultdict(list)
+    for syst, mat, _ in data:
+        max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
+        dens = np.count_nonzero(syst.jacobian) / max_edge_num
+
+        ind = np.nonzero(np.tril(abs(mat), k=-1))
+        avg = np.mean(mat[ind])
+
+        points[dens].append(avg)
+
+    # plot figure
+    densities = []
+    averages = []
+    errbars = []
+    for dens, avgs in points.items():
+        densities.append(dens)
+        averages.append(np.mean(avgs))
+        errbars.append(np.std(avgs))
+
+    plt.errorbar(
+        densities, averages, yerr=errbars,
+        fmt='o', clip_on=False)
+
+    plt.title('')
+    plt.xlabel('motif edge density')
+    plt.ylabel('(absolute) average node correlation')
+
+    plt.tight_layout()
+    save_figure('images/edens_avg.pdf', bbox_inches='tight')
+    plt.close()
+
 def node_degree(data, bin_num_x=100, bin_num_y=100):
     """ Compare node degree and correlation
     """
@@ -138,6 +177,7 @@ def main(fname, data_step=1):
 
     plot_system_overview(data)
     network_density(data)
+    network_density_avg(data)
     node_degree(data)
 
 
