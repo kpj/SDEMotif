@@ -92,82 +92,62 @@ def network_density(data):
     save_figure('images/edens_quot.pdf', bbox_inches='tight')
     plt.close()
 
-def network_density_avg(data):
-    """ Plot network edge density vs absolute, average correlation quotient
+def errorbar_plot(data, x_spec, y_spec, fname):
+    """ Dynamically create errorbar plot
     """
+    x_label, x_func = x_spec
+    y_label, y_func = y_spec
+
+    # compute data
     points = collections.defaultdict(list)
     for syst, mat, _ in data:
+        x_value = x_func(syst, mat)
+        y_value = y_func(syst, mat)
+
+        if x_value is None or y_value is None: continue
+        points[x_value].append(y_value)
+
+    # plot figure
+    densities = []
+    averages = []
+    errbars = []
+    for dens, avgs in points.items():
+        densities.append(dens)
+        averages.append(np.mean(avgs))
+        errbars.append(np.std(avgs))
+
+    plt.errorbar(
+        densities, averages, yerr=errbars,
+        fmt='o', clip_on=False)
+
+    plt.title('')
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+
+    plt.tight_layout()
+    save_figure('images/%s' % fname, bbox_inches='tight')
+    plt.close()
+
+def network_investigations(data):
+    """ Conduct various investigations
+    """
+    # define data functions
+    def get_network_density(syst, mat):
         max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
         dens = np.count_nonzero(syst.jacobian) / max_edge_num
+        return dens
 
+    def get_average_correlation(syst, mat):
         ind = np.nonzero(np.tril(abs(mat), k=-1))
         avg = np.mean(mat[ind])
+        return avg
 
-        points[dens].append(avg)
-
-    # plot figure
-    densities = []
-    averages = []
-    errbars = []
-    for dens, avgs in points.items():
-        densities.append(dens)
-        averages.append(np.mean(avgs))
-        errbars.append(np.std(avgs))
-
-    plt.errorbar(
-        densities, averages, yerr=errbars,
-        fmt='o', clip_on=False)
-
-    plt.title('')
-    plt.xlabel('motif edge density')
-    plt.ylabel('(absolute) average node correlation')
-
-    plt.tight_layout()
-    save_figure('images/edens_avg.pdf', bbox_inches='tight')
-    plt.close()
-
-def network_density_clustering(data):
-    """ Plot network edge density vs clustering coefficient
-    """
-    points = collections.defaultdict(list)
-    for syst, mat, _ in data:
-        max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
-        dens = np.count_nonzero(syst.jacobian) / max_edge_num
-
+    def get_clustering_coefficient(syst, mat):
         graph = nx.from_numpy_matrix(syst.jacobian)
         clus = nx.average_clustering(graph)
+        return clus
 
-        points[dens].append(clus)
-
-    # plot figure
-    densities = []
-    averages = []
-    errbars = []
-    for dens, avgs in points.items():
-        densities.append(dens)
-        averages.append(np.mean(avgs))
-        errbars.append(np.std(avgs))
-
-    plt.errorbar(
-        densities, averages, yerr=errbars,
-        fmt='o', clip_on=False)
-
-    plt.title('')
-    plt.xlabel('motif edge density')
-    plt.ylabel('clustering coefficient')
-
-    plt.tight_layout()
-    save_figure('images/edens_clus.pdf', bbox_inches='tight')
-    plt.close()
-
-def network_density_spl(data):
-    """ Plot network edge density vs average shortest path length
-    """
-    points = collections.defaultdict(list)
-    for syst, mat, _ in data:
-        max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
-        dens = np.count_nonzero(syst.jacobian) / max_edge_num
-
+    def get_average_shortest_path_len(syst, mat):
         graph = nx.from_numpy_matrix(syst.jacobian)
         try:
             spl = nx.average_shortest_path_length(graph)
@@ -176,30 +156,22 @@ def network_density_spl(data):
                 spl = np.mean([nx.average_shortest_path_length(g) \
                     for g in nx.connected_component_subgraphs(graph)])
             except ZeroDivisionError:
-                continue
+                return None
+        return spl
 
-        points[dens].append(spl)
-
-    # plot figure
-    densities = []
-    averages = []
-    errbars = []
-    for dens, avgs in points.items():
-        densities.append(dens)
-        averages.append(np.mean(avgs))
-        errbars.append(np.std(avgs))
-
-    plt.errorbar(
-        densities, averages, yerr=errbars,
-        fmt='o', clip_on=False)
-
-    plt.title('')
-    plt.xlabel('motif edge density')
-    plt.ylabel('average shortest path length')
-
-    plt.tight_layout()
-    save_figure('images/edens_spl.pdf', bbox_inches='tight')
-    plt.close()
+    # create plots
+    errorbar_plot(data,
+        ('motif edge density', get_network_density),
+        ('(absolute) average node correlation', get_average_correlation),
+        'edens_avg.pdf')
+    errorbar_plot(data,
+        ('clustering coefficient', get_clustering_coefficient),
+        ('(absolute) average node correlation', get_average_correlation),
+        'edens_clus.pdf')
+    errorbar_plot(data,
+        ('average shortest path length', get_average_shortest_path_len),
+        ('(absolute) average node correlation', get_average_correlation),
+        'edens_spl.pdf')
 
 def node_degree(data, bin_num_x=100, bin_num_y=100):
     """ Compare node degree and correlation
@@ -247,9 +219,7 @@ def main(fname, data_step=1):
 
     plot_system_overview(data)
     network_density(data)
-    network_density_avg(data)
-    network_density_clustering(data)
-    network_density_spl(data)
+    network_investigations(data)
     node_degree(data)
 
 
