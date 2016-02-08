@@ -137,9 +137,19 @@ def network_investigations(data):
         dens = np.count_nonzero(syst.jacobian) / max_edge_num
         return dens
 
-    def get_average_correlation(syst, mat):
+    def get_correlation_mean(syst, mat):
         ind = np.nonzero(np.tril(abs(mat), k=-1))
         avg = np.mean(mat[ind])
+        return avg
+
+    def get_correlation_variance(syst, mat):
+        ind = np.nonzero(np.tril(abs(mat), k=-1))
+        var = np.var(mat[ind])
+        return var
+
+    def get_correlation_median(syst, mat):
+        ind = np.nonzero(np.tril(abs(mat), k=-1))
+        avg = np.median(mat[ind])
         return avg
 
     def get_clustering_coefficient(syst, mat):
@@ -162,16 +172,24 @@ def network_investigations(data):
     # create plots
     errorbar_plot(data,
         ('motif edge density', get_network_density),
-        ('(absolute) average node correlation', get_average_correlation),
-        'edens_avg.pdf')
+        ('(absolute) mean node correlation', get_correlation_mean),
+        'edens_mean.pdf')
     errorbar_plot(data,
         ('clustering coefficient', get_clustering_coefficient),
-        ('(absolute) average node correlation', get_average_correlation),
+        ('(absolute) average node correlation', get_correlation_mean),
         'edens_clus.pdf')
     errorbar_plot(data,
         ('average shortest path length', get_average_shortest_path_len),
-        ('(absolute) average node correlation', get_average_correlation),
+        ('(absolute) average node correlation', get_correlation_mean),
         'edens_spl.pdf')
+    errorbar_plot(data,
+        ('motif edge density', get_network_density),
+        ('node correlation variance', get_correlation_variance),
+        'edens_var.pdf')
+    errorbar_plot(data,
+        ('motif edge density', get_network_density),
+        ('(absolute) median node correlation', get_correlation_median),
+        'edens_median.pdf')
 
 def node_degree(data, bin_num_x=100, bin_num_y=100):
     """ Compare node degree and correlation
