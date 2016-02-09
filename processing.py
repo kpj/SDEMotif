@@ -14,7 +14,7 @@ import matplotlib.pylab as plt
 from matplotlib import gridspec
 
 from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evolution
-from utils import get_correlation
+from utils import get_correlation, extract_sig_entries
 
 
 def plot_system_overview(data, sample_size=20):
@@ -138,18 +138,18 @@ def network_investigations(data):
         return dens
 
     def get_correlation_mean(syst, mat):
-        ind = np.nonzero(np.tril(abs(mat), k=-1))
-        avg = np.mean(mat[ind])
+        vals = extract_sig_entries(mat)
+        avg = np.mean(vals)
         return avg
 
     def get_correlation_variance(syst, mat):
-        ind = np.nonzero(np.tril(abs(mat), k=-1))
-        var = np.var(mat[ind])
+        vals = extract_sig_entries(mat)
+        var = np.var(vals)
         return var
 
     def get_correlation_median(syst, mat):
-        ind = np.nonzero(np.tril(abs(mat), k=-1))
-        avg = np.median(mat[ind])
+        vals = extract_sig_entries(mat)
+        avg = np.median(vals)
         return avg
 
     def get_clustering_coefficient(syst, mat):
