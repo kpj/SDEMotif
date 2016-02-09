@@ -134,6 +134,9 @@ def plot_result(inp, func):
     plt.xticks(np.arange(len(data[0]), dtype=np.int))
     plt.yticks(np.arange(len(data), dtype=np.int))
 
+    plt.setp(plt.gca().get_xticklabels(), fontsize=4, rotation='vertical')
+    plt.setp(plt.gca().get_yticklabels(), fontsize=4)
+
     plt.xlabel('networks')
     plt.ylabel('varied parameter')
 
