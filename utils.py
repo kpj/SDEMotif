@@ -44,3 +44,11 @@ def cache_data(data, fname='results/data_cache'):
         os.makedirs(fdir)
 
     np.save(fname, data)
+
+def extract_sig_entries(mat):
+    """ Extract significant entries from correlation matrix
+    """
+    ind = np.nonzero(np.tril(abs(mat), k=-1))
+    res = mat[ind].tolist()
+    res += [0] * (3-len(res))
+    return np.array(res)
