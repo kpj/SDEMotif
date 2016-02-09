@@ -49,8 +49,8 @@ def add_node_to_system(syst):
     # generate jacobians
     dim = tmp.jacobian.shape[0]
 
-    horz_stacks = itertools.product([0, 1], repeat=dim)
-    vert_stacks = itertools.product([0, 1], repeat=dim)
+    horz_stacks = list(itertools.product([0, 1], repeat=dim))
+    vert_stacks = list(itertools.product([0, 1], repeat=dim))
 
     systems = []
     for hs in horz_stacks:
