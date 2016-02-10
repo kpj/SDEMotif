@@ -124,7 +124,7 @@ def preprocess_data(data, func):
 
     return plot_data
 
-def plot_result(inp, func):
+def plot_result(inp, func, fname):
     """ Plot generated matrix
     """
     # preprocess data
@@ -145,7 +145,7 @@ def plot_result(inp, func):
         interpolation='nearest')
     plt.colorbar()
 
-    plt.savefig('images/matrix.pdf', bbox_inches='tight')
+    plt.savefig(fname, bbox_inches='tight')
     plt.show()
 
 def handle_plots(inp):
@@ -157,8 +157,14 @@ def handle_plots(inp):
         """
         return np.sum(np.sign(raw_vals) == np.sign(enh_vals))
 
+    def get_rank_changes(raw_vals, enh_vals):
+        """ Detect changes in the order of correlations
+        """
+        return np.sum(np.argsort(raw_vals) == np.argsort(enh_vals))
+
     # do magic
-    plot_result(inp, get_sign_changes)
+    plot_result(inp, get_sign_changes, 'images/matrix_sign.pdf')
+    plot_result(inp, get_rank_changes, 'images/matrix_rank.pdf')
 
 
 def main():
