@@ -124,7 +124,7 @@ def preprocess_data(data, func):
 
     return plot_data
 
-def plot_result(inp, func, fname):
+def plot_result(inp, func, title, fname):
     """ Plot generated matrix
     """
     # preprocess data
@@ -137,6 +137,7 @@ def plot_result(inp, func, fname):
     plt.setp(plt.gca().get_xticklabels(), fontsize=4, rotation='vertical')
     plt.setp(plt.gca().get_yticklabels(), fontsize=4)
 
+    plt.title(title)
     plt.xlabel('networks')
     plt.ylabel('varied parameter')
 
@@ -163,8 +164,12 @@ def handle_plots(inp):
         return np.sum(np.invert(np.argsort(raw_vals) == np.argsort(enh_vals)))/2
 
     # do magic
-    plot_result(inp, get_sign_changes, 'images/matrix_sign.pdf')
-    plot_result(inp, get_rank_changes, 'images/matrix_rank.pdf')
+    plot_result(inp,
+        get_sign_changes, 'sign changes',
+        'images/matrix_sign.pdf')
+    plot_result(inp,
+        get_rank_changes, 'rank changes',
+        'images/matrix_rank.pdf')
 
 
 def main():
