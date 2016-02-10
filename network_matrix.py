@@ -141,10 +141,11 @@ def plot_result(inp, func, title, fname):
     plt.xlabel('networks')
     plt.ylabel('varied parameter')
 
+    cmap = plt.get_cmap('jet', np.max(data)+1)
     plt.imshow(
         data,
-        interpolation='nearest')
-    plt.colorbar()
+        interpolation='nearest', cmap=cmap)
+    plt.colorbar(ticks=range(np.max(data)+1))
 
     plt.savefig(fname, bbox_inches='tight')
     plt.show()
