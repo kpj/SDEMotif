@@ -155,12 +155,12 @@ def handle_plots(inp):
     def get_sign_changes(raw_vals, enh_vals):
         """ Compute number of sign changes
         """
-        return np.sum(np.sign(raw_vals) == np.sign(enh_vals))
+        return np.sum(np.invert(np.sign(raw_vals) == np.sign(enh_vals)))
 
     def get_rank_changes(raw_vals, enh_vals):
         """ Detect changes in the order of correlations
         """
-        return np.sum(np.argsort(raw_vals) == np.argsort(enh_vals))
+        return np.sum(np.invert(np.argsort(raw_vals) == np.argsort(enh_vals)))/2
 
     # do magic
     plot_result(inp, get_sign_changes, 'images/matrix_sign.pdf')
