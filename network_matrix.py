@@ -161,7 +161,7 @@ def handle_plots(inp):
     def get_rank_changes(raw_vals, enh_vals):
         """ Detect changes in the order of correlations
         """
-        return np.sum(np.invert(np.argsort(raw_vals) == np.argsort(enh_vals)))/2
+        return np.sum(np.invert(np.argsort(raw_vals) == np.argsort(enh_vals)))
 
     # do magic
     plot_result(inp,
