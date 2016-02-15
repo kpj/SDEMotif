@@ -25,12 +25,12 @@ def analyze_system(system, repetition_num=100, filter_trivial_ss=True):
         if not filter_trivial_ss or not filter_steady_state(ss):
             ss_data.append(ss)
         else:
-            return None
+            return system, None, None
 
     corr_mat = compute_correlation_matrix(np.array(ss_data))
 
     if filter_correlation_matrix(corr_mat):
-        return None
+        return system, None, None
 
     return system, corr_mat, sol
 
@@ -52,7 +52,7 @@ def main(fname):
     with tqdm(total=len(systems)) as pbar:
         with multiprocessing.Pool(core_num) as p:
             for res in p.imap_unordered(analyze_system, systems, chunksize=10):
-                if not res is None:
+                if not res[1] is None:
                     data.append(res)
                 pbar.update()
     print('Found result for %d systems' % len(data))

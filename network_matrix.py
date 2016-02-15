@@ -128,6 +128,9 @@ def preprocess_data(data, func):
         raw, raw_mat, raw_sol = raw_res
         enh, enh_mat, enh_sol = enh_res
 
+        if raw_mat is None or enh_mat is None:
+            return -1
+
         enh_mat = enh_mat[:-1,:-1] # disregard fourth node
         raw_vals = extract_sig_entries(raw_mat)
         enh_vals = extract_sig_entries(enh_mat)
@@ -164,9 +167,12 @@ def plot_result(inp, func, title, fname):
     plt.ylabel('varied parameter')
 
     cmap = plt.get_cmap('jet', np.max(data)+1)
+    cmap.set_under('white')
+
     plt.imshow(
         data,
-        interpolation='nearest', cmap=cmap)
+        interpolation='nearest', cmap=cmap,
+        vmin=0, vmax=np.max(data))
     plt.colorbar(ticks=range(np.max(data)+1))
 
     plt.savefig(fname, bbox_inches='tight')
