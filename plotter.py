@@ -114,7 +114,7 @@ def plot_system(system, ax):
         if fluc != 0:
             graph.node[i]['shape'] = 'doublecircle'
 
-    pydot_graph = nx.to_pydot(graph)
+    pydot_graph = nx.nx_pydot.to_pydot(graph)
     png_str = pydot_graph.create_png(prog=['dot', '-Gdpi=300'])
     img = mpimg.imread(io.BytesIO(png_str))
 
