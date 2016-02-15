@@ -64,6 +64,13 @@ def add_node_to_system(syst):
                 (cur.jacobian, vs))
 
             systems.append(cur)
+
+    # sort by network density
+    def get_density(syst):
+        max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
+        return np.count_nonzero(syst.jacobian) / max_edge_num
+    systems = sorted(systems, key=get_density)
+
     return systems
 
 def handle_systems(raw, enhanced):
@@ -90,6 +97,7 @@ def generate_data(fname, paramter_shift=10):
     """
     param_range = np.linspace(0.1, 5, paramter_shift)
 
+    # generate data
     rows = []
     for k_m in tqdm(param_range):
         for k_23 in tqdm(param_range, nested=True):
@@ -98,6 +106,13 @@ def generate_data(fname, paramter_shift=10):
 
             res = handle_systems(syst, more)
             rows.append(res)
+
+    # order rows by absolute jacobian mean
+    def get_parameter_sort(row):
+        raw_res, _ = row
+        raw, _, _ = raw_res
+        return np.mean(abs(raw.jacobian))
+    rows = sorted(rows, key=get_parameter_sort)
 
     # store matrix
     with open(fname, 'wb') as fd:
@@ -108,6 +123,7 @@ def generate_data(fname, paramter_shift=10):
 def preprocess_data(data, func):
     """ Extract data information
     """
+    # compute matrix entries
     def handle_enh_entry(raw_res, enh_res):
         raw, raw_mat, raw_sol = raw_res
         enh, enh_mat, enh_sol = enh_res
@@ -122,17 +138,23 @@ def preprocess_data(data, func):
     for raw, enh_res in data:
         plot_data.append([handle_enh_entry(raw, enh) for enh in enh_res])
 
-    return plot_data
+    # generate axes labels
+    xtick_labels = [ \
+        np.count_nonzero(n[0].jacobian) / (n[0].jacobian.shape[0] * (n[0].jacobian.shape[0]+1)) \
+        for n in data[0][1]]
+    ytick_labels = [np.mean(abs(r[0].jacobian)) for r, e in data]
+
+    return plot_data, xtick_labels, ytick_labels
 
 def plot_result(inp, func, title, fname):
     """ Plot generated matrix
     """
     # preprocess data
-    data = preprocess_data(inp['data'], func)
+    data, xticks, yticks = preprocess_data(inp['data'], func)
 
     # create plot
-    plt.xticks(np.arange(len(data[0]), dtype=np.int))
-    plt.yticks(np.arange(len(data), dtype=np.int))
+    plt.xticks(np.arange(len(data[0]), dtype=np.int), xticks)
+    plt.yticks(np.arange(len(data), dtype=np.int), yticks)
 
     plt.setp(plt.gca().get_xticklabels(), fontsize=4, rotation='vertical')
     plt.setp(plt.gca().get_yticklabels(), fontsize=4)
