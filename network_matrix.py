@@ -8,6 +8,8 @@ import pickle
 import itertools
 
 import numpy as np
+
+import matplotlib as mpl
 import matplotlib.pylab as plt
 
 from tqdm import tqdm
@@ -170,14 +172,15 @@ def plot_result(inp, func, title, fname):
     plt.xlabel('networks')
     plt.ylabel('varied parameter')
 
-    cmap = plt.get_cmap('jet', np.max(data)+1)
+    col_list = [(0.7,0.7,0.7), (0,0,1), (1,0,0)]
+    cmap = mpl.colors.ListedColormap(col_list, name='highlighter')
     cmap.set_under('white')
 
     plt.imshow(
         data,
         interpolation='nearest', cmap=cmap,
         vmin=0, vmax=np.max(data))
-    plt.colorbar(ticks=range(np.max(data)+1))
+    plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
     plt.savefig(fname, bbox_inches='tight')
     plt.show()
