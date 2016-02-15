@@ -169,8 +169,8 @@ def plot_result(inp, func, title, fname):
         bottom='off', top='off', labelbottom='on', left='off', right='off')
 
     plt.title(title)
-    plt.xlabel('networks')
-    plt.ylabel('varied parameter')
+    plt.xlabel('network density')
+    plt.ylabel('absolute mean of Jacobian')
 
     col_list = [(0.7,0.7,0.7), (0,0,1), (1,0,0)]
     cmap = mpl.colors.ListedColormap(col_list, name='highlighter')
