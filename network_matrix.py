@@ -143,9 +143,9 @@ def preprocess_data(data, func):
 
     # generate axes labels
     xtick_labels = [ \
-        np.count_nonzero(n[0].jacobian) / (n[0].jacobian.shape[0] * (n[0].jacobian.shape[0]+1)) \
+        round(np.count_nonzero(n[0].jacobian) / (n[0].jacobian.shape[0] * (n[0].jacobian.shape[0]+1)), 2) \
         for n in data[0][1]]
-    ytick_labels = [np.mean(abs(r[0].jacobian)) for r, e in data]
+    ytick_labels = [round(np.mean(abs(r[0].jacobian)), 2) for r, e in data]
 
     return plot_data, xtick_labels, ytick_labels
 
@@ -161,6 +161,10 @@ def plot_result(inp, func, title, fname):
 
     plt.setp(plt.gca().get_xticklabels(), fontsize=4, rotation='vertical')
     plt.setp(plt.gca().get_yticklabels(), fontsize=4)
+
+    plt.tick_params(
+        axis='both', which='both', labelleft='on',
+        bottom='off', top='off', labelbottom='on', left='off', right='off')
 
     plt.title(title)
     plt.xlabel('networks')
