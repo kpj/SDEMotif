@@ -17,6 +17,7 @@ from tqdm import tqdm
 from system import SDESystem
 from main import analyze_system
 from utils import extract_sig_entries
+from plotter import save_figure, plot_system, plot_corr_mat
 
 
 def generate_basic_system(v_in=5, k_m=1, k_23=2, D=1):
@@ -94,7 +95,7 @@ def generate_data(fname, paramter_shift=10):
             'data': [
                 [raw_res, [enh_res, ...]], # some parameter configuratoin
                 ...
-            ]
+            ] # rows in output plot
         }
     """
     param_range = np.linspace(0.1, 5, paramter_shift)
@@ -182,8 +183,48 @@ def plot_result(inp, func, title, fname):
         vmin=0, vmax=np.max(data))
     plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
-    plt.savefig(fname, bbox_inches='tight')
-    plt.show()
+    save_figure(fname, bbox_inches='tight')
+    plt.close()
+
+    plot_individuals(inp['data'], data, fname)
+
+def plot_individuals(data, mat, fname, num=3):
+    """ Plot a selection of individual results
+    """
+    mat = np.array(mat)
+
+    # select "best" examples for networks
+    scores = []
+    for col in mat.T:
+        scores.append(col[col > 0].sum())
+    xsel = np.argsort(-np.array(scores))[:num]
+
+    ysel = []
+    for col in mat.T[xsel]:
+        csel = np.argsort(col)[-1]
+        ysel.append(csel)
+
+    netws = []
+    for x, y in zip(xsel, ysel):
+        raw = data[y][0]
+        cur = data[y][1][x]
+        netws.append((raw, cur))
+
+    # plot selected networks
+    fig = plt.figure(figsize=(13, 4*len(netws)))
+    gs = mpl.gridspec.GridSpec(len(netws), 4, width_ratios=[1, 1, 1, 1])
+
+    for i, net in enumerate(netws):
+        raw, enh = net
+
+        plot_system(raw[0], plt.subplot(gs[i, 0]))
+        plot_corr_mat(raw[1], plt.subplot(gs[i, 1]))
+
+        plot_system(enh[0], plt.subplot(gs[i, 2]))
+        plot_corr_mat(enh[1], plt.subplot(gs[i, 3]))
+
+    save_figure('%s_zoom.pdf' % fname.replace('.pdf', ''), bbox_inches='tight', dpi=300)
+    plt.close()
 
 def handle_plots(inp):
     """ Generate plots for varying data extraction functions
