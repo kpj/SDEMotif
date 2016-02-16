@@ -17,7 +17,7 @@ from tqdm import tqdm
 from system import SDESystem
 from main import analyze_system
 from utils import extract_sig_entries
-from plotter import save_figure, plot_system, plot_corr_mat
+from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evolution
 
 
 def generate_basic_system(v_in=5, k_m=1, k_23=2, D=1):
@@ -211,17 +211,19 @@ def plot_individuals(data, mat, fname, num=3):
         netws.append((raw, cur))
 
     # plot selected networks
-    fig = plt.figure(figsize=(13, 4*len(netws)))
-    gs = mpl.gridspec.GridSpec(len(netws), 4, width_ratios=[1, 1, 1, 1])
+    fig = plt.figure(figsize=(25, 4*len(netws)))
+    gs = mpl.gridspec.GridSpec(len(netws), 6, width_ratios=[1, 1, 2, 1, 1, 2])
 
     for i, net in enumerate(netws):
         raw, enh = net
 
         plot_system(raw[0], plt.subplot(gs[i, 0]))
         plot_corr_mat(raw[1], plt.subplot(gs[i, 1]))
+        plot_system_evolution(raw[2], plt.subplot(gs[i, 2]))
 
-        plot_system(enh[0], plt.subplot(gs[i, 2]))
-        plot_corr_mat(enh[1], plt.subplot(gs[i, 3]))
+        plot_system(enh[0], plt.subplot(gs[i, 3]))
+        plot_corr_mat(enh[1], plt.subplot(gs[i, 4]))
+        plot_system_evolution(enh[2], plt.subplot(gs[i, 5]))
 
     save_figure('%s_zoom.pdf' % fname.replace('.pdf', ''), bbox_inches='tight', dpi=300)
     plt.close()
