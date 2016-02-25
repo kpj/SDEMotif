@@ -232,14 +232,24 @@ def handle_plots(inp):
     """ Generate plots for varying data extraction functions
     """
     # define functions
+    def annihilate_low_correlations(vals, threshold=0.1):
+        """ Take care of small fluctuations around 0
+        """
+        vals[abs(vals) <= threshold] = 0
+        return vals
+
     def get_sign_changes(raw_vals, enh_vals):
         """ Compute number of sign changes
         """
+        raw_vals = annihilate_low_correlations(raw_vals)
+        enh_vals = annihilate_low_correlations(enh_vals)
         return np.sum(np.invert(np.sign(raw_vals) == np.sign(enh_vals)))
 
     def get_rank_changes(raw_vals, enh_vals):
         """ Detect changes in the order of correlations
         """
+        raw_vals = annihilate_low_correlations(raw_vals)
+        enh_vals = annihilate_low_correlations(enh_vals)
         return np.sum(np.invert(np.argsort(raw_vals) == np.argsort(enh_vals)))
 
     # do magic
