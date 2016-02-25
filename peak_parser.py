@@ -67,9 +67,8 @@ def find_3_node_networks(data):
     motifs = []
     for e1, t, e2 in products:
         if e1 in educts and e2 in educts:
-            prod = '%s, %s, %s' % (e1, t, e2)
             motifs.append((
-                (e1, e2, prod),
+                (e1, t, e2),
                 (get_intensities('educt', e1), get_intensities('educt', e2), get_intensities('product', (e1, t, e2)))
             ))
 
@@ -77,21 +76,31 @@ def find_3_node_networks(data):
         % (len(motifs), len(educts), len(products)))
     return motifs
 
-def get_complete_network(data):
-    """ Generate complete network hidden in data
+def get_complete_network(data, strict=True):
+    """ Generate complete network hidden in data.
+        In `strict` mode, products are only considered if both educts exist as well
     """
     graph = nx.DiGraph()
 
     # create graph
-    for typ, spec in data.keys():
-        if typ == 'product':
-            graph.add_node(spec[1], color='blue')
-            graph.add_edge(spec[0], spec[1], color='gray')
-            graph.add_edge(spec[2], spec[1], color='gray')
-        elif typ == 'educt':
-            graph.add_node(spec)
-        else:
-            raise RuntimeError('Unknown entry "%s"' % str((typ, spec)))
+    if strict:
+        motifs = find_3_node_networks(data)
+        for entry in motifs:
+            e1, t, e2 = entry[0]
+
+            graph.add_node(t, color='blue')
+            graph.add_edge(e1, t, color='gray')
+            graph.add_edge(e2, t, color='gray')
+    else:
+        for typ, spec in data.keys():
+            if typ == 'product':
+                graph.add_node(spec[1], color='blue')
+                graph.add_edge(spec[0], spec[1], color='gray')
+                graph.add_edge(spec[2], spec[1], color='gray')
+            elif typ == 'educt':
+                graph.add_node(spec)
+            else:
+                raise RuntimeError('Unknown entry "%s"' % str((typ, spec)))
 
     # list some information
     lwcc = max(nx.weakly_connected_component_subgraphs(graph), key=len)
