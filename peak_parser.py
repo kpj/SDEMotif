@@ -7,6 +7,9 @@ import sys
 import csv
 import collections
 
+import networkx as nx
+import matplotlib.pyplot as plt
+
 
 def read_file(fname):
     """ Read file into some data structure:
@@ -91,11 +94,38 @@ def find_3_node_networks(data):
 
     return motifs
 
+def get_complete_network(data):
+    """ Generate complete network hidden in data
+    """
+    graph = nx.DiGraph()
+
+    # create graph
+    for typ, spec in data.keys():
+        if typ == 'product':
+            graph.add_node(spec[1], color='blue')
+            graph.add_edge(spec[0], spec[1], color='gray')
+            graph.add_edge(spec[2], spec[1], color='gray')
+        elif typ == 'educt':
+            graph.add_node(spec[0])
+        else:
+            raise RuntimeError('Unknown entry "%s"' % str((typ, spec)))
+
+    # list some information
+    lwcc = max(nx.weakly_connected_component_subgraphs(graph), key=len)
+    print('Largest weakly connected component:', len(lwcc))
+
+    # plot graph
+    pydot_graph = nx.nx_pydot.to_pydot(graph)
+    pydot_graph.write_pdf(
+        'images/complete_peak_network.pdf',
+        prog=['fdp', '-Goutputorder=edgesfirst'])
+
 def main(fname):
     """ Analyse peaks
     """
     data = read_file(fname)
     res = find_3_node_networks(data)
+    get_complete_network(data)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
