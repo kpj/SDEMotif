@@ -8,6 +8,7 @@ import pickle
 import itertools
 
 import numpy as np
+import networkx as nx
 
 import matplotlib as mpl
 import matplotlib.pylab as plt
@@ -120,7 +121,7 @@ def generate_data(fname, paramter_shift=10):
     # store matrix
     with open(fname, 'wb') as fd:
         pickle.dump({
-            'data': rows,
+            'data': rows
         }, fd)
 
 def preprocess_data(data, val_func, sort_func):
@@ -149,10 +150,10 @@ def preprocess_data(data, val_func, sort_func):
     tmp = np.transpose(plot_data).tolist()
     res = [x for y, x in sorted(
         zip(char_netws, tmp), key=lambda pair: sort_func(pair[0]))]
-    plot_data =np.transpose(res)
+    plot_data = np.transpose(res)
 
     # generate axes labels
-    xtick_labels = [sort_func(n) for n in char_netws]
+    xtick_labels = sorted([sort_func(n) for n in char_netws])
     ytick_labels = [round(np.mean(abs(r[0].jacobian)), 2) for r, e in data]
 
     return plot_data, xtick_labels, ytick_labels
@@ -175,7 +176,7 @@ def plot_result(inp, vfunc, sfunc, title, fname):
         bottom='off', top='off', labelbottom='on', left='off', right='off')
 
     plt.title(title)
-    plt.xlabel('network density')
+    plt.xlabel(sfunc.__doc__)
     plt.ylabel('absolute mean of Jacobian')
 
     col_list = [(0.7,0.7,0.7), (0,0,1), (1,0,0)]
@@ -196,8 +197,6 @@ def plot_result(inp, vfunc, sfunc, title, fname):
 def plot_individuals(data, mat, fname, num=3):
     """ Plot a selection of individual results
     """
-    mat = np.array(mat)
-
     # select "best" examples for networks
     scores = []
     for col in mat.T:
@@ -219,8 +218,12 @@ def plot_individuals(data, mat, fname, num=3):
     fig = plt.figure(figsize=(25, 4*len(netws)))
     gs = mpl.gridspec.GridSpec(len(netws), 6, width_ratios=[1, 1, 2, 1, 1, 2])
 
+    counter = 0
     for i, net in enumerate(netws):
         raw, enh = net
+        if raw[1] is None or enh[1] is None:
+            counter += 1
+            continue
 
         plot_system(raw[0], plt.subplot(gs[i, 0]))
         plot_corr_mat(raw[1], plt.subplot(gs[i, 1]))
@@ -230,13 +233,16 @@ def plot_individuals(data, mat, fname, num=3):
         plot_corr_mat(enh[1], plt.subplot(gs[i, 4]))
         plot_system_evolution(enh[2], plt.subplot(gs[i, 5]))
 
+    if counter > 0:
+        print('{} broken results'.format(counter))
+
     save_figure('%s_zoom.pdf' % fname.replace('.pdf', ''), bbox_inches='tight', dpi=300)
     plt.close()
 
 def handle_plots(inp):
     """ Generate plots for varying data extraction functions
     """
-    # define functions
+    # value functions
     def annihilate_low_correlations(vals, threshold=0.1):
         """ Take care of small fluctuations around 0
         """
@@ -257,20 +263,39 @@ def handle_plots(inp):
         enh_vals = annihilate_low_correlations(enh_vals)
         return np.sum(np.invert(np.argsort(raw_vals) == np.argsort(enh_vals)))
 
+    # sorting functions
     def sort_by_network_density(netw):
-        """ Sort by density of network
-        """
+        """network density"""
         edge_num = np.count_nonzero(netw.jacobian)
-        max_edge_num = netw.jacobian.shape[0] * (netw.jacobian.shape[0] + 1)
+        max_edge_num = netw.jacobian.shape[0]**2
         return round(edge_num / max_edge_num, 2)
 
-    # do magic
-    plot_result(inp,
-        get_sign_changes, sort_by_network_density,
-        'sign changes', 'images/matrix_sign_netdens.pdf')
-    plot_result(inp,
-        get_rank_changes, sort_by_network_density,
-        'rank changes', 'images/matrix_rank_netdens.pdf')
+    def sort_by_indeg(netw):
+        """in-degree of fourth node"""
+        in_vec = netw.jacobian[:,-1][:-1]
+        return np.sum(in_vec)
+
+    def sort_by_outdeg(netw):
+        """out-degree of fourth node"""
+        out_vec = netw.jacobian[-1,:][:-1]
+        return np.sum(out_vec)
+
+    def sort_by_cycle_num(netw):
+        """number of cycles"""
+        graph = nx.from_numpy_matrix(netw.jacobian, create_using=nx.DiGraph())
+        return len(list(nx.simple_cycles(graph)))
+
+    # plots
+    for vfunc, title in zip([get_sign_changes, get_rank_changes], ['sign changes', 'rank changes']):
+        plot_result(inp,
+            vfunc, sort_by_network_density,
+            title, 'images/matrix_sign_netdens.pdf')
+        plot_result(inp,
+            vfunc, sort_by_network_density,
+            title, 'images/matrix_rank_netdens.pdf')
+        plot_result(inp,
+            vfunc, sort_by_cycle_num,
+            title, 'images/matrix_rank_cycles.pdf')
 
 
 def main():
