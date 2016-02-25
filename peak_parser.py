@@ -24,10 +24,10 @@ def read_file(fname):
         out = []
         macros = re.findall(r'\[(.*?)\]', name)
         for mac in macros:
-            res = re.match(r'\((.*?)\) (.*?) \((.*?)\)', mac)
+            res = re.match(r'^\((.*?)\) (.*) \((.*?)\)$', mac)
             out.append((
                 'educt' if res is None else 'product',
-                mac if res is None else res.groups()
+                (mac,) if res is None else res.groups()
             ))
         return out
 
