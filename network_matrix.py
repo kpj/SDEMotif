@@ -124,8 +124,9 @@ def generate_data(fname, paramter_shift=10):
             'data': rows
         }, fd)
 
-def preprocess_data(data, val_func, sort_func):
-    """ Extract data information
+def preprocess_data(data, val_func, sort_functions):
+    """ Extract data information.
+        Sort columns primarily by first sort_function and then the others in order
     """
     # compute matrix entries
     def handle_enh_entry(raw_res, enh_res):
@@ -148,21 +149,22 @@ def preprocess_data(data, val_func, sort_func):
     # order columns by `sort_func`
     char_netws = [n[0] for n in data[0][1]]
     tmp = np.transpose(plot_data).tolist()
-    res = [x for y, x in sorted(
-        zip(char_netws, tmp), key=lambda pair: sort_func(pair[0]))]
-    plot_data = np.transpose(res)
+    for sfunc in sort_functions[::-1]:
+        tmp = [x for y, x in sorted(
+            zip(char_netws, tmp), key=lambda pair: sfunc(pair[0]))]
+    plot_data = np.transpose(tmp)
 
     # generate axes labels
-    xtick_labels = sorted([sort_func(n) for n in char_netws])
+    xtick_labels = sorted([sort_functions[0](n) for n in char_netws])
     ytick_labels = [round(np.mean(abs(r[0].jacobian)), 2) for r, e in data]
 
     return plot_data, xtick_labels, ytick_labels
 
-def plot_result(inp, vfunc, sfunc, title, fname):
+def plot_result(inp, vfunc, sfuncs, title, fname):
     """ Plot generated matrix
     """
     # preprocess data
-    data, xticks, yticks = preprocess_data(inp['data'], vfunc, sfunc)
+    data, xticks, yticks = preprocess_data(inp['data'], vfunc, sfuncs)
 
     # create plot
     plt.xticks(np.arange(len(data[0]), dtype=np.int), xticks)
@@ -176,7 +178,7 @@ def plot_result(inp, vfunc, sfunc, title, fname):
         bottom='off', top='off', labelbottom='on', left='off', right='off')
 
     plt.title(title)
-    plt.xlabel(sfunc.__doc__)
+    plt.xlabel(sfuncs[0].__doc__)
     plt.ylabel('absolute mean of Jacobian')
 
     col_list = [(0.7,0.7,0.7), (0,0,1), (1,0,0)]
@@ -286,16 +288,21 @@ def handle_plots(inp):
         return len(list(nx.simple_cycles(graph)))
 
     # plots
-    for vfunc, title in zip([get_sign_changes, get_rank_changes], ['sign changes', 'rank changes']):
+    for vfunc, title in zip([get_sign_changes, get_rank_changes], ['sign', 'rank']):
+        ptitle = '{} changes'.format(title)
+
         plot_result(inp,
-            vfunc, sort_by_network_density,
-            title, 'images/matrix_sign_netdens.pdf')
+            vfunc, [sort_by_network_density],
+            ptitle, 'images/matrix_{}_netdens.pdf'.format(title))
         plot_result(inp,
-            vfunc, sort_by_network_density,
-            title, 'images/matrix_rank_netdens.pdf')
+            vfunc, [sort_by_indeg, sort_by_outdeg],
+            ptitle, 'images/matrix_{}_indeg.pdf'.format(title))
         plot_result(inp,
-            vfunc, sort_by_cycle_num,
-            title, 'images/matrix_rank_cycles.pdf')
+            vfunc, [sort_by_outdeg, sort_by_indeg],
+            ptitle, 'images/matrix_{}_outdeg.pdf'.format(title))
+        plot_result(inp,
+            vfunc, [sort_by_cycle_num],
+            ptitle, 'images/matrix_{}_cycles.pdf'.format(title))
 
 
 def main():
