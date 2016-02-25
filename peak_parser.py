@@ -8,7 +8,6 @@ import csv
 import collections
 
 import networkx as nx
-import matplotlib.pyplot as plt
 
 
 def read_file(fname):
