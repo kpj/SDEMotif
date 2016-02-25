@@ -123,7 +123,7 @@ def generate_data(fname, paramter_shift=10):
             'data': rows,
         }, fd)
 
-def preprocess_data(data, func):
+def preprocess_data(data, val_func, sort_func):
     """ Extract data information
     """
     # compute matrix entries
@@ -138,25 +138,30 @@ def preprocess_data(data, func):
         raw_vals = extract_sig_entries(raw_mat)
         enh_vals = extract_sig_entries(enh_mat)
 
-        return func(raw_vals, enh_vals)
+        return val_func(raw_vals, enh_vals)
 
     plot_data = []
-    for raw, enh_res in data:
+    for raw, enh_res in data: # for each row
         plot_data.append([handle_enh_entry(raw, enh) for enh in enh_res])
 
+    # order columns by `sort_func`
+    char_netws = [n[0] for n in data[0][1]]
+    tmp = np.transpose(plot_data).tolist()
+    res = [x for y, x in sorted(
+        zip(char_netws, tmp), key=lambda pair: sort_func(pair[0]))]
+    plot_data =np.transpose(res)
+
     # generate axes labels
-    xtick_labels = [ \
-        round(np.count_nonzero(n[0].jacobian) / (n[0].jacobian.shape[0] * (n[0].jacobian.shape[0]+1)), 2) \
-        for n in data[0][1]]
+    xtick_labels = [sort_func(n) for n in char_netws]
     ytick_labels = [round(np.mean(abs(r[0].jacobian)), 2) for r, e in data]
 
     return plot_data, xtick_labels, ytick_labels
 
-def plot_result(inp, func, title, fname):
+def plot_result(inp, vfunc, sfunc, title, fname):
     """ Plot generated matrix
     """
     # preprocess data
-    data, xticks, yticks = preprocess_data(inp['data'], func)
+    data, xticks, yticks = preprocess_data(inp['data'], vfunc, sfunc)
 
     # create plot
     plt.xticks(np.arange(len(data[0]), dtype=np.int), xticks)
@@ -252,13 +257,20 @@ def handle_plots(inp):
         enh_vals = annihilate_low_correlations(enh_vals)
         return np.sum(np.invert(np.argsort(raw_vals) == np.argsort(enh_vals)))
 
+    def sort_by_network_density(netw):
+        """ Sort by density of network
+        """
+        edge_num = np.count_nonzero(netw.jacobian)
+        max_edge_num = netw.jacobian.shape[0] * (netw.jacobian.shape[0] + 1)
+        return round(edge_num / max_edge_num, 2)
+
     # do magic
     plot_result(inp,
-        get_sign_changes, 'sign changes',
-        'images/matrix_sign.pdf')
+        get_sign_changes, sort_by_network_density,
+        'sign changes', 'images/matrix_sign_netdens.pdf')
     plot_result(inp,
-        get_rank_changes, 'rank changes',
-        'images/matrix_rank.pdf')
+        get_rank_changes, sort_by_network_density,
+        'rank changes', 'images/matrix_rank_netdens.pdf')
 
 
 def main():
