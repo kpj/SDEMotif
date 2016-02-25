@@ -48,8 +48,8 @@ def read_file(fname):
         # parse data
         for row in reader:
             cname = row[-1]
-            for name in parse_compound_name(cname):
-                data[name].extend(
+            for entry_pair in parse_compound_name(cname):
+                data[entry_pair].extend(
                     parse_intensities(row[int_slice]))
     return data
 
