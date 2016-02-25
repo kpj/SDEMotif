@@ -26,14 +26,14 @@ def read_file(fname):
             res = re.match(r'^\((.*?)\) (.*) \((.*?)\)$', mac)
             out.append((
                 'educt' if res is None else 'product',
-                (mac,) if res is None else res.groups()
+                mac if res is None else res.groups()
             ))
         return out
 
     def parse_intensities(ints):
         """ Filter zero-entries
         """
-        return map(float, ints)
+        return list(map(float, ints))
 
     data = collections.defaultdict(list)
     with open(fname, 'r') as fd:
@@ -48,7 +48,7 @@ def read_file(fname):
         for row in reader:
             cname = row[-1]
             for entry_pair in parse_compound_name(cname):
-                data[entry_pair].extend(
+                data[entry_pair].append(
                     parse_intensities(row[int_slice]))
     return data
 
@@ -56,41 +56,25 @@ def find_3_node_networks(data):
     """ Find two-substrate reactions and product
     """
     def get_intensities(typ, crit):
-        """ Extract macthing intensities
+        """ Extract matching intensities
         """
-        ints = []
-        for (t, rest), series in data.items():
-            if t == typ and rest == crit:
-                ints.extend(series)
-        return ints
+        return data[(typ, crit)]
 
     educts = [com[1] for com in data.keys() if com[0] == 'educt']
     products = [com[1] for com in data.keys() if com[0] == 'product']
 
     # find all motifs
-    nets = []
+    motifs = []
     for e1, t, e2 in products:
         if e1 in educts and e2 in educts:
             prod = '%s, %s, %s' % (e1, t, e2)
-            nets.append((
+            motifs.append((
                 (e1, e2, prod),
                 (get_intensities('educt', e1), get_intensities('educt', e2), get_intensities('product', (e1, t, e2)))
             ))
 
     print('Found %d networks in %d educts and %d products' \
-        % (len(nets), len(educts), len(products)))
-
-    # select motifs with enough intensities
-    motifs = []
-    for ex in nets:
-        ls = [len(l) for l in ex[1]]
-        if len(set(ls)) == 1:
-            motifs.append(ex)
-
-    print('%d of them are suitable' % len(motifs))
-    for m in motifs:
-        print(m[0])
-
+        % (len(motifs), len(educts), len(products)))
     return motifs
 
 def get_complete_network(data):
@@ -105,7 +89,7 @@ def get_complete_network(data):
             graph.add_edge(spec[0], spec[1], color='gray')
             graph.add_edge(spec[2], spec[1], color='gray')
         elif typ == 'educt':
-            graph.add_node(spec[0])
+            graph.add_node(spec)
         else:
             raise RuntimeError('Unknown entry "%s"' % str((typ, spec)))
 
