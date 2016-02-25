@@ -5,9 +5,15 @@ Parse real-life peak data
 import re
 import sys
 import csv
+import itertools
 import collections
 
+import numpy as np
 import networkx as nx
+import scipy.stats as scits
+import matplotlib.pylab as plt
+
+from tqdm import tqdm
 
 
 def read_file(fname):
@@ -69,7 +75,7 @@ def find_3_node_networks(data):
         if e1 in educts and e2 in educts:
             motifs.append((
                 (e1, t, e2),
-                (get_intensities('educt', e1), get_intensities('educt', e2), get_intensities('product', (e1, t, e2)))
+                (get_intensities('educt', e1), get_intensities('product', (e1, t, e2)), get_intensities('educt', e2))
             ))
 
     print('Found %d networks in %d educts and %d products' \
@@ -112,12 +118,43 @@ def get_complete_network(data, strict=True):
         'images/complete_peak_network.pdf',
         prog=['fdp', '-Goutputorder=edgesfirst'])
 
+def compute_correlations(motifs):
+    """ Compute correlation histograms for all intensity-list pairs
+    """
+    def do_hist(name1, ints1, name2, ints2):
+        corrs = []
+        for i1, i2 in itertools.product(ints1, ints2):
+            corr, p = scits.pearsonr(i1, i2)
+            corrs.append(corr)
+
+        bin_edges = np.linspace(-1, 1, 200)
+        n, _, _ = plt.hist(
+            corrs, bin_edges, facecolor='khaki')
+
+        plt.title('"{}" vs "{}"'.format(name2, name1))
+        plt.xlabel('correlation')
+        plt.ylabel('count')
+
+        plt.savefig('corr_hists/corr_hist_{}_{}.pdf'.format(name1, name2))
+
+    for spec, ints in tqdm(motifs):
+        e1_ints, p_ints, e2_ints = ints
+        p_name = '{} [{}] {}'.format(*spec)
+
+        do_hist(spec[0], e1_ints, spec[2], e2_ints)
+        do_hist(p_name, p_ints, spec[0], e1_ints)
+        do_hist(p_name, p_ints, spec[2], e2_ints)
+
+
 def main(fname):
     """ Analyse peaks
     """
     data = read_file(fname)
-    res = find_3_node_networks(data)
+
     get_complete_network(data)
+
+    res = find_3_node_networks(data)
+    compute_correlations(res)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
