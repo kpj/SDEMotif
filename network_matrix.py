@@ -16,29 +16,11 @@ import matplotlib.pylab as plt
 from tqdm import tqdm
 
 from system import SDESystem
+from setup import generate_basic_system
 from main import analyze_system
 from utils import extract_sig_entries
 from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evolution
 
-
-def generate_basic_system(v_in=5, k_m=1, k_23=2, D=1):
-    """ Generate system according to paper
-    """
-    k_12 = k_13 = k_out = k_m
-
-    jacobian = np.array([
-        [-(k_12 + k_12),    0,      0],
-        [k_12,              -k_23,  0],
-        [k_13,              k_23,   -k_out]
-    ])
-    external_influence = np.array([v_in, 0, 0])
-    fluctuation_vector = np.array([D, 0, 0])
-    initial_state = np.array([1, 1, 1])
-
-    system = SDESystem(
-        jacobian, fluctuation_vector,
-        external_influence, initial_state)
-    return system
 
 def add_node_to_system(syst):
     """ Add additional node to given system in all possible ways
@@ -124,6 +106,17 @@ def generate_data(fname, paramter_shift=10):
             'data': rows
         }, fd)
 
+def sort_columns(data, sort_data, sort_functions):
+    """ Sort columns of `data` by multiple sort functions applied to `sort_data` in order
+    """
+    tmp = np.transpose(data).tolist()
+    sort_tmp = np.copy(sort_data)
+    for sfunc in sort_functions[::-1]:
+        tmp = [x for y, x in sorted(
+            zip(sort_tmp, tmp), key=lambda pair: sfunc(pair[0]))]
+        sort_tmp = list(sorted(sort_tmp, key=sfunc))
+    return np.transpose(tmp)
+
 def preprocess_data(data, val_func, sort_functions):
     """ Extract data information.
         Sort columns primarily by first sort_function and then the others in order
@@ -148,11 +141,7 @@ def preprocess_data(data, val_func, sort_functions):
 
     # order columns by `sort_func`
     char_netws = [n[0] for n in data[0][1]]
-    tmp = np.transpose(plot_data).tolist()
-    for sfunc in sort_functions[::-1]:
-        tmp = [x for y, x in sorted(
-            zip(char_netws, tmp), key=lambda pair: sfunc(pair[0]))]
-    plot_data = np.transpose(tmp)
+    plot_data = sort_columns(plot_data, char_netws, sort_functions)
 
     # generate axes labels
     xtick_labels = sorted([sort_functions[0](n) for n in char_netws])
