@@ -8,10 +8,10 @@ from setup import generate_basic_system
 from system import SDESystem
 
 
-class TestSystemSimulation(TestCase):
-    def test_steuer_system(self):
-        """ Check results given in paper
-        """
+class TestSteuerSystem(TestCase):
+    """ Check results given in paper
+    """
+    def test_run(self):
         steuer_syst = generate_basic_system()
         steuer_syst.fluctuation_vector = np.array([1e-5, 0, 0]) # reduce randomness
 
@@ -31,39 +31,41 @@ class TestSystemSimulation(TestCase):
             [0.47, 0.87, 1]
         ]), atol=0.3)
 
-    def test_simulation_filters(self):
+class TestSimulationFilters(TestCase):
+    def setUp(self):
         J = np.array([[0, 0],[0, 0]])
         D_E = np.array([0, 0])
         init = np.array([1, 1])
-        syst = SDESystem(J, D_E, D_E, init)
+        self.syst = SDESystem(J, D_E, D_E, init)
 
-        # converge to zero
-        syst.jacobian = np.array([[-1, 0],[0, -1]])
+    def test_convergence_to_zero(self):
+        self.syst.jacobian = np.array([[-1, 0],[0, -1]])
 
-        sy, mat, sol = analyze_system(syst)
-        self.assertEqual(syst, sy)
+        sy, mat, sol = analyze_system(self.syst)
+        self.assertEqual(self.syst, sy)
         self.assertIsNone(mat)
         self.assertIsNone(sol)
 
-        sy, mat, sol = analyze_system(syst, filter_trivial_ss=False)
-        self.assertEqual(syst, sy)
+        sy, mat, sol = analyze_system(self.syst, filter_trivial_ss=False)
+        self.assertEqual(self.syst, sy)
         self.assertIsNotNone(mat)
         self.assertIsNotNone(sol)
 
-        # diverge to infinity
-        syst.jacobian = np.array([[1, 0],[0, 1]])
+    def test_divergence_to_infinity(self):
+        self.syst.jacobian = np.array([[1, 0],[0, 1]])
 
-        sy, mat, sol = analyze_system(syst)
-        self.assertEqual(syst, sy)
+        sy, mat, sol = analyze_system(self.syst)
+        self.assertEqual(self.syst, sy)
         self.assertIsNone(mat)
         self.assertIsNone(sol)
 
-        sy, mat, sol = analyze_system(syst, filter_trivial_ss=False)
-        self.assertEqual(syst, sy)
+        sy, mat, sol = analyze_system(self.syst, filter_trivial_ss=False)
+        self.assertEqual(self.syst, sy)
         self.assertIsNotNone(mat)
         self.assertIsNotNone(sol)
 
-    def test_data_clustering(self):
+class TestDataClustering(TestCase):
+    def test_simple_case(self):
         """ Simple test
         """
         test_data = [(None, [2]), (None, [1])]

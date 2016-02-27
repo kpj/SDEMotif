@@ -6,8 +6,8 @@ import numpy.testing as npt
 from utils import *
 
 
-class TestFunctions(TestCase):
-    def test_extract_sig_entries(self):
+class TestSigEntryExtraction(TestCase):
+    def test_valid_matrix(self):
         mat = np.array([
             [1, 2, 3],
             [2, 1, 4],
@@ -16,6 +16,7 @@ class TestFunctions(TestCase):
         res = extract_sig_entries(mat)
         npt.assert_array_equal(res, np.array([2, 3, 4]))
 
+    def test_too_small_matrix(self):
         small_mat = np.array([
             [1, 2],
             [2, 1],
@@ -23,6 +24,7 @@ class TestFunctions(TestCase):
         with self.assertRaises(AssertionError):
             extract_sig_entries(small_mat)
 
+    def test_non_symmetric_matrix(self):
         non_sym_mat = np.array([
             [1, 2, 5],
             [2, 1, 4],

@@ -3,6 +3,7 @@ from unittest import TestCase
 import numpy as np
 import numpy.testing as npt
 
+from system import SDESystem
 from network_matrix import *
 
 
