@@ -184,10 +184,9 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
 
     plot_individuals(inp['data'], data, fname)
 
-def plot_individuals(data, mat, fname, num=3):
-    """ Plot a selection of individual results
+def select_best_examples(data, mat, num):
+    """ Select best examples
     """
-    # select "best" examples for networks
     scores = []
     for col in mat.T:
         scores.append(col[col > 0].sum())
@@ -203,6 +202,14 @@ def plot_individuals(data, mat, fname, num=3):
         raw = data[y][0]
         cur = data[y][1][x]
         netws.append((raw, cur))
+
+    return netws
+
+def plot_individuals(data, mat, fname, num=3):
+    """ Plot a selection of individual results
+    """
+    # select "best" examples for networks
+    netws = select_best_examples(data, mat, num)
 
     # plot selected networks
     fig = plt.figure(figsize=(25, 4*len(netws)))
