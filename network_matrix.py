@@ -158,8 +158,8 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
     plt.xticks(np.arange(len(data[0]), dtype=np.int), xticks)
     plt.yticks(np.arange(len(data), dtype=np.int), yticks)
 
-    plt.setp(plt.gca().get_xticklabels(), fontsize=4, rotation='vertical')
-    plt.setp(plt.gca().get_yticklabels(), fontsize=4)
+    plt.setp(plt.gca().get_xticklabels(), fontsize=3, rotation='vertical')
+    plt.setp(plt.gca().get_yticklabels(), fontsize=3)
 
     plt.tick_params(
         axis='both', which='both', labelleft='on',
@@ -179,10 +179,17 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
         vmin=0, vmax=np.max(data))
     plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
+    # mark "best" examples
+    examples, xs = select_best_examples(inp['data'], data, 3)
+    sel_ticks = [item for item in plt.gca().get_xticklabels()]
+    for x in xs: sel_ticks[x].set_weight('bold')
+    plt.gca().set_xticklabels(sel_ticks)
+
     save_figure(fname, bbox_inches='tight')
     plt.close()
 
-    plot_individuals(inp['data'], data, fname)
+    # plot best examples
+    plot_individuals(examples, fname)
 
 def select_best_examples(data, mat, num):
     """ Select best examples
@@ -203,20 +210,17 @@ def select_best_examples(data, mat, num):
         cur = data[y][1][x]
         netws.append((raw, cur))
 
-    return netws
+    return netws, xsel
 
-def plot_individuals(data, mat, fname, num=3):
+def plot_individuals(examples, fname):
     """ Plot a selection of individual results
     """
-    # select "best" examples for networks
-    netws = select_best_examples(data, mat, num)
-
     # plot selected networks
-    fig = plt.figure(figsize=(25, 4*len(netws)))
-    gs = mpl.gridspec.GridSpec(len(netws), 6, width_ratios=[1, 1, 2, 1, 1, 2])
+    fig = plt.figure(figsize=(25, 4*len(examples)))
+    gs = mpl.gridspec.GridSpec(len(examples), 6, width_ratios=[1, 1, 2, 1, 1, 2])
 
     counter = 0
-    for i, net in enumerate(netws):
+    for i, net in enumerate(examples):
         raw, enh = net
         if raw[1] is None or enh[1] is None:
             counter += 1
