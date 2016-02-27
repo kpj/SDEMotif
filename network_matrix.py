@@ -245,6 +245,14 @@ def annihilate_low_correlations(vals, threshold=0.1):
     vals[abs(vals) <= threshold] = 0
     return vals
 
+def bin_correlations(vals, low_thres=-0.1, high_thres=0.1):
+    """ Bin `vals` into three categories
+    """
+    tmp = np.zeros(vals.shape)
+    tmp[vals < low_thres] = -1
+    tmp[vals > high_thres] = 1
+    return tmp
+
 def get_sign_changes(raw_vals, enh_vals):
     """ Compute number of sign changes
     """
@@ -255,8 +263,8 @@ def get_sign_changes(raw_vals, enh_vals):
 def get_rank_changes(raw_vals, enh_vals):
     """ Detect changes in the order of correlations
     """
-    raw_vals = annihilate_low_correlations(raw_vals)
-    enh_vals = annihilate_low_correlations(enh_vals)
+    raw_vals = bin_correlations(raw_vals)
+    enh_vals = bin_correlations(enh_vals)
     return np.sum(np.invert(np.argsort(raw_vals) == np.argsort(enh_vals)))
 
 # sorting functions

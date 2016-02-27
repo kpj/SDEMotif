@@ -130,6 +130,12 @@ class TestValueFunctions(TestCase):
 
         npt.assert_array_equal(res, np.array([-0.5, 0.9, 0, 0, 0, 0, 0.23, -1]))
 
+    def test_bin_correlations(self):
+        vals = np.array([-1,-0.5,-0.1,-0.02,0.04,0.08,0.6,0.99])
+        res = bin_correlations(vals)
+
+        npt.assert_array_equal(res, [-1,-1,0,0,0,0,1,1])
+
     def test_get_sign_changes(self):
         vals1 = np.array([1,2,-3,4,-5,-6,0.05])
         vals2 = np.array([-1,2,-3,-4,5,-6,-0.02])
@@ -138,11 +144,13 @@ class TestValueFunctions(TestCase):
         self.assertEqual(num, 3)
 
     def test_get_rank_changes(self):
-        vals1 = np.array([-0.3,-0.2,-0.05,0.3,0.8])
-        vals2 = np.array([-5,-6,0.02,9,4])
-        num = get_rank_changes(vals1, vals2)
+        vals1 = np.array([-0.05,-0.3,-0.09,0.3,0.8])
+        vals2 = np.array([-5,-6,0.02,4,0.01])
+        self.assertEqual(get_rank_changes(vals1, vals2), 4)
 
-        self.assertEqual(num, 4)
+        vals1 = np.array([0.31,0.23,0.98])
+        vals2 = np.array([0.13,0.05,0.97])
+        self.assertEqual(get_rank_changes(vals1, vals2), 2)
 
 class TestSorterFunctions(TestCase):
     def setUp(self):
