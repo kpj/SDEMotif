@@ -122,3 +122,55 @@ class TestColumnSorter(TestCase):
             [-1, 1, -2, 2],
             [4, 3, 1, 2]
         ]))
+
+class TestValueFunctions(TestCase):
+    def test_annihilate_low_correlations(self):
+        vals = np.array([-0.5, 0.9, 0.05, 0.1, 0.2, -0.15, 0.23, -1])
+        res = annihilate_low_correlations(vals, threshold=0.2)
+
+        npt.assert_array_equal(res, np.array([-0.5, 0.9, 0, 0, 0, 0, 0.23, -1]))
+
+    def test_get_sign_changes(self):
+        vals1 = np.array([1,2,-3,4,-5,-6,0.05])
+        vals2 = np.array([-1,2,-3,-4,5,-6,-0.02])
+        num = get_sign_changes(vals1, vals2)
+
+        self.assertEqual(num, 3)
+
+    def test_get_rank_changes(self):
+        vals1 = np.array([-0.3,-0.2,-0.05,0.3,0.8])
+        vals2 = np.array([-5,-6,0.02,9,4])
+        num = get_rank_changes(vals1, vals2)
+
+        self.assertEqual(num, 4)
+
+class TestSorterFunctions(TestCase):
+    def setUp(self):
+        self.systs = [
+            SDESystem(np.array([[1,1],[2,0]]), [], [], []),
+            SDESystem(np.array([[0,2],[1,0]]), [], [], []),
+            SDESystem(np.array([[1,3],[4,0]]), [], [], []),
+            SDESystem(np.array([[1,4],[3,1]]), [], [], [])
+        ]
+
+    def test_sort_by_network_density(self):
+        res = sorted(self.systs, key=sort_by_network_density)
+        self.assertEqual(res,
+            [self.systs[1], self.systs[0], self.systs[2], self.systs[3]])
+
+    def test_sort_by_indeg(self):
+        res = sorted(self.systs, key=sort_by_indeg)
+        self.assertEqual(res,
+            [self.systs[0], self.systs[1], self.systs[2], self.systs[3]])
+
+    def test_sort_by_outdeg(self):
+        res = sorted(self.systs, key=sort_by_outdeg)
+        print([f.jacobian for f in res])
+        self.assertEqual(res,
+            [self.systs[1], self.systs[0], self.systs[3], self.systs[2]])
+
+    def test_sort_by_cycle_num(self):
+        res = sorted(self.systs, key=sort_by_cycle_num)
+        print([f.jacobian for f in res])
+        self.assertEqual(res,
+            [self.systs[1], self.systs[0], self.systs[2], self.systs[3]])

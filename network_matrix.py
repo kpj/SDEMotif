@@ -236,53 +236,54 @@ def plot_individuals(data, mat, fname, num=3):
     save_figure('%s_zoom.pdf' % fname.replace('.pdf', ''), bbox_inches='tight', dpi=300)
     plt.close()
 
+#####################
+# Extractor functions
+# value functions
+def annihilate_low_correlations(vals, threshold=0.1):
+    """ Take care of small fluctuations around 0
+    """
+    vals[abs(vals) <= threshold] = 0
+    return vals
+
+def get_sign_changes(raw_vals, enh_vals):
+    """ Compute number of sign changes
+    """
+    raw_vals = annihilate_low_correlations(raw_vals)
+    enh_vals = annihilate_low_correlations(enh_vals)
+    return np.sum(np.invert(np.sign(raw_vals) == np.sign(enh_vals)))
+
+def get_rank_changes(raw_vals, enh_vals):
+    """ Detect changes in the order of correlations
+    """
+    raw_vals = annihilate_low_correlations(raw_vals)
+    enh_vals = annihilate_low_correlations(enh_vals)
+    return np.sum(np.invert(np.argsort(raw_vals) == np.argsort(enh_vals)))
+
+# sorting functions
+def sort_by_network_density(netw):
+    """network density"""
+    edge_num = np.count_nonzero(netw.jacobian)
+    max_edge_num = netw.jacobian.shape[0]**2
+    return round(edge_num / max_edge_num, 2)
+
+def sort_by_indeg(netw):
+    """in-degree of 'last' node"""
+    in_vec = netw.jacobian[:,-1][:-1]
+    return np.sum(in_vec)
+
+def sort_by_outdeg(netw):
+    """out-degree of 'last' node"""
+    out_vec = netw.jacobian[-1,:][:-1]
+    return np.sum(out_vec)
+
+def sort_by_cycle_num(netw):
+    """number of cycles"""
+    graph = nx.from_numpy_matrix(netw.jacobian, create_using=nx.DiGraph())
+    return len(list(nx.simple_cycles(graph)))
+
 def handle_plots(inp):
     """ Generate plots for varying data extraction functions
     """
-    # value functions
-    def annihilate_low_correlations(vals, threshold=0.1):
-        """ Take care of small fluctuations around 0
-        """
-        vals[abs(vals) <= threshold] = 0
-        return vals
-
-    def get_sign_changes(raw_vals, enh_vals):
-        """ Compute number of sign changes
-        """
-        raw_vals = annihilate_low_correlations(raw_vals)
-        enh_vals = annihilate_low_correlations(enh_vals)
-        return np.sum(np.invert(np.sign(raw_vals) == np.sign(enh_vals)))
-
-    def get_rank_changes(raw_vals, enh_vals):
-        """ Detect changes in the order of correlations
-        """
-        raw_vals = annihilate_low_correlations(raw_vals)
-        enh_vals = annihilate_low_correlations(enh_vals)
-        return np.sum(np.invert(np.argsort(raw_vals) == np.argsort(enh_vals)))
-
-    # sorting functions
-    def sort_by_network_density(netw):
-        """network density"""
-        edge_num = np.count_nonzero(netw.jacobian)
-        max_edge_num = netw.jacobian.shape[0]**2
-        return round(edge_num / max_edge_num, 2)
-
-    def sort_by_indeg(netw):
-        """in-degree of fourth node"""
-        in_vec = netw.jacobian[:,-1][:-1]
-        return np.sum(in_vec)
-
-    def sort_by_outdeg(netw):
-        """out-degree of fourth node"""
-        out_vec = netw.jacobian[-1,:][:-1]
-        return np.sum(out_vec)
-
-    def sort_by_cycle_num(netw):
-        """number of cycles"""
-        graph = nx.from_numpy_matrix(netw.jacobian, create_using=nx.DiGraph())
-        return len(list(nx.simple_cycles(graph)))
-
-    # plots
     for vfunc, title in zip([get_sign_changes, get_rank_changes], ['sign', 'rank']):
         ptitle = '{} changes'.format(title)
 
