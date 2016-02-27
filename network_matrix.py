@@ -15,7 +15,6 @@ import matplotlib.pylab as plt
 
 from tqdm import tqdm
 
-from system import SDESystem
 from setup import generate_basic_system
 from main import analyze_system
 from utils import extract_sig_entries
