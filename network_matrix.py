@@ -180,10 +180,16 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
     plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
     # mark "best" examples
-    examples, xs = select_best_examples(inp['data'], data, 3)
-    sel_ticks = [item for item in plt.gca().get_xticklabels()]
-    for x in xs: sel_ticks[x].set_weight('bold')
-    plt.gca().set_xticklabels(sel_ticks)
+    examples, sel = select_best_examples(inp['data'], data, 3)
+    sel_xticks = [item for item in plt.gca().get_xticklabels()]
+    sel_yticks = [item for item in plt.gca().get_yticklabels()]
+    for x, y in sel:
+        plt.plot([x], [y],
+            marker='x', color='black', markersize=2)
+        sel_xticks[x].set_weight('bold')
+        sel_yticks[y].set_weight('bold')
+    plt.gca().set_xticklabels(sel_xticks)
+    plt.gca().set_yticklabels(sel_yticks)
 
     save_figure(fname, bbox_inches='tight')
     plt.close()
@@ -204,13 +210,16 @@ def select_best_examples(data, mat, num):
         csel = np.argsort(col)[-1]
         ysel.append(csel)
 
+    sel = []
     netws = []
     for x, y in zip(xsel, ysel):
         raw = data[y][0]
         cur = data[y][1][x]
+
+        sel.append((x, y))
         netws.append((raw, cur))
 
-    return netws, xsel
+    return netws, sel
 
 def plot_individuals(examples, fname):
     """ Plot a selection of individual results
