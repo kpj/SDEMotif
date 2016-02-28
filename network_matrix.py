@@ -316,11 +316,11 @@ def handle_plots(inp):
 def main():
     """ Create matrix for various data functions
     """
-    fname = 'results/matrix_data.dat'
-
     if len(sys.argv) == 1:
+        fname = 'results/matrix_data.dat'
         generate_data(fname)
     elif len(sys.argv) == 2:
+        fname = sys.argv[1]
         with open(fname, 'rb') as fd:
             inp = pickle.load(fd)
         handle_plots(inp)
