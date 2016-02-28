@@ -1,4 +1,5 @@
-from unittest import TestCase
+import os
+from unittest import TestCase, skipIf
 
 import scipy.stats as scits
 import numpy.testing as npt
@@ -39,6 +40,7 @@ class TestNetworkDiscovery(TestCase):
             ([[10,20,30]], [[300,20,1]], [[1,2,3], [4,5,2], [10,20,30]])
         ))
 
+    @skipIf(os.environ['DISPLAY'] == 'travis', 'incompatible with travis-ci')
     def test_get_complete_network(self):
         graph = get_complete_network(self.data)
 
@@ -46,6 +48,7 @@ class TestNetworkDiscovery(TestCase):
         self.assertEqual(sorted(graph.edges()),
             sorted([('c2','r2'), ('c1','r2')]))
 
+    @skipIf(os.environ['DISPLAY'] == 'travis', 'incompatible with travis-ci')
     def test_get_complete_network_nonstrict(self):
         graph = get_complete_network(self.data, strict=False)
 
@@ -58,6 +61,7 @@ class TestStatistics(TestCase):
         data = read_file('./tests/data/peak_data.csv')
         self.motifs = find_3_node_networks(data)
 
+    @skipIf(os.environ['DISPLAY'] == 'travis', 'incompatible with travis-ci')
     def test_compute_correlations(self):
         res = compute_correlations(self.motifs)
         corr1 = scits.pearsonr([300,20,1], [1,2,3])[0]
