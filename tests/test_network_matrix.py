@@ -106,10 +106,10 @@ class TestColumnSorter(TestCase):
     def test_simple_case(self):
         # test data
         data = np.array([
-            [-2, 2, 1, -1],
+            [-2, 3, 1, -3],
             [1, 2, 3, 4],
         ])
-        sort_data = np.array([-2, 2, 1, -1])
+        sort_data = np.array([-2, 3, 1, -3])
 
         # sorting functions
         def sort_abs(val):
@@ -118,10 +118,28 @@ class TestColumnSorter(TestCase):
             return np.sign(val)
 
         # test 'em
+        res = sort_columns(data, sort_data, [sort_abs])
+        npt.assert_array_equal(res, np.array([
+            [1, -2, 3, -3],
+            [3, 1, 2, 4],
+        ]))
+
+        res = sort_columns(data, sort_data, [sort_sign])
+        npt.assert_array_equal(res, np.array([
+            [-2, -3, 3, 1],
+            [1, 4, 2, 3],
+        ]))
+
         res = sort_columns(data, sort_data, [sort_abs, sort_sign])
         npt.assert_array_equal(res, np.array([
-            [-1, 1, -2, 2],
-            [4, 3, 1, 2]
+            [1, -2, -3, 3],
+            [3, 1, 4, 2],
+        ]))
+
+        res = sort_columns(data, sort_data, [sort_sign, sort_abs])
+        npt.assert_array_equal(res, np.array([
+            [-2, -3, 1, 3],
+            [1, 4, 3, 2],
         ]))
 
 class TestValueFunctions(TestCase):
