@@ -56,7 +56,7 @@ def read_file(fname):
             for entry_pair in parse_compound_name(cname):
                 data[entry_pair].append(
                     parse_intensities(row[int_slice]))
-    return data
+    return dict(data)
 
 def find_3_node_networks(data):
     """ Find two-substrate reactions and product
@@ -118,6 +118,8 @@ def get_complete_network(data, strict=True):
         'images/complete_peak_network.pdf',
         prog=['fdp', '-Goutputorder=edgesfirst'])
 
+    return graph
+
 def compute_correlations(motifs):
     """ Compute correlation histograms for all intensity-list pairs
     """
@@ -136,14 +138,17 @@ def compute_correlations(motifs):
         plt.ylabel('count')
 
         plt.savefig('corr_hists/corr_hist_{}_{}.pdf'.format(name1, name2))
+        return corrs
 
+    res = []
     for spec, ints in tqdm(motifs):
         e1_ints, p_ints, e2_ints = ints
         p_name = '{} [{}] {}'.format(*spec)
 
-        do_hist(spec[0], e1_ints, spec[2], e2_ints)
-        do_hist(p_name, p_ints, spec[0], e1_ints)
-        do_hist(p_name, p_ints, spec[2], e2_ints)
+        res.append(do_hist(spec[0], e1_ints, spec[2], e2_ints))
+        res.append(do_hist(p_name, p_ints, spec[0], e1_ints))
+        res.append(do_hist(p_name, p_ints, spec[2], e2_ints))
+    return res
 
 
 def main(fname):
