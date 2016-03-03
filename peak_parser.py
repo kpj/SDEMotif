@@ -120,7 +120,7 @@ def get_complete_network(data, strict=True):
 
     return graph
 
-def compute_correlations(motifs):
+def compute_correlation_pairs(motifs, plot=False):
     """ Compute correlation histograms for all intensity-list pairs
     """
     def do_hist(name1, ints1, name2, ints2):
@@ -129,15 +129,20 @@ def compute_correlations(motifs):
             corr, p = scits.pearsonr(i1, i2)
             corrs.append(corr)
 
-        bin_edges = np.linspace(-1, 1, 200)
-        n, _, _ = plt.hist(
-            corrs, bin_edges, facecolor='khaki')
+        if plot:
+            plt.figure()
 
-        plt.title('"{}" vs "{}"'.format(name2, name1))
-        plt.xlabel('correlation')
-        plt.ylabel('count')
+            bin_edges = np.linspace(-1, 1, 200)
+            n, _, _ = plt.hist(
+                corrs, bin_edges, facecolor='khaki')
 
-        plt.savefig('corr_hists/corr_hist_{}_{}.pdf'.format(name1, name2))
+            plt.title('"{}" vs "{}"'.format(name2, name1))
+            plt.xlabel('correlation')
+            plt.ylabel('count')
+
+            plt.savefig('corr_hists/corr_hist_{}_{}.pdf'.format(name1, name2))
+            plt.close()
+
         return corrs
 
     res = []
@@ -150,6 +155,25 @@ def compute_correlations(motifs):
         res.append(do_hist(p_name, p_ints, spec[2], e2_ints))
     return res
 
+def compute_overview_histogram(corrs):
+    """ Compute histogram of all possible correlations
+    """
+    fig = plt.figure()
+    flat_corrs = list(itertools.chain.from_iterable(corrs))
+
+    bin_edges = np.linspace(-1, 1, 200)
+    n, _, _ = plt.hist(
+        flat_corrs, bin_edges, facecolor='khaki')
+
+    plt.xlabel('substrate intensity correlation')
+    plt.ylabel('count')
+    plt.title('Overview over all correlations')
+
+    plt.savefig('corr_hists/all_corrs_hist.pdf')
+    plt.close()
+
+    return flat_corrs
+
 
 def main(fname):
     """ Analyse peaks
@@ -159,7 +183,8 @@ def main(fname):
     get_complete_network(data)
 
     res = find_3_node_networks(data)
-    compute_correlations(res)
+    all_corrs = compute_correlation_pairs(res)
+    compute_overview_histogram(all_corrs)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

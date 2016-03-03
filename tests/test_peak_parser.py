@@ -62,8 +62,8 @@ class TestStatistics(TestCase):
         self.motifs = find_3_node_networks(data)
 
     @skipIf(os.environ['DISPLAY'] == 'travis', 'incompatible with travis-ci')
-    def test_compute_correlations(self):
-        res = compute_correlations(self.motifs)
+    def test_compute_correlation_pairs(self):
+        res = compute_correlation_pairs(self.motifs)
         corr1 = scits.pearsonr([300,20,1], [1,2,3])[0]
         corr2 = scits.pearsonr([300,20,1], [4,5,2])[0]
         corr3 = scits.pearsonr([300,20,1], [10,20,30])[0]
@@ -73,3 +73,7 @@ class TestStatistics(TestCase):
         self.assertEqual(res[0], [1, corr4, 1])
         npt.assert_allclose(res[1], [corr1])
         npt.assert_allclose(res[2], [corr1, corr2, corr3])
+
+        res2 = compute_overview_histogram(res)
+        npt.assert_allclose(res2,
+            [1, corr4, 1, corr1, corr1, corr2, corr3])
