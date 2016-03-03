@@ -93,16 +93,18 @@ def get_complete_network(data, strict=True):
         motifs = find_3_node_networks(data)
         for entry in motifs:
             e1, t, e2 = entry[0]
+            node_label = '{}, {}, {}'.format(*entry[0])
 
-            graph.add_node(t, color='blue')
-            graph.add_edge(e1, t, color='gray')
-            graph.add_edge(e2, t, color='gray')
+            graph.add_node(node_label, color='blue')
+            graph.add_edge(e1, node_label, color='gray')
+            graph.add_edge(e2, node_label, color='gray')
     else:
         for typ, spec in data.keys():
             if typ == 'product':
-                graph.add_node(spec[1], color='blue')
-                graph.add_edge(spec[0], spec[1], color='gray')
-                graph.add_edge(spec[2], spec[1], color='gray')
+                node_label = '{}, {}, {}'.format(*spec)
+                graph.add_node(node_label, color='blue')
+                graph.add_edge(spec[0], node_label, color='gray')
+                graph.add_edge(spec[2], node_label, color='gray')
             elif typ == 'educt':
                 graph.add_node(spec)
             else:
@@ -170,7 +172,7 @@ def compute_overview_histogram(corrs):
     plt.ylabel('count')
     plt.title('Overview over all correlations')
 
-    plt.savefig('corr_hists/all_corrs_hist.pdf')
+    plt.savefig('images/all_corrs_hist.pdf')
     plt.close()
 
     return flat_corrs
