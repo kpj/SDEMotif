@@ -64,6 +64,14 @@ class TestSimulationFilters(TestCase):
         self.assertIsNotNone(mat)
         self.assertIsNotNone(sol)
 
+    def test_filter_masks(self):
+        self.syst.jacobian = np.array([[0, 0],[0, -1]])
+
+        sy, mat, sol = analyze_system(self.syst, filter_mask=[1])
+        self.assertEqual(self.syst, sy)
+        self.assertIsNotNone(mat)
+        self.assertIsNotNone(sol)
+
 class TestDataClustering(TestCase):
     def test_simple_case(self):
         """ Simple test

@@ -62,11 +62,11 @@ def handle_systems(raw, enhanced):
     """ Simulate given systems
     """
     # generate control data
-    raw_res = analyze_system(raw)
+    raw_res = analyze_system(raw, filter_mask=[3])
 
     row = []
     for enh in enhanced:
-        enh_res = analyze_system(enh)
+        enh_res = analyze_system(enh, filter_mask=[3])
         row.append(enh_res)
 
     return [raw_res, row]
