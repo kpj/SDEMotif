@@ -136,7 +136,8 @@ def compute_correlation_pairs(motifs, plot=False):
             n, _, _ = plt.hist(
                 corrs, bin_edges, facecolor='khaki')
 
-            plt.title('"{}" vs "{}"'.format(name2, name1))
+            plt.title('"{} ({})" vs "{} ({})"'.format(
+                name2, len(ints2), name1, len(ints1)))
             plt.xlabel('correlation')
             plt.ylabel('count')
 
@@ -183,7 +184,7 @@ def main(fname):
     get_complete_network(data)
 
     res = find_3_node_networks(data)
-    all_corrs = compute_correlation_pairs(res)
+    all_corrs = compute_correlation_pairs(res, plot=False)
     compute_overview_histogram(all_corrs)
 
 if __name__ == '__main__':
