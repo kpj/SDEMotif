@@ -63,6 +63,8 @@ def handle_systems(raw, enhanced):
     """
     # generate control data
     raw_res = analyze_system(raw, filter_mask=[3])
+    if raw_res[1] is None:
+        return None
 
     row = []
     for enh in enhanced:
@@ -90,7 +92,8 @@ def generate_data(fname, paramter_shift=10):
             more = add_node_to_system(syst)
 
             res = handle_systems(syst, more)
-            rows.append(res)
+            if not res is None:
+                rows.append(res)
 
     # order rows by absolute jacobian mean
     def get_parameter_sort(row):
