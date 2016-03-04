@@ -158,6 +158,8 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
     data, xticks, yticks = preprocess_data(inp['data'], vfunc, sfuncs)
 
     # create plot
+    fig = plt.figure()
+
     plt.xticks(np.arange(len(data[0]), dtype=np.int), xticks)
     plt.yticks(np.arange(len(data), dtype=np.int), yticks)
 
@@ -182,69 +184,53 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
         vmin=0, vmax=np.max(data))
     plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
-    # mark "best" examples
-    examples, sel = select_best_examples(inp['data'], data, 3)
-    sel_xticks = [item for item in plt.gca().get_xticklabels()]
+    # mark "zoomed" rows
+    sel_blue, netws_blue = select_row_by_count(inp['data'], data, 1)
+    sel_red, netws_red = select_row_by_count(inp['data'], data, 2)
+
     sel_yticks = [item for item in plt.gca().get_yticklabels()]
-    for x, y in sel:
-        plt.plot([x], [y],
-            marker='x', color='black', markersize=2)
-        sel_xticks[x].set_weight('bold')
-        sel_yticks[y].set_weight('bold')
-    plt.gca().set_xticklabels(sel_xticks)
+    sel_yticks[sel_blue].set_weight('bold')
+    sel_yticks[sel_red].set_weight('bold')
     plt.gca().set_yticklabels(sel_yticks)
 
     save_figure(fname, bbox_inches='tight')
-    plt.close()
 
     # plot best examples
-    plot_individuals(examples, fname)
+    plot_individuals(netws_blue, '{}_blue'.format(fname))
+    plot_individuals(netws_red, '{}_red'.format(fname))
 
-def select_best_examples(data, mat, num):
-    """ Select best examples
+def select_row_by_count(data, mat, pat):
+    """ Count occurences of `pat` in row
     """
-    scores = []
-    for col in mat.T:
-        scores.append(col[col > 0].sum())
-    xsel = np.argsort(-np.array(scores))[:num]
+    # find matching row
+    counts = []
+    for row in mat:
+        counts.append(row.tolist().count(pat))
+    row_sel = np.argsort(-np.array(counts))[:1]
 
-    ysel = []
-    for col in mat.T[xsel]:
-        csel = np.argsort(col)[-1]
-        ysel.append(csel)
+    # collect respective networks
+    netws = [data[row_sel][0]]
+    netws.extend(data[row_sel][1])
 
-    sel = []
-    netws = []
-    for x, y in zip(xsel, ysel):
-        raw = data[y][0]
-        cur = data[y][1][x]
-
-        sel.append((x, y))
-        netws.append((raw, cur))
-
-    return netws, sel
+    return row_sel, netws
 
 def plot_individuals(examples, fname):
     """ Plot a selection of individual results
     """
     # plot selected networks
     fig = plt.figure(figsize=(25, 4*len(examples)))
-    gs = mpl.gridspec.GridSpec(len(examples), 6, width_ratios=[1, 1, 2, 1, 1, 2])
+    gs = mpl.gridspec.GridSpec(len(examples), 3, width_ratios=[1, 1, 2])
 
     counter = 0
     for i, net in enumerate(examples):
-        raw, enh = net
-        if raw[1] is None or enh[1] is None:
+        if net[1] is None:
             counter += 1
+            plot_system(net[0], plt.subplot(gs[i, 0]))
             continue
 
-        plot_system(raw[0], plt.subplot(gs[i, 0]))
-        plot_corr_mat(raw[1], plt.subplot(gs[i, 1]))
-        plot_system_evolution(raw[2], plt.subplot(gs[i, 2]))
-
-        plot_system(enh[0], plt.subplot(gs[i, 3]))
-        plot_corr_mat(enh[1], plt.subplot(gs[i, 4]))
-        plot_system_evolution(enh[2], plt.subplot(gs[i, 5]))
+        plot_system(net[0], plt.subplot(gs[i, 0]))
+        plot_corr_mat(net[1], plt.subplot(gs[i, 1]))
+        plot_system_evolution(net[2], plt.subplot(gs[i, 2]))
 
     if counter > 0:
         print('{} broken results'.format(counter))
