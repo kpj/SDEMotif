@@ -184,6 +184,25 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
         vmin=0, vmax=np.max(data))
     plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
+    # mark "zoomed" columns
+    sel_one, netws_one = select_column_by_jacobian(inp['data'], np.array([
+        [1,0,0,0],
+        [1,1,0,0],
+        [1,1,1,1],
+        [1,0,0,1]
+    ]))
+    sel_two, netws_two = select_column_by_jacobian(inp['data'], np.array([
+        [1,0,0,1],
+        [1,1,0,0],
+        [1,1,1,0],
+        [1,0,0,1]
+    ]))
+
+    sel_xticks = [item for item in plt.gca().get_xticklabels()]
+    sel_xticks[sel_one].set_weight('bold')
+    sel_xticks[sel_two].set_weight('bold')
+    plt.gca().set_xticklabels(sel_xticks)
+
     # mark "zoomed" rows
     sel_blue, netws_blue = select_row_by_count(inp['data'], data, 1)
     sel_red, netws_red = select_row_by_count(inp['data'], data, 2)
@@ -193,11 +212,38 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
     sel_yticks[sel_red].set_weight('bold')
     plt.gca().set_yticklabels(sel_yticks)
 
+    # save figure
     save_figure(fname, bbox_inches='tight')
 
     # plot best examples
-    plot_individuals(netws_blue, '{}_blue'.format(fname))
-    plot_individuals(netws_red, '{}_red'.format(fname))
+    plot_individuals(netws_one, '{}_col_one'.format(fname))
+    plot_individuals(netws_two, '{}_col_two'.format(fname))
+
+    plot_individuals(netws_blue, '{}_row_blue'.format(fname))
+    plot_individuals(netws_red, '{}_row_red'.format(fname))
+
+def select_column_by_jacobian(data, jac):
+    """ Select column by approximated jacobian
+    """
+    ind = None
+    for i, (syst, mat, sol) in enumerate(data[0][1]):
+        nz = np.nonzero(syst.jacobian)
+        comp_jac = np.zeros_like(syst.jacobian, dtype=int)
+        comp_jac[nz] = 1
+
+        if (comp_jac == jac).all():
+            ind = i
+            break
+
+    res = []
+    if ind is None:
+        raise RuntimeError('No match found')
+    else:
+        for i in range(len(data)):
+            net = data[i][1][ind]
+            res.append(net)
+
+    return ind, res
 
 def select_row_by_count(data, mat, pat):
     """ Count occurences of `pat` in row
