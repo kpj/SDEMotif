@@ -97,11 +97,6 @@ class TestFunctions(TestCase):
         ])
         mat = np.array([[5, 10]])
 
-        res, sel = select_best_examples(test_data, mat, 1)
-        self.assertEqual(
-            res, [((self.syst, raw_mat, None), (syst1, syst1_mat, None))])
-        self.assertEqual(sel, [(1, 0)])
-
 class TestColumnSorter(TestCase):
     def test_simple_case(self):
         # test data

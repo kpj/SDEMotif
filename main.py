@@ -11,12 +11,13 @@ from tqdm import tqdm
 from setup import load_systems
 from solver import solve_system, get_steady_state
 from utils import compute_correlation_matrix, cache_data
-from filters import filter_steady_state, filter_correlation_matrix
+from filters import filter_steady_state
 
 
 def analyze_system(system, repetition_num=100, filter_trivial_ss=True, filter_mask=None):
     """ Generate steady states for given system.
-        `filter_mask` is a list of nodes to be excluded from filtering
+        `filter_mask` is a list of nodes to be excluded from filtering.
+        A filtered entry must have a None correlation matrix
     """
     ss_data = []
     for _ in range(repetition_num):
@@ -26,13 +27,9 @@ def analyze_system(system, repetition_num=100, filter_trivial_ss=True, filter_ma
         if not filter_trivial_ss or not filter_steady_state(ss, filter_mask):
             ss_data.append(ss)
         else:
-            return system, None, None
+            return system, None, sol
 
     corr_mat = compute_correlation_matrix(np.array(ss_data))
-
-    if filter_correlation_matrix(corr_mat, filter_mask):
-        return system, None, None
-
     return system, corr_mat, sol
 
 def cluster_data(data):

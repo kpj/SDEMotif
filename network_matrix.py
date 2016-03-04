@@ -226,6 +226,7 @@ def plot_individuals(examples, fname):
         if net[1] is None:
             counter += 1
             plot_system(net[0], plt.subplot(gs[i, 0]))
+            plot_system_evolution(net[2], plt.subplot(gs[i, 2]))
             continue
 
         plot_system(net[0], plt.subplot(gs[i, 0]))

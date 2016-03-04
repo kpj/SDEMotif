@@ -44,7 +44,7 @@ class TestSimulationFilters(TestCase):
         sy, mat, sol = analyze_system(self.syst)
         self.assertEqual(self.syst, sy)
         self.assertIsNone(mat)
-        self.assertIsNone(sol)
+        self.assertIsNotNone(sol)
 
         sy, mat, sol = analyze_system(self.syst, filter_trivial_ss=False)
         self.assertEqual(self.syst, sy)
@@ -57,7 +57,7 @@ class TestSimulationFilters(TestCase):
         sy, mat, sol = analyze_system(self.syst)
         self.assertEqual(self.syst, sy)
         self.assertIsNone(mat)
-        self.assertIsNone(sol)
+        self.assertIsNotNone(sol)
 
         sy, mat, sol = analyze_system(self.syst, filter_trivial_ss=False)
         self.assertEqual(self.syst, sy)
