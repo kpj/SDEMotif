@@ -17,7 +17,7 @@ def save_figure(fname, **kwargs):
     """ Save current plot and check that directory exists
     """
     fdir = os.path.dirname(fname)
-    if not os.path.isdir(fdir):
+    if len(fdir) > 0 and not os.path.isdir(fdir):
         os.makedirs(fdir)
 
     plt.savefig(fname, **kwargs)
