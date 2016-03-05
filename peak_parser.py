@@ -213,7 +213,7 @@ def main(fname):
     """
     data = read_file(fname)
 
-    graph = get_complete_network(data, plot=False)
+    graph = get_complete_network(data, plot=True)
     simulate_graph(graph)
 
     res = find_3_node_networks(data)
