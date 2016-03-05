@@ -12,8 +12,13 @@ import numpy as np
 import networkx as nx
 import scipy.stats as scits
 import matplotlib.pylab as plt
+import matplotlib as mpl
 
 from tqdm import tqdm
+
+from system import SDESystem
+from main import analyze_system
+from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evolution
 
 
 def read_file(fname):
@@ -82,7 +87,7 @@ def find_3_node_networks(data):
         % (len(motifs), len(educts), len(products)))
     return motifs
 
-def get_complete_network(data, strict=True):
+def get_complete_network(data, strict=True, plot=True):
     """ Generate complete network hidden in data.
         In `strict` mode, products are only considered if both educts exist as well
     """
@@ -115,12 +120,37 @@ def get_complete_network(data, strict=True):
     print('Largest weakly connected component:', len(lwcc))
 
     # plot graph
-    pydot_graph = nx.nx_pydot.to_pydot(graph)
-    pydot_graph.write_pdf(
-        'images/complete_peak_network.pdf',
-        prog=['fdp', '-Goutputorder=edgesfirst'])
+    if plot:
+        pydot_graph = nx.nx_pydot.to_pydot(graph)
+        pydot_graph.write_pdf(
+            'images/complete_peak_network.pdf',
+            prog=['fdp', '-Goutputorder=edgesfirst'])
 
     return graph
+
+def simulate_graph(graph):
+    """ Generate dynamics on graph
+    """
+    # create system
+    J = np.copy(nx.to_numpy_matrix(graph))
+    np.fill_diagonal(J, -1)
+    D = np.zeros((J.shape[0],))
+    E = np.zeros((J.shape[0],))
+    I = np.ones((J.shape[0],))
+
+    # simulate system
+    syst = SDESystem(J, D, E, I)
+    syst, mat, sol = analyze_system(syst)
+
+    # plot results
+    fig = plt.figure(figsize=(25, 4))
+    gs = mpl.gridspec.GridSpec(1, 3, width_ratios=[1, 1, 2])
+
+    plot_system(syst, plt.subplot(gs[0]))
+    if not mat is None: plot_corr_mat(mat, plt.subplot(gs[1]))
+    plot_system_evolution(sol, plt.subplot(gs[2]))
+
+    save_figure('images/peak_network_simulation.pdf', bbox_inches='tight', dpi=300)
 
 def compute_correlation_pairs(motifs, plot=False):
     """ Compute correlation histograms for all intensity-list pairs
@@ -183,7 +213,8 @@ def main(fname):
     """
     data = read_file(fname)
 
-    get_complete_network(data)
+    graph = get_complete_network(data, plot=False)
+    simulate_graph(graph)
 
     res = find_3_node_networks(data)
     all_corrs = compute_correlation_pairs(res, plot=False)

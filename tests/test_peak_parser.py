@@ -40,17 +40,15 @@ class TestNetworkDiscovery(TestCase):
             ([[10,20,30]], [[300,20,1]], [[1,2,3], [4,5,2], [10,20,30]])
         ))
 
-    @skipIf(os.environ['DISPLAY'] == 'travis', 'incompatible with travis-ci')
     def test_get_complete_network(self):
-        graph = get_complete_network(self.data)
+        graph = get_complete_network(self.data, plot=False)
 
         self.assertEqual(sorted(graph.nodes()), sorted(['c2','c2, r2, c1','c1']))
         self.assertEqual(sorted(graph.edges()),
             sorted([('c2','c2, r2, c1'), ('c1','c2, r2, c1')]))
 
-    @skipIf(os.environ['DISPLAY'] == 'travis', 'incompatible with travis-ci')
     def test_get_complete_network_nonstrict(self):
-        graph = get_complete_network(self.data, strict=False)
+        graph = get_complete_network(self.data, strict=False, plot=False)
 
         self.assertEqual(sorted(graph.nodes()),
             sorted(['c2','c2, r2, c1','c1, r1, c3','c1','c3']))
