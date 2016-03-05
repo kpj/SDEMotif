@@ -26,7 +26,7 @@ def plot_system_evolution(sol, ax):
     """ Plot solution of integration
     """
     for i, series in enumerate(sol):
-        ax.plot(series, label=r'$S_%d$' % i)
+        ax.plot(series, label=r'$S_{%d}$' % i)
 
     ax.set_ylim((0, ax.get_ylim()[1]))
     ax.set_xlabel('time')
