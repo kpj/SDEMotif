@@ -23,7 +23,7 @@ def analyze_system(system, repetition_num=100, filter_trivial_ss=True, filter_ma
     for _ in range(repetition_num):
         sol = solve_system(system)
 
-        if not filter_trivial_ss or not filter_steady_state(sol.T[-3:], filter_mask):
+        if not filter_trivial_ss or not filter_steady_state(sol.T[int(len(sol.T)*3/4):], filter_mask):
             ss_data.append(sol.T[-1])
         else:
             return system, None, sol
