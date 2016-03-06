@@ -22,16 +22,22 @@ def save_figure(fname, **kwargs):
 
     plt.savefig(fname, **kwargs)
 
-def plot_system_evolution(sol, ax):
+def plot_system_evolution(sol, ax, show_legend=True, labels=None):
     """ Plot solution of integration
     """
     for i, series in enumerate(sol):
-        ax.plot(series, label=r'$S_{%d}$' % i)
+        if labels is None:
+            ax.plot(series, label=r'$S_{%d}$' % i)
+        else:
+            if labels[i] is None:
+                ax.plot(series)
+            else:
+                ax.plot(series, label=labels[i])
 
     ax.set_ylim((0, ax.get_ylim()[1]))
     ax.set_xlabel('time')
     ax.set_ylabel('concentration')
-    ax.legend(loc='best', ncol=2)
+    if show_legend: ax.legend(loc='best', ncol=2)
 
 def plot_ss_scatter(steadies):
     """ Plot scatter plots of steady states
@@ -66,24 +72,26 @@ def plot_ss_scatter(steadies):
     save_figure('images/correlation_scatter.pdf', bbox_inches='tight')
     plt.close()
 
-def plot_corr_mat(corr_mat, ax):
+def plot_corr_mat(corr_mat, ax, show_values=True):
     """ Plot heatmap of steady state correlation coefficients
     """
     dim = corr_mat.shape[0]
 
     # plot colors
-    ax.set_xticks(np.arange(dim, dtype=np.int))
-    ax.set_yticks(np.arange(dim, dtype=np.int))
     ax.imshow(
         corr_mat,
         interpolation='nearest', cmap='bwr_r',
         vmin=-1, vmax=1)
 
     # add labels
-    xms, yms = np.meshgrid(range(dim), range(dim))
-    for i, j in zip(xms.flatten(), yms.flatten()):
-        val = round(corr_mat[i, j], 2)
-        ax.text(i, j, val, va='center', ha='center')
+    if show_values:
+        ax.set_xticks(np.arange(dim, dtype=np.int))
+        ax.set_yticks(np.arange(dim, dtype=np.int))
+
+        xms, yms = np.meshgrid(range(dim), range(dim))
+        for i, j in zip(xms.flatten(), yms.flatten()):
+            val = round(corr_mat[i, j], 2)
+            ax.text(i, j, val, va='center', ha='center')
 
 def plot_system(system, ax):
     """ Plot network specified by Jacobian of system

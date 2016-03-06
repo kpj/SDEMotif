@@ -138,17 +138,26 @@ def simulate_graph(graph):
     E = np.zeros((J.shape[0],))
     I = np.ones((J.shape[0],))
 
+    # add input to nodes of zero in-degree
+    for i, row in enumerate(J):
+        inp = np.sum(row)
+        inp += 1 # compensate for self-inhibition
+
+        if inp == 0:
+            D[i] = 1
+            E[i] = 1
+
     # simulate system
     syst = SDESystem(J, D, E, I)
     syst, mat, sol = analyze_system(syst)
 
     # plot results
-    fig = plt.figure(figsize=(25, 4))
-    gs = mpl.gridspec.GridSpec(1, 3, width_ratios=[1, 1, 2])
+    fig = plt.figure(figsize=(30, 15))
+    gs = mpl.gridspec.GridSpec(1, 2, width_ratios=[1, 1])
 
-    plot_system(syst, plt.subplot(gs[0]))
-    if not mat is None: plot_corr_mat(mat, plt.subplot(gs[1]))
-    plot_system_evolution(sol, plt.subplot(gs[2]))
+    if not mat is None:
+        plot_corr_mat(mat, plt.subplot(gs[0]), show_values=False)
+    plot_system_evolution(sol, plt.subplot(gs[1]), show_legend=False)
 
     save_figure('images/peak_network_simulation.pdf', bbox_inches='tight', dpi=300)
 
