@@ -186,10 +186,10 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
 
     # mark "zoomed" columns
     sel_one, netws_one = select_column_by_jacobian(inp['data'], np.array([
-        [1,0,0,0],
+        [1,0,0,1],
         [1,1,0,0],
-        [1,1,1,1],
-        [1,0,0,1]
+        [1,1,1,0],
+        [0,0,1,1]
     ]))
     sel_two, netws_two = select_column_by_jacobian(inp['data'], np.array([
         [1,0,0,1],

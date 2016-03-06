@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 from setup import load_systems
-from solver import solve_system, get_steady_state
+from solver import solve_system
 from utils import compute_correlation_matrix, cache_data
 from filters import filter_steady_state
 
@@ -23,9 +23,8 @@ def analyze_system(system, repetition_num=100, filter_trivial_ss=True, filter_ma
     for _ in range(repetition_num):
         sol = solve_system(system)
 
-        ss = get_steady_state(sol)
-        if not filter_trivial_ss or not filter_steady_state(ss, filter_mask):
-            ss_data.append(ss)
+        if not filter_trivial_ss or not filter_steady_state(sol.T[-3:], filter_mask):
+            ss_data.append(sol.T[-1])
         else:
             return system, None, sol
 
