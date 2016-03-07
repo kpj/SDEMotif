@@ -19,6 +19,7 @@ from tqdm import tqdm
 from system import SDESystem
 from main import analyze_system
 from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evolution
+from utils import extract_sub_matrix
 
 
 def read_file(fname):
@@ -139,21 +140,25 @@ def simulate_graph(graph):
     I = np.ones((J.shape[0],))
 
     # add input to nodes of zero in-degree
+    zero_indgr = []
     for i, row in enumerate(J):
         inp = np.sum(row)
         inp += 1 # compensate for self-inhibition
+        if inp == 0: zero_indgr.append(i)
 
-        if inp == 0:
-            D[i] = 1
-            E[i] = 1
+    D[zero_indgr] = 1
+    E[zero_indgr] = 1
 
     # simulate system
     syst = SDESystem(J, D, E, I)
     syst, mat, sol = analyze_system(syst)
 
+    # only keep non-zero indegree node correlations
+    mat = extract_sub_matrix(mat, zero_indgr)
+
     # plot results
     fig = plt.figure(figsize=(30, 15))
-    gs = mpl.gridspec.GridSpec(1, 2, width_ratios=[1, 1])
+    gs = mpl.gridspec.GridSpec(1, 2, width_ratios=[1, 2])
 
     if not mat is None:
         plot_corr_mat(mat, plt.subplot(gs[0]), show_values=False)

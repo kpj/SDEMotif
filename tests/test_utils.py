@@ -32,3 +32,15 @@ class TestSigEntryExtraction(TestCase):
         ])
         with self.assertRaises(AssertionError):
             extract_sig_entries(non_sym_mat)
+
+    def test_extract_sub_matrix(self):
+        mat = np.eye(10)
+        np.fill_diagonal(mat, np.arange(10))
+
+        mat = extract_sub_matrix(mat, [6, 0, 2, 9, 3, 5])
+        npt.assert_array_equal(mat, np.array([
+            [1,0,0,0],
+            [0,4,0,0],
+            [0,0,7,0],
+            [0,0,0,8]
+        ]))

@@ -55,3 +55,11 @@ def extract_sig_entries(mat):
     res = mat[ind].tolist()
     res += [0] * (3-len(res))
     return np.array(res)
+
+def extract_sub_matrix(mat, inds):
+    """ Extract submatrix of `mat` by deleting `inds` rows/cols
+    """
+    for i in sorted(inds, reverse=True):
+        mat = np.delete(mat, i, axis=0)
+        mat = np.delete(mat, i, axis=1)
+    return mat
