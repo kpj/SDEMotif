@@ -60,7 +60,7 @@ class TestFunctions(TestCase):
         dat, xt, yt = preprocess_data(test_data, get_val, [sort_func])
 
         self.assertEqual(len(test_data), len(dat))
-        self.assertEqual(xt, [1, 2])
+        npt.assert_array_equal(xt, [1, 2])
         self.assertEqual(yt, [0])
         npt.assert_array_equal(dat, np.array([
             [6-9, 6-11]
@@ -113,29 +113,33 @@ class TestColumnSorter(TestCase):
             return np.sign(val)
 
         # test 'em
-        res = sort_columns(data, sort_data, [sort_abs])
+        res, rp = sort_columns(data, sort_data, [sort_abs])
         npt.assert_array_equal(res, np.array([
             [1, -2, 3, -3],
             [3, 1, 2, 4],
         ]))
+        npt.assert_array_equal(rp, [2, 0, 1, 3])
 
-        res = sort_columns(data, sort_data, [sort_sign])
+        res, rp = sort_columns(data, sort_data, [sort_sign])
         npt.assert_array_equal(res, np.array([
             [-2, -3, 3, 1],
             [1, 4, 2, 3],
         ]))
+        npt.assert_array_equal(rp, [0, 3, 1, 2])
 
-        res = sort_columns(data, sort_data, [sort_abs, sort_sign])
+        res, rp = sort_columns(data, sort_data, [sort_abs, sort_sign])
         npt.assert_array_equal(res, np.array([
             [1, -2, -3, 3],
             [3, 1, 4, 2],
         ]))
+        npt.assert_array_equal(rp, [2, 0, 3, 1])
 
-        res = sort_columns(data, sort_data, [sort_sign, sort_abs])
+        res, rp = sort_columns(data, sort_data, [sort_sign, sort_abs])
         npt.assert_array_equal(res, np.array([
             [-2, -3, 1, 3],
             [1, 4, 3, 2],
         ]))
+        npt.assert_array_equal(rp, [0, 3, 2, 1])
 
 class TestValueFunctions(TestCase):
     def test_annihilate_low_correlations(self):

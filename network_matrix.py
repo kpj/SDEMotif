@@ -114,11 +114,14 @@ def sort_columns(data, sort_data, sort_functions):
     """
     tmp = np.transpose(data).tolist()
     sort_tmp = np.copy(sort_data)
+    inds = range(len(tmp))
     for sfunc in sort_functions[::-1]:
         tmp = [x for y, x in sorted(
             zip(sort_tmp, tmp), key=lambda pair: sfunc(pair[0]))]
+        inds = [x for y, x in sorted(
+            zip(sort_tmp, inds), key=lambda pair: sfunc(pair[0]))]
         sort_tmp = list(sorted(sort_tmp, key=sfunc))
-    return np.transpose(tmp)
+    return np.transpose(tmp), inds
 
 def preprocess_data(data, val_func, sort_functionality):
     """ Extract data information.
@@ -149,18 +152,16 @@ def preprocess_data(data, val_func, sort_functionality):
     char_netws = [n[0] for n in data[0][1]]
 
     if isinstance(sort_functionality, list):
-        plot_data = sort_columns(plot_data, char_netws, sort_functionality)
+        plot_data, repos = sort_columns(
+            plot_data, char_netws, sort_functionality)
 
         xtick_func = sort_functionality[0]
-        repos = range(len(char_netws))
     elif isinstance(sort_functionality, tuple):
         xtick_func, spec = sort_functionality
 
         if spec.startswith('cluster'):
             typ = spec.split(':')[1]
             plot_data, repos = cluster_data(plot_data, typ)
-
-            xtick_labels = np.array([i for i,n in enumerate(data[0][1])])
         else:
             raise RuntimeError(
                 'Invalid sort string ({})'.format(spec))
