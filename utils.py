@@ -63,3 +63,8 @@ def extract_sub_matrix(mat, inds):
         mat = np.delete(mat, i, axis=0)
         mat = np.delete(mat, i, axis=1)
     return mat
+
+def list_diff(l1, l2):
+    """ Return set difference while maintaining order
+    """
+    return [x for x in l1 if x not in l2]

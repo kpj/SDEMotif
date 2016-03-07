@@ -18,8 +18,8 @@ from tqdm import tqdm
 
 from system import SDESystem
 from main import analyze_system
-from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evolution
-from utils import extract_sub_matrix
+from plotter import save_figure, plot_corr_mat, plot_system_evolution
+from utils import extract_sub_matrix, list_diff
 
 
 def read_file(fname):
@@ -84,7 +84,7 @@ def find_3_node_networks(data):
                 (get_intensities('educt', e1), get_intensities('product', (e1, t, e2)), get_intensities('educt', e2))
             ))
 
-    print('Found %d networks in %d educts and %d products' \
+    print('>', 'Found %d networks in %d educts and %d products' \
         % (len(motifs), len(educts), len(products)))
     return motifs
 
@@ -118,7 +118,7 @@ def get_complete_network(data, strict=True, plot=True):
 
     # list some information
     lwcc = max(nx.weakly_connected_component_subgraphs(graph), key=len)
-    print('Largest weakly connected component:', len(lwcc))
+    print('>', 'Largest weakly connected component:', len(lwcc))
 
     # plot graph
     if plot:
@@ -141,27 +141,33 @@ def simulate_graph(graph):
 
     # add input to nodes of zero in-degree
     zero_indgr = []
-    for i, row in enumerate(J):
+    for i, row in enumerate(J.T):
         inp = np.sum(row)
         inp += 1 # compensate for self-inhibition
         if inp == 0: zero_indgr.append(i)
 
     D[zero_indgr] = 1
     E[zero_indgr] = 1
+    print('>', '{}/{} nodes with zero indegree'.format(len(zero_indgr), len(graph.nodes())))
 
     # simulate system
     syst = SDESystem(J, D, E, I)
-    syst, mat, sol = analyze_system(syst)
-
-    # only keep non-zero indegree node correlations
-    mat = extract_sub_matrix(mat, zero_indgr)
+    syst, mat, sol = analyze_system(syst, filter_trivial_ss=False)
 
     # plot results
     fig = plt.figure(figsize=(30, 15))
     gs = mpl.gridspec.GridSpec(1, 2, width_ratios=[1, 2])
 
     if not mat is None:
-        plot_corr_mat(mat, plt.subplot(gs[0]), show_values=False)
+        # only keep non-zero indegree node correlations
+        mat = extract_sub_matrix(mat, zero_indgr)
+
+        node_inds = list_diff(range(J.shape[0]), zero_indgr)
+        used_nodes = np.array(graph.nodes())[node_inds]
+
+        plot_corr_mat(
+            mat, plt.subplot(gs[0]),
+            show_values=False, labels=used_nodes)
     plot_system_evolution(sol, plt.subplot(gs[1]), show_legend=False)
 
     save_figure('images/peak_network_simulation.pdf', bbox_inches='tight', dpi=300)

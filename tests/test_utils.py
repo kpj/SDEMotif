@@ -44,3 +44,10 @@ class TestSigEntryExtraction(TestCase):
             [0,0,7,0],
             [0,0,0,8]
         ]))
+
+    def test_list_diff(self):
+        l1 = [1,2,3,4,5,6,7]
+        l2 = [6,2,7,4]
+
+        res = list_diff(l1, l2)
+        npt.assert_array_equal(res, [1,3,5])

@@ -72,7 +72,7 @@ def plot_ss_scatter(steadies):
     save_figure('images/correlation_scatter.pdf', bbox_inches='tight')
     plt.close()
 
-def plot_corr_mat(corr_mat, ax, show_values=True):
+def plot_corr_mat(corr_mat, ax, show_values=True, labels=None):
     """ Plot heatmap of steady state correlation coefficients
     """
     dim = corr_mat.shape[0]
@@ -84,10 +84,14 @@ def plot_corr_mat(corr_mat, ax, show_values=True):
         vmin=-1, vmax=1)
 
     # add labels
-    if show_values:
+    if labels is None:
         ax.set_xticks(np.arange(dim, dtype=np.int))
         ax.set_yticks(np.arange(dim, dtype=np.int))
+    else:
+        plt.xticks(range(dim), labels, fontsize=1, rotation='vertical')
+        plt.yticks(range(dim), labels, fontsize=1)
 
+    if show_values:
         xms, yms = np.meshgrid(range(dim), range(dim))
         for i, j in zip(xms.flatten(), yms.flatten()):
             val = round(corr_mat[i, j], 2)
