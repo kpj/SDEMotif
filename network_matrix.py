@@ -9,6 +9,7 @@ import itertools
 
 import numpy as np
 import networkx as nx
+from scipy.cluster.hierarchy import linkage, dendrogram
 
 import matplotlib as mpl
 import matplotlib.pylab as plt
@@ -119,7 +120,7 @@ def sort_columns(data, sort_data, sort_functions):
         sort_tmp = list(sorted(sort_tmp, key=sfunc))
     return np.transpose(tmp)
 
-def preprocess_data(data, val_func, sort_functions):
+def preprocess_data(data, val_func, sort_functionality):
     """ Extract data information.
         Sort columns primarily by first sort_function and then the others in order
     """
@@ -140,19 +141,54 @@ def preprocess_data(data, val_func, sort_functions):
     plot_data = []
     for raw, enh_res in data: # for each row
         plot_data.append([handle_enh_entry(raw, enh) for enh in enh_res])
+    plot_data = np.array(plot_data)
 
-    # order columns by `sort_func`
+    # sort rows/columns in miraculous ways
+    xtick_func = None
+    repos = None
     char_netws = [n[0] for n in data[0][1]]
-    plot_data = sort_columns(plot_data, char_netws, sort_functions)
+
+    if isinstance(sort_functionality, list):
+        plot_data = sort_columns(plot_data, char_netws, sort_functionality)
+
+        xtick_func = sort_functionality[0]
+        repos = range(len(char_netws))
+    elif isinstance(sort_functionality, tuple):
+        xtick_func, spec = sort_functionality
+
+        if spec.startswith('cluster'):
+            typ = spec.split(':')[1]
+            plot_data, repos = cluster_data(plot_data, typ)
+
+            xtick_labels = np.array([i for i,n in enumerate(data[0][1])])
+        else:
+            raise RuntimeError(
+                'Invalid sort string ({})'.format(spec))
+    else:
+        raise RuntimeError(
+            'Invalid sort-method ({})'.format(sort_functionality))
 
     # generate axes labels
-    xtick_labels = sorted([sort_functions[0](n) for n in char_netws])
+    xtick_labels = np.array([xtick_func(n) for n in char_netws])[repos]
     ytick_labels = [round(np.mean(abs(r[0].jacobian)), 2) for r, e in data]
 
     return plot_data, xtick_labels, ytick_labels
 
+def cluster_data(mat, metric):
+    """ Cluster given data
+    """
+    link = linkage(mat.T, metric=metric)
+    dendr = dendrogram(link, no_plot=True)
+    pos = dendr['leaves']
+    return mat.T[pos].T, pos
+
 def plot_result(inp, vfunc, sfuncs, title, fname):
     """ Plot generated matrix
+
+        `sfuncs` can either be a list of functions or a string of the form:
+            * cluster:euclidean
+            * cluster:hamming
+        (generally every metric for scipy.spatial.distance.pdist)
     """
     # preprocess data
     data, xticks, yticks = preprocess_data(inp['data'], vfunc, sfuncs)
@@ -343,6 +379,13 @@ def handle_plots(inp):
     """
     for vfunc, title in zip([get_sign_changes, get_rank_changes], ['sign', 'rank']):
         ptitle = '{} changes'.format(title)
+
+        plot_result(inp,
+            vfunc, (sort_by_outdeg, 'cluster:hamming'),
+            ptitle, 'images/matrix_{}_outdeg_hamming.pdf'.format(title))
+        plot_result(inp,
+            vfunc, (sort_by_outdeg, 'cluster:euclidean'),
+            ptitle, 'images/matrix_{}_outdeg_euclidean.pdf'.format(title))
 
         plot_result(inp,
             vfunc, [sort_by_network_density],
