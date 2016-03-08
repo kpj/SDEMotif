@@ -8,9 +8,11 @@ import pickle
 import itertools
 
 import numpy as np
+import pandas as pd
 import networkx as nx
 from scipy.cluster.hierarchy import linkage, dendrogram
 
+import seaborn as sns
 import matplotlib as mpl
 import matplotlib.pylab as plt
 
@@ -157,14 +159,8 @@ def preprocess_data(data, val_func, sort_functionality):
 
         xtick_func = sort_functionality[0]
     elif isinstance(sort_functionality, tuple):
-        xtick_func, spec = sort_functionality
-
-        if spec.startswith('cluster'):
-            typ = spec.split(':')[1]
-            plot_data, repos = cluster_data(plot_data, typ)
-        else:
-            raise RuntimeError(
-                'Invalid sort string ({})'.format(spec))
+        xtick_func, _ = sort_functionality
+        repos = range(len(plot_data[0]))
     else:
         raise RuntimeError(
             'Invalid sort-method ({})'.format(sort_functionality))
@@ -179,7 +175,10 @@ def cluster_data(mat, metric):
     """ Cluster given data
     """
     link = linkage(mat.T, metric=metric)
-    dendr = dendrogram(link, no_plot=True)
+
+    dendr = dendrogram(
+        link, no_plot=True)
+
     pos = dendr['leaves']
     return mat.T[pos].T, pos
 
@@ -191,73 +190,104 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
             * cluster:hamming
         (generally every metric for scipy.spatial.distance.pdist)
     """
+    print('Plotting "{}"'.format(fname), end='... ', flush=True)
+
     # preprocess data
     data, xticks, yticks = preprocess_data(inp['data'], vfunc, sfuncs)
 
-    # create plot
-    fig = plt.figure()
+    # stop, it's plotting time!
+    if isinstance(sfuncs, tuple): # there will be clustering
+        xtick_func, spec = sfuncs
+        metr = spec.split(':')[1]
 
-    plt.xticks(np.arange(len(data[0]), dtype=np.int), xticks)
-    plt.yticks(np.arange(len(data), dtype=np.int), yticks)
+        dat = []
+        for i, row in enumerate(data):
+            dat.append((yticks[i], row))
+        df = pd.DataFrame.from_items(dat, columns=xticks, orient='index')
 
-    plt.setp(plt.gca().get_xticklabels(), fontsize=3, rotation='vertical')
-    plt.setp(plt.gca().get_yticklabels(), fontsize=3)
+        col_list = [(.7,.7,.7), (0,0,1), (1,0,0)]
+        cmap = mpl.colors.ListedColormap(col_list, name='highlighter')
+        cmap.set_under('white')
 
-    plt.tick_params(
-        axis='both', which='both', labelleft='on',
-        bottom='off', top='off', labelbottom='on', left='off', right='off')
+        plt.figure()
+        cg = sns.clustermap(
+            df, cmap=cmap, vmin=0, vmax=np.max(data),
+            row_cluster=False, metric=metr)
 
-    plt.title(title)
-    plt.xlabel(sfuncs[0].__doc__)
-    plt.ylabel('absolute mean of Jacobian')
+        plt.setp(cg.ax_heatmap.xaxis.get_ticklabels(), rotation=90, size=6)
+        plt.setp(cg.ax_heatmap.yaxis.get_ticklabels(), rotation=0, size=5)
 
-    col_list = [(0.7,0.7,0.7), (0,0,1), (1,0,0)]
-    cmap = mpl.colors.ListedColormap(col_list, name='highlighter')
-    cmap.set_under('white')
+        save_figure(fname, bbox_inches='tight')
+        plt.close()
+    else:
+        # "normal" plot
+        mpl.style.use('default') # possibly reset seaborn styles
 
-    plt.imshow(
-        data,
-        interpolation='nearest', cmap=cmap,
-        vmin=0, vmax=np.max(data))
-    plt.colorbar(ticks=range(np.max(data)+1), extend='min')
+        plt.figure()
 
-    # mark "zoomed" columns
-    sel_one, netws_one = select_column_by_jacobian(inp['data'], np.array([
-        [1,0,0,1],
-        [1,1,0,0],
-        [1,1,1,0],
-        [0,0,1,1]
-    ]))
-    sel_two, netws_two = select_column_by_jacobian(inp['data'], np.array([
-        [1,0,0,1],
-        [1,1,0,0],
-        [1,1,1,0],
-        [1,0,0,1]
-    ]))
+        plt.xticks(np.arange(len(data[0]), dtype=np.int), xticks)
+        plt.yticks(np.arange(len(data), dtype=np.int), yticks)
 
-    sel_xticks = [item for item in plt.gca().get_xticklabels()]
-    sel_xticks[sel_one].set_weight('bold')
-    sel_xticks[sel_two].set_weight('bold')
-    plt.gca().set_xticklabels(sel_xticks)
+        plt.setp(plt.gca().get_xticklabels(), fontsize=3, rotation='vertical')
+        plt.setp(plt.gca().get_yticklabels(), fontsize=3)
 
-    # mark "zoomed" rows
-    sel_blue, netws_blue = select_row_by_count(inp['data'], data, 1)
-    sel_red, netws_red = select_row_by_count(inp['data'], data, 2)
+        plt.tick_params(
+            axis='both', which='both', labelleft='on',
+            bottom='off', top='off', labelbottom='on', left='off', right='off')
 
-    sel_yticks = [item for item in plt.gca().get_yticklabels()]
-    sel_yticks[sel_blue].set_weight('bold')
-    sel_yticks[sel_red].set_weight('bold')
-    plt.gca().set_yticklabels(sel_yticks)
+        plt.title(title)
+        plt.xlabel(sfuncs[0].__doc__)
+        plt.ylabel('absolute mean of Jacobian')
 
-    # save figure
-    save_figure(fname, bbox_inches='tight')
+        col_list = [(0.7,0.7,0.7), (0,0,1), (1,0,0)]
+        cmap = mpl.colors.ListedColormap(col_list, name='highlighter')
+        cmap.set_under('white')
 
-    # plot best examples
-    plot_individuals(netws_one, '{}_col_one'.format(fname))
-    plot_individuals(netws_two, '{}_col_two'.format(fname))
+        plt.imshow(
+            data,
+            interpolation='nearest', cmap=cmap,
+            vmin=0, vmax=np.max(data))
+        plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
-    plot_individuals(netws_blue, '{}_row_blue'.format(fname))
-    plot_individuals(netws_red, '{}_row_red'.format(fname))
+        # mark "zoomed" columns
+        sel_one, netws_one = select_column_by_jacobian(inp['data'], np.array([
+            [1,0,0,1],
+            [1,1,0,0],
+            [1,1,1,0],
+            [0,0,1,1]
+        ]))
+        sel_two, netws_two = select_column_by_jacobian(inp['data'], np.array([
+            [1,0,0,1],
+            [1,1,0,0],
+            [1,1,1,0],
+            [1,0,0,1]
+        ]))
+
+        sel_xticks = [item for item in plt.gca().get_xticklabels()]
+        sel_xticks[sel_one].set_weight('bold')
+        sel_xticks[sel_two].set_weight('bold')
+        plt.gca().set_xticklabels(sel_xticks)
+
+        # mark "zoomed" rows
+        sel_blue, netws_blue = select_row_by_count(inp['data'], data, 1)
+        sel_red, netws_red = select_row_by_count(inp['data'], data, 2)
+
+        sel_yticks = [item for item in plt.gca().get_yticklabels()]
+        sel_yticks[sel_blue].set_weight('bold')
+        sel_yticks[sel_red].set_weight('bold')
+        plt.gca().set_yticklabels(sel_yticks)
+
+        # save figure
+        save_figure(fname, bbox_inches='tight')
+
+        # plot best examples
+        plot_individuals(netws_one, '{}_col_one'.format(fname))
+        plot_individuals(netws_two, '{}_col_two'.format(fname))
+
+        plot_individuals(netws_blue, '{}_row_blue'.format(fname))
+        plot_individuals(netws_red, '{}_row_red'.format(fname))
+
+    print('Done')
 
 def select_column_by_jacobian(data, jac):
     """ Select column by approximated jacobian
