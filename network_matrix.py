@@ -347,7 +347,8 @@ def plot_individuals(examples, fname):
         plot_system_evolution(net[2], plt.subplot(gs[i, 2]))
 
     if counter > 0:
-        print('{} broken results'.format(counter))
+        #print('{} broken results'.format(counter))
+        pass
 
     save_figure('%s_zoom.pdf' % fname.replace('.pdf', ''), bbox_inches='tight', dpi=300)
     plt.close()
