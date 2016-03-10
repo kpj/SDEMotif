@@ -419,8 +419,8 @@ def handle_plots(inp):
             vfunc, (sort_by_outdeg, 'cluster:hamming'),
             ptitle, 'images/matrix_{}_outdeg_hamming.pdf'.format(title))
         plot_result(inp,
-            vfunc, (sort_by_outdeg, 'cluster:euclidean'),
-            ptitle, 'images/matrix_{}_outdeg_euclidean.pdf'.format(title))
+            vfunc, (sort_by_outdeg, 'cluster:minkowski'),
+            ptitle, 'images/matrix_{}_outdeg_minkowski.pdf'.format(title))
 
         plot_result(inp,
             vfunc, [sort_by_network_density],
