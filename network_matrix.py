@@ -415,13 +415,22 @@ def handle_plots(inp):
     for vfunc, title in zip([get_sign_changes, get_rank_changes], ['sign', 'rank']):
         ptitle = '{} changes'.format(title)
 
-        plot_result(inp,
-            vfunc, (sort_by_outdeg, 'cluster:hamming'),
-            ptitle, 'images/matrix_{}_outdeg_hamming.pdf'.format(title))
-        plot_result(inp,
-            vfunc, (sort_by_outdeg, 'cluster:minkowski'),
-            ptitle, 'images/matrix_{}_outdeg_minkowski.pdf'.format(title))
+        # clustering
+        for clus_typ in ['hamming', 'minkowski']:
+            plot_result(inp,
+                vfunc, (sort_by_outdeg, 'cluster:{}'.format(clus_typ)),
+                ptitle, 'images/matrix_{}_outdeg_{}.pdf'.format(title, clus_typ))
+            plot_result(inp,
+                vfunc, (sort_by_indeg, 'cluster:{}'.format(clus_typ)),
+                ptitle, 'images/matrix_{}_indeg_{}.pdf'.format(title, clus_typ))
+            plot_result(inp,
+                vfunc, (sort_by_network_density, 'cluster:{}'.format(clus_typ)),
+                ptitle, 'images/matrix_{}_netdens_{}.pdf'.format(title, clus_typ))
+            plot_result(inp,
+                vfunc, (sort_by_cycle_num, 'cluster:{}'.format(clus_typ)),
+                ptitle, 'images/matrix_{}_cycles_{}.pdf'.format(title, clus_typ))
 
+        # vanilla matrices
         plot_result(inp,
             vfunc, [sort_by_network_density],
             ptitle, 'images/matrix_{}_netdens.pdf'.format(title))
