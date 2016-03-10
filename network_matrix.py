@@ -200,6 +200,9 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
         xtick_func, spec = sfuncs
         metr = spec.split(':')[1]
 
+        # remove noisy signals for clustering
+        data[data < 0] = 0
+
         dat = []
         for i, row in enumerate(data):
             dat.append((yticks[i], row))
