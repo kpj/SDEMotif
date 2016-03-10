@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from system import SDESystem
 from main import analyze_system
-from plotter import save_figure, plot_corr_mat, plot_system_evolution
+from plotter import save_figure, plot_corr_mat, plot_system_evolution, plot_histogram
 from utils import extract_sub_matrix, list_diff
 
 
@@ -183,15 +183,11 @@ def compute_correlation_pairs(motifs, plot=False):
 
         if plot:
             plt.figure()
-
-            bin_edges = np.linspace(-1, 1, 200)
-            n, _, _ = plt.hist(
-                corrs, bin_edges, facecolor='khaki')
+            plot_histogram(corrs, plt.gca())
 
             plt.title('"{} ({})" vs "{} ({})"'.format(
                 name2, len(ints2), name1, len(ints1)))
             plt.xlabel('correlation')
-            plt.ylabel('count')
 
             plt.savefig('corr_hists/corr_hist_{}_{}.pdf'.format(name1, name2))
             plt.close()
@@ -211,15 +207,12 @@ def compute_correlation_pairs(motifs, plot=False):
 def compute_overview_histogram(corrs):
     """ Compute histogram of all possible correlations
     """
-    fig = plt.figure()
     flat_corrs = list(itertools.chain.from_iterable(corrs))
 
-    bin_edges = np.linspace(-1, 1, 200)
-    n, _, _ = plt.hist(
-        flat_corrs, bin_edges, facecolor='khaki')
+    plt.figure()
+    plot_histogram(flat_corrs, plt.gca())
 
-    plt.xlabel('substrate intensity correlation')
-    plt.ylabel('count')
+    plt.xlabel('molecule intensity correlation')
     plt.title('Overview over all correlations')
 
     plt.savefig('images/all_corrs_hist.pdf')
@@ -233,7 +226,7 @@ def main(fname):
     """
     data = read_file(fname)
 
-    graph = get_complete_network(data, plot=True)
+    graph = get_complete_network(data, plot=False)
     simulate_graph(graph)
 
     res = find_3_node_networks(data)

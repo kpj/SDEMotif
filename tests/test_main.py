@@ -74,8 +74,6 @@ class TestSimulationFilters(TestCase):
 
 class TestDataClustering(TestCase):
     def test_simple_case(self):
-        """ Simple test
-        """
         test_data = [(None, [2]), (None, [1])]
         res = cluster_data(test_data)
 

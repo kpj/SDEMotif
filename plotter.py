@@ -10,8 +10,7 @@ import networkx as nx
 import matplotlib.pylab as plt
 import matplotlib.image as mpimg
 
-from utils import get_correlation, extract
-
+import utils
 
 def save_figure(fname, **kwargs):
     """ Save current plot and check that directory exists
@@ -45,13 +44,13 @@ def plot_ss_scatter(steadies):
     def do_scatter(i, j, ax):
         """ Draw single scatter plot
         """
-        xs, ys = extract(i, j, steadies)
+        xs, ys = utils.extract(i, j, steadies)
         ax.scatter(xs, ys)
 
         ax.set_xlabel(r'$S_%d$' % i)
         ax.set_ylabel(r'$S_%d$' % j)
 
-        cc = get_correlation(xs, ys)
+        cc = utils.get_correlation(xs, ys)
         ax.set_title(r'Corr: $%.2f$' % cc)
 
     dim = steadies.shape[1]
@@ -132,3 +131,13 @@ def plot_system(system, ax):
 
     ax.imshow(img, aspect='equal')
     ax.axis('off')
+
+def plot_histogram(data, ax, bins=200):
+    """ Plot histogram of data on given axis
+    """
+    bin_edges = np.linspace(-1, 1, 200)
+    n, _, _ = ax.hist(
+        data, bin_edges,
+        facecolor='goldenrod', linewidth=0)
+
+    ax.set_ylabel('count')
