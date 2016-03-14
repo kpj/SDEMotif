@@ -5,6 +5,7 @@ Parse real-life peak data
 import re
 import sys
 import csv
+import json
 import itertools
 import collections
 
@@ -220,11 +221,24 @@ def compute_overview_histogram(corrs):
 
     return flat_corrs
 
+def intersect_flavour_handbook(data, mol_map_file):
+    """ Check which molecules from the Handbook we have data for
+    """
+    with open(mol_map_file, 'r') as fd:
+        mmap = json.load(fd)
+
+    mols = set(list(mmap.keys()) + list([v for vl in mmap.values() for v in vl]))
+    for typ, spec in data:
+        if typ == 'educt':
+            print(spec in mmap)
+
 
 def main(fname):
     """ Analyse peaks
     """
     data = read_file(fname)
+
+    intersect_flavour_handbook(data, 'data/synonym_map.json')
 
     graph = get_complete_network(data, plot=False)
     simulate_graph(graph)
