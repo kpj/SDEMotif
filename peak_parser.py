@@ -221,24 +221,34 @@ def compute_overview_histogram(corrs):
 
     return flat_corrs
 
-def intersect_flavour_handbook(data, mol_map_file):
+def intersect_flavour_handbook(data_file, mol_map_file):
     """ Check which molecules from the Handbook we have data for
     """
     with open(mol_map_file, 'r') as fd:
         mmap = json.load(fd)
 
-    mols = set(list(mmap.keys()) + list([v for vl in mmap.values() for v in vl]))
-    for typ, spec in data:
-        if typ == 'educt':
-            print(spec in mmap)
+    # extracts polyphenols
+    poly_names = []
+    with open(data_file, 'r') as fd:
+        reader = csv.DictReader(fd)
+
+        for row in reader:
+            polns = [n.strip().lower() for n in row['polyphenolName'].split(',')
+                if len(n) > 0]
+            poly_names.extend(polns)
+
+    # aggregate all handbook molecule-names
+    mols = set(n.lower() for n in list(mmap.keys()) + list([v for vl in mmap.values() for v in vl]))
+
+    # find matches
+    inter = mols.intersection(set(poly_names))
+    print('Found {} matches'.format(len(inter)))
 
 
 def main(fname):
     """ Analyse peaks
     """
     data = read_file(fname)
-
-    intersect_flavour_handbook(data, 'data/synonym_map.json')
 
     graph = get_complete_network(data, plot=False)
     simulate_graph(graph)
@@ -252,4 +262,7 @@ if __name__ == '__main__':
         print('Usage: %s <peak file>' % sys.argv[0])
         sys.exit(-1)
 
-    main(sys.argv[1])
+    if 'polyphenols' in sys.argv[1]:
+        intersect_flavour_handbook(sys.argv[1], 'data/synonym_map.json')
+    else:
+        main(sys.argv[1])
