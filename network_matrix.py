@@ -125,27 +125,29 @@ def sort_columns(data, sort_data, sort_functions):
         sort_tmp = list(sorted(sort_tmp, key=sfunc))
     return np.transpose(tmp), inds
 
+def handle_enh_entry(raw_res, enh_res, val_func):
+    """ Compare given networks with given function
+    """
+    raw, raw_mat, raw_sol = raw_res
+    enh, enh_mat, enh_sol = enh_res
+
+    if raw_mat is None or enh_mat is None:
+        return -1
+
+    enh_mat = enh_mat[:-1,:-1] # disregard fourth node
+    raw_vals = extract_sig_entries(raw_mat)
+    enh_vals = extract_sig_entries(enh_mat)
+
+    return val_func(raw_vals, enh_vals)
+
 def preprocess_data(data, val_func, sort_functionality):
     """ Extract data information.
         Sort columns primarily by first sort_function and then the others in order
     """
     # compute matrix entries
-    def handle_enh_entry(raw_res, enh_res):
-        raw, raw_mat, raw_sol = raw_res
-        enh, enh_mat, enh_sol = enh_res
-
-        if raw_mat is None or enh_mat is None:
-            return -1
-
-        enh_mat = enh_mat[:-1,:-1] # disregard fourth node
-        raw_vals = extract_sig_entries(raw_mat)
-        enh_vals = extract_sig_entries(enh_mat)
-
-        return val_func(raw_vals, enh_vals)
-
     plot_data = []
     for raw, enh_res in data: # for each row
-        plot_data.append([handle_enh_entry(raw, enh) for enh in enh_res])
+        plot_data.append([handle_enh_entry(raw, enh, val_func) for enh in enh_res])
     plot_data = np.array(plot_data)
 
     # sort rows/columns in miraculous ways
@@ -181,6 +183,14 @@ def cluster_data(mat, metric):
 
     pos = dendr['leaves']
     return mat.T[pos].T, pos
+
+def get_matrix_cmap():
+    """ Assemble colormap for matrix
+    """
+    col_list = [(0.7,0.7,0.7), (0,0,1), (1,0,0)]
+    cmap = mpl.colors.ListedColormap(col_list, name='highlighter')
+    cmap.set_under('white')
+    return cmap
 
 def plot_result(inp, vfunc, sfuncs, title, fname):
     """ Plot generated matrix
@@ -242,13 +252,9 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
         plt.xlabel(sfuncs[0].__doc__)
         plt.ylabel('absolute mean of Jacobian')
 
-        col_list = [(0.7,0.7,0.7), (0,0,1), (1,0,0)]
-        cmap = mpl.colors.ListedColormap(col_list, name='highlighter')
-        cmap.set_under('white')
-
         plt.imshow(
             data,
-            interpolation='nearest', cmap=cmap,
+            interpolation='nearest', cmap=get_matrix_cmap(),
             vmin=0, vmax=np.max(data))
         plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
@@ -284,8 +290,8 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
         save_figure(fname, bbox_inches='tight')
 
         # plot best examples
-        plot_individuals(netws_one, '{}_col_one'.format(fname))
-        plot_individuals(netws_two, '{}_col_two'.format(fname))
+        plot_individuals(netws_one, '{}_col_one'.format(fname), vfunc)
+        plot_individuals(netws_two, '{}_col_two'.format(fname), vfunc)
 
         plot_individuals(netws_blue, '{}_row_blue'.format(fname))
         plot_individuals(netws_red, '{}_row_red'.format(fname))
@@ -310,8 +316,9 @@ def select_column_by_jacobian(data, jac):
         raise RuntimeError('No match found')
     else:
         for i in range(len(data)):
+            ref = data[i][0]
             net = data[i][1][ind]
-            res.append(net)
+            res.append((ref, net))
 
     return ind, res
 
@@ -330,29 +337,55 @@ def select_row_by_count(data, mat, pat):
 
     return row_sel, netws
 
-def plot_individuals(examples, fname):
+def plot_individuals(examples, fname, val_func=None):
     """ Plot a selection of individual results
     """
     # plot selected networks
-    fig = plt.figure(figsize=(25, 4*len(examples)))
-    gs = mpl.gridspec.GridSpec(len(examples), 3, width_ratios=[1, 1, 2])
+    if len(examples[0]) == 2: # is pair of networks
+        fig = plt.figure(figsize=(50, 4*len(examples)))
+        gs = mpl.gridspec.GridSpec(
+            len(examples), 6,
+            width_ratios=[1, 2, 1, 2, 1, 4])
+    else: # each entry is single network
+        fig = plt.figure(figsize=(25, 4*len(examples)))
+        gs = mpl.gridspec.GridSpec(len(examples), 3, width_ratios=[1, 1, 2])
 
     counter = 0
     for i, net in enumerate(examples):
-        if net[1] is None:
-            counter += 1
-            plot_system(net[0], plt.subplot(gs[i, 0]))
-            plot_system_evolution(net[2], plt.subplot(gs[i, 2]))
-            continue
+        if len(net) == 2: # pair of networks
+            raw, enh = net
 
-        plot_system(net[0], plt.subplot(gs[i, 0]))
-        plot_corr_mat(net[1], plt.subplot(gs[i, 1]))
-        plot_system_evolution(net[2], plt.subplot(gs[i, 2]))
+            plot_system(raw[0], plt.subplot(gs[i, 0]))
+            plot_corr_mat(raw[1], plt.subplot(gs[i, 1]))
+            plot_system(enh[0], plt.subplot(gs[i, 2]))
+            plot_corr_mat(enh[1], plt.subplot(gs[i, 3]))
+            plot_system_evolution(enh[2], plt.subplot(gs[i, 5]))
+
+            # plot marker
+            mark_ax = plt.subplot(gs[i, 4])
+            if not val_func is None:
+                mark_ax.imshow(
+                    [[handle_enh_entry(raw, enh, val_func)]],
+                    cmap=get_matrix_cmap(), vmin=0, vmax=2) # TODO: find vmax in more reliable way
+                mark_ax.axis('off')
+            else:
+                print('Tried to use `val_func`, but it\'s None')
+        else: # single network
+            if net[1] is None:
+                counter += 1
+                plot_system(net[0], plt.subplot(gs[i, 0]))
+                plot_system_evolution(net[2], plt.subplot(gs[i, 2]))
+                continue
+
+            plot_system(net[0], plt.subplot(gs[i, 0]))
+            plot_corr_mat(net[1], plt.subplot(gs[i, 1]))
+            plot_system_evolution(net[2], plt.subplot(gs[i, 2]))
 
     if counter > 0:
         #print('{} broken results'.format(counter))
         pass
 
+    plt.tight_layout()
     save_figure('%s_zoom.pdf' % fname.replace('.pdf', ''), bbox_inches='tight', dpi=300)
     plt.close()
 

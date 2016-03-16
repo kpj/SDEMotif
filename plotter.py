@@ -74,6 +74,9 @@ def plot_ss_scatter(steadies):
 def plot_corr_mat(corr_mat, ax, show_values=True, labels=None):
     """ Plot heatmap of steady state correlation coefficients
     """
+    if corr_mat is None:
+        ax.axis('off')
+        return
     dim = corr_mat.shape[0]
 
     # plot colors
