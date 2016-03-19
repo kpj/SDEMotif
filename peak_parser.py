@@ -224,6 +224,11 @@ def compute_overview_histogram(corrs):
 def intersect_flavour_handbook(data_file, mol_map_file):
     """ Check which molecules from the Handbook we have data for
     """
+    def clean_name(name):
+        """ Remove all unnecessary clutter from names
+        """
+        return ''.join(e for e in name.strip().lower() if e.isalnum())
+
     with open(mol_map_file, 'r') as fd:
         mmap = json.load(fd)
 
@@ -233,16 +238,17 @@ def intersect_flavour_handbook(data_file, mol_map_file):
         reader = csv.DictReader(fd)
 
         for row in reader:
-            polns = [n.strip().lower() for n in row['polyphenolName'].split(',')
+            polns = [clean_name(n) for n in row['polyphenolName'].split(',')
                 if len(n) > 0]
             poly_names.extend(polns)
 
     # aggregate all handbook molecule-names
-    mols = set(n.lower() for n in list(mmap.keys()) + list([v for vl in mmap.values() for v in vl]))
+    mols = set(clean_name(n) for n in list(mmap.keys()) + list([v for vl in mmap.values() for v in vl]))
 
     # find matches
     inter = mols.intersection(set(poly_names))
     print('Found {} matches'.format(len(inter)))
+    print(inter)
 
 
 def main(fname):
