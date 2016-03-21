@@ -78,12 +78,10 @@ def cache_data(data, fname='results/data_cache'):
 def extract_sig_entries(mat):
     """ Extract significant entries from correlation matrix (expects 3x3 matrix)
     """
-    assert mat.shape == (3, 3), 'Matrix dimension mismatch ({})'.format(mat.shape)
     assert np.allclose(mat.transpose(), mat), 'Matrix not symmetric'
 
     ind = np.nonzero(np.tril(abs(mat), k=-1))
     res = mat[ind].tolist()
-    res += [0] * (3-len(res))
     return np.array(res)
 
 def extract_sub_matrix(mat, inds):
