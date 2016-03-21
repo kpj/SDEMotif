@@ -135,12 +135,18 @@ def plot_system(system, ax):
     ax.imshow(img, aspect='equal')
     ax.axis('off')
 
-def plot_histogram(data, ax, bins=200, color='goldenrod'):
+def plot_histogram(data, ax, bins=200, **kwargs):
     """ Plot histogram of data on given axis
     """
+    # set some markup defaults
+    fc = kwargs.get('facecolor', 'goldenrod')
+    kwargs.pop('facecolor', None)
+
+    # plot histogram
     bin_edges = np.linspace(-1, 1, bins)
     n, _, _ = ax.hist(
         data, bin_edges,
-        facecolor=color, linewidth=0)
+        facecolor=fc, linewidth=0,
+        **kwargs)
 
     ax.set_ylabel('count')

@@ -78,23 +78,26 @@ def check_ergodicity(reps=500):
     # plot result
     dim = syst.jacobian.shape[1]
 
-    plt.figure(figsize=(12, 14))
-    gs = mpl.gridspec.GridSpec(int((dim**2-dim)/2), 2)
+    plt.figure(figsize=(6, 14))
+    gs = mpl.gridspec.GridSpec(int((dim**2-dim)/2), 1)
 
     axc = 0
     for i in range(dim):
         for j in range(dim):
             if i == j: break
+            ax = plt.subplot(gs[axc])
 
-            ax = plt.subplot(gs[axc, 0])
-            plot_histogram(singles[:,i,j], ax)
-            ax.set_title('Multiple entries from single run ({}, {})'.format(i, j))
-            ax.set_xlabel('correlation')
+            plot_histogram(
+                singles[:,i,j], ax,
+                alpha=0.5,
+                label='Multiple entries from single run')
+            plot_histogram(mults[:,i,j], ax,
+                facecolor='mediumturquoise', alpha=0.5,
+                label='One entry from single run')
 
-            ax = plt.subplot(gs[axc, 1])
-            plot_histogram(mults[:,i,j], ax)
-            ax.set_title('One entry from single run ({}, {})'.format(i, j))
+            ax.set_title('Nodes {}, {}'.format(i, j))
             ax.set_xlabel('correlation')
+            ax.legend(loc='best')
 
             axc += 1
 
