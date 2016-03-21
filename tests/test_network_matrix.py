@@ -146,7 +146,7 @@ class TestValueFunctions(TestCase):
         vals = np.array([-0.5, 0.9, 0.05, 0.1, 0.2, -0.15, 0.23, -1])
         res = annihilate_low_correlations(vals, threshold=0.2)
 
-        npt.assert_array_equal(res, np.array([-0.5, 0.9, 0, 0, 0, 0, 0.23, -1]))
+        npt.assert_array_equal(res, np.array([-0.5, 0.9, 0, 0, 0.2, 0, 0.23, -1]))
 
     def test_bin_correlations(self):
         vals = np.array([-1,-0.5,-0.1,-0.02,0.04,0.08,0.6,0.99])
