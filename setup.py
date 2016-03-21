@@ -218,6 +218,24 @@ def generate_cycles(size=10):
 
     return systs
 
+def system_from_string(string):
+    """
+    System string:
+        string := jacobian
+
+    Input + fluctuations will be assumed to happen on node 0
+    """
+    mat = []
+    for row in string.split(';'):
+        mat.append(np.fromstring(row, sep=' '))
+    J = np.array(mat)
+
+    E = np.array([5] + [0] * (J.shape[0]-1))
+    F = np.array([1] + [0] * (J.shape[0]-1))
+    I = np.array([1] * J.shape[0])
+
+    return SDESystem(J, F, E, I)
+
 
 def load_systems(fname):
     """ Support for loading pickled systems from given file
@@ -246,21 +264,3 @@ if __name__ == '__main__':
 
     res = func()
     cache_data(res, fname='results/systems')
-
-def system_from_string(string):
-    """
-    System string:
-        string := jacobian
-
-    Input + fluctuations will be assumed to happen on node 0
-    """
-    mat = []
-    for row in string.split(';'):
-        mat.append(np.fromstring(row, sep=' '))
-    J = np.array(mat)
-
-    E = np.array([5] + [0] * (J.shape[0]-1))
-    F = np.array([1] + [0] * (J.shape[0]-1))
-    I = np.array([1] * J.shape[0])
-
-    return SDESystem(J, F, E, I)
