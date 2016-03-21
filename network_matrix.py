@@ -395,7 +395,7 @@ def plot_individuals(examples, fname, val_func=None):
 def annihilate_low_correlations(vals, threshold=0.1):
     """ Take care of small fluctuations around 0
     """
-    vals[abs(vals) <= threshold] = 0
+    vals[abs(vals) < threshold] = 0
     return vals
 
 def bin_correlations(vals, low_thres=-0.1, high_thres=0.1):
