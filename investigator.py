@@ -5,10 +5,14 @@ Investigate data in various ways
 import sys
 
 import numpy as np
+
+import matplotlib as mpl
 import matplotlib.pylab as plt
 
-from utils import extract_sig_entries
+from utils import extract_sig_entries, compute_correlation_matrix
 from plotter import plot_histogram
+from setup import generate_basic_system
+from solver import solve_system
 
 
 def plot_correlation_hist(data):
@@ -38,14 +42,72 @@ def plot_correlation_hist(data):
 
     fig.savefig('images/all_sim_corrs.pdf')
 
+def check_ergodicity(reps=500):
+    """ Check whether simulated systems are ergodic
+    """
+    def get_matrices(syst, entry_num=100):
+        """ Get correlation matrices for both cases
+        """
+        # multiple entries from single run
+        sol = solve_system(syst)
+        single_run = sol.T[-entry_num:]
+        single_mat = compute_correlation_matrix(np.array([single_run]))
+
+        # one entry from multiple runs
+        runs = []
+        for _ in range(entry_num):
+            sol = solve_system(syst).T[-1].T
+            runs.append(sol)
+        runs = np.array(runs)
+        runs_mat = compute_correlation_matrix(np.array([runs]))
+
+        return single_mat, runs_mat
+
+    syst = generate_basic_system()
+
+    singles = []
+    mults = []
+    for _ in range(reps):
+        sm, rm = get_matrices(syst)
+
+        singles.append(sm)
+        mults.append(rm)
+    singles = np.array(singles)
+    mults = np.array(mults)
+
+    # plot result
+    dim = syst.jacobian.shape[1]
+
+    plt.figure(figsize=(12, 14))
+    gs = mpl.gridspec.GridSpec(int((dim**2-dim)/2), 2)
+
+    axc = 0
+    for i in range(dim):
+        for j in range(dim):
+            if i == j: break
+
+            ax = plt.subplot(gs[axc, 0])
+            plot_histogram(singles[:,i,j], ax)
+            ax.set_title('Multiple entries from single run ({}, {})'.format(i, j))
+            ax.set_xlabel('correlation')
+
+            ax = plt.subplot(gs[axc, 1])
+            plot_histogram(mults[:,i,j], ax)
+            ax.set_title('One entry from single run ({}, {})'.format(i, j))
+            ax.set_xlabel('correlation')
+
+            axc += 1
+
+    plt.tight_layout()
+    plt.savefig('images/ergodicity_check.pdf')
+
 def main(data):
     """ Analyse data
     """
-    plot_correlation_hist(data)
+    if data is None:
+        check_ergodicity()
+    else:
+        plot_correlation_hist(data)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('Usage: %s <data file>' % sys.argv[0])
-        sys.exit(-1)
-
-    main(np.load(sys.argv[1])['data'])
+    main(np.load(sys.argv[1])['data'] if len(sys.argv) == 2 else None)
