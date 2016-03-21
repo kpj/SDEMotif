@@ -93,7 +93,7 @@ def check_ergodicity(reps=500):
                 label='Multiple entries from single run')
             plot_histogram(mults[:,i,j], ax,
                 facecolor='mediumturquoise', alpha=0.5,
-                label='One entry from single run')
+                label='One entry from multiple runs')
 
             ax.set_title('Nodes {}, {}'.format(i, j))
             ax.set_xlabel('correlation')
