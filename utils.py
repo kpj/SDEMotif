@@ -44,7 +44,7 @@ def compute_correlation_matrix(data, plot_hist=False):
     mats = np.array(mats)
 
     if plot_hist:
-        plt.figure(figsize=(3, 7))
+        plt.figure(figsize=(6, 14))
         gs = mpl.gridspec.GridSpec(int((dim**2-dim)/2), 1)
 
         axc = 0
