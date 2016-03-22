@@ -392,13 +392,13 @@ def plot_individuals(examples, fname, val_func=None):
 #####################
 # Extractor functions
 # value functions
-def annihilate_low_correlations(vals, threshold=0.1):
+def annihilate_low_correlations(vals, threshold=0.2):
     """ Take care of small fluctuations around 0
     """
     vals[abs(vals) < threshold] = 0
     return vals
 
-def bin_correlations(vals, low_thres=-0.1, high_thres=0.1):
+def bin_correlations(vals, low_thres=-0.2, high_thres=0.2):
     """ Bin `vals` into three categories
     """
     tmp = np.zeros(vals.shape)

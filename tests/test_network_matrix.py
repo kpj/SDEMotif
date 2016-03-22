@@ -167,7 +167,7 @@ class TestValueFunctions(TestCase):
         self.assertEqual(get_rank_changes(vals1, vals2), 4)
 
         vals1 = np.array([0.31,0.23,0.98])
-        vals2 = np.array([0.13,0.05,0.97])
+        vals2 = np.array([0.23,0.05,0.97])
         self.assertEqual(get_rank_changes(vals1, vals2), 2)
 
 class TestSorterFunctions(TestCase):
