@@ -9,6 +9,8 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pylab as plt
 
+from tqdm import trange
+
 from utils import extract_sig_entries, compute_correlation_matrix
 from plotter import plot_histogram
 from setup import generate_basic_system
@@ -49,31 +51,38 @@ def check_ergodicity(reps=500):
         """ Get correlation matrices for both cases
         """
         # multiple entries from single run
-        sol = solve_system(syst)
-        single_run = sol.T[-entry_num:]
-        single_mat = compute_correlation_matrix(np.array([single_run]))
+        single_run_matrices = []
+        for _ in range(entry_num):
+            sol = solve_system(syst)
+
+            extract = sol.T[-entry_num:]
+            single_run_mat = compute_correlation_matrix(np.array([extract]))
+
+            single_run_matrices.append(single_run_mat)
+        avg_single_mat = np.mean(single_run_matrices, axis=0)
 
         # one entry from multiple runs
-        runs = []
+        multiple_runs = []
         for _ in range(entry_num):
-            sol = solve_system(syst).T[-1].T
-            runs.append(sol)
-        runs = np.array(runs)
-        runs_mat = compute_correlation_matrix(np.array([runs]))
+            sol = solve_system(syst)
 
-        return single_mat, runs_mat
+            extract = sol.T[-1].T
+            multiple_runs.append(extract)
+        multiple_mat = compute_correlation_matrix(np.array([multiple_runs]))
+
+        return avg_single_mat, multiple_mat
 
     syst = generate_basic_system()
 
-    singles = []
-    mults = []
-    for _ in range(reps):
+    single_runs = []
+    multiple_runs = []
+    for _ in trange(reps):
         sm, rm = get_matrices(syst)
 
-        singles.append(sm)
-        mults.append(rm)
-    singles = np.array(singles)
-    mults = np.array(mults)
+        single_runs.append(sm)
+        multiple_runs.append(rm)
+    single_runs = np.array(single_runs)
+    multiple_runs = np.array(multiple_runs)
 
     # plot result
     dim = syst.jacobian.shape[1]
@@ -88,10 +97,10 @@ def check_ergodicity(reps=500):
             ax = plt.subplot(gs[axc])
 
             plot_histogram(
-                singles[:,i,j], ax,
+                single_runs[:,i,j], ax,
                 alpha=0.5,
                 label='Multiple entries from single run')
-            plot_histogram(mults[:,i,j], ax,
+            plot_histogram(multiple_runs[:,i,j], ax,
                 facecolor='mediumturquoise', alpha=0.5,
                 label='One entry from multiple runs')
 
