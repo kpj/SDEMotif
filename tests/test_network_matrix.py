@@ -155,11 +155,18 @@ class TestValueFunctions(TestCase):
         npt.assert_array_equal(res, [-1,-1,0,0,0,0,1,1])
 
     def test_get_sign_changes(self):
-        vals1 = np.array([1,2,-3,4,-5,-6,0.05])
-        vals2 = np.array([-1,2,-3,-4,5,-6,-0.02])
+        vals1 = np.array([1, 2,-3, 4,-5,-6, 0.05])
+        vals2 = np.array([-1,2,-3,-4, 5,-6,-0.02])
         num = get_sign_changes(vals1, vals2)
 
         self.assertEqual(num, 3)
+
+    def test_get_sign_changes_to_zero(self):
+        vals1 = np.array([1,-0.5, 0.1,-0.12 ,0.5])
+        vals2 = np.array([0, 0.5,-0.6, 0.08,-0.3])
+        num = get_sign_changes(vals1, vals2)
+
+        self.assertEqual(num, 2)
 
     def test_get_rank_changes(self):
         vals1 = np.array([-0.05,-0.3,-0.09,0.3,0.8])

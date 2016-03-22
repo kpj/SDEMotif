@@ -411,7 +411,12 @@ def get_sign_changes(raw_vals, enh_vals):
     """
     raw_vals = annihilate_low_correlations(raw_vals)
     enh_vals = annihilate_low_correlations(enh_vals)
-    return np.sum(np.invert(np.sign(raw_vals) == np.sign(enh_vals)))
+
+    nv_inds = np.intersect1d(np.nonzero(raw_vals), np.nonzero(enh_vals))
+    nz_rw = raw_vals[nv_inds]
+    nz_eh = enh_vals[nv_inds]
+
+    return np.sum(np.invert(np.sign(nz_rw) == np.sign(nz_eh)))
 
 def get_rank_changes(raw_vals, enh_vals):
     """ Detect changes in the order of correlations
