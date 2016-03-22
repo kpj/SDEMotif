@@ -477,6 +477,25 @@ def handle_plots(inp):
             vfunc, [sort_by_cycle_num],
             ptitle, 'images/matrix_{}_cycles.pdf'.format(title))
 
+def handle_input_spec(inp, spec):
+    """ Only plot specified entries
+        `spec` can be of the form:
+        <value_func>|<sort_func>|<slice>,<slice>
+        E.g.: 'get_sign_changes|sort_by_cycle_num|-1'
+    """
+    vfunc_str, sfunc_str, slices = spec.split('|')
+
+    vfunc = globals()[vfunc_str]
+    sfunc = globals()[sfunc_str]
+
+    ex = lambda s: [int(e) if len(e) > 0 else None for e in s.split(':')]
+    s1, s2 = slices.split(',')
+    slc_row = slice(*ex(s1))
+    slc_col = slice(*ex(s2))
+
+    data, xticks, yticks = preprocess_data(inp['data'], vfunc, [sfunc])
+    print(data[slc_row, slc_col])
+
 
 def main():
     """ Create matrix for various data functions
@@ -489,8 +508,13 @@ def main():
         with open(fname, 'rb') as fd:
             inp = pickle.load(fd)
         handle_plots(inp)
+    elif len(sys.argv) == 3:
+        fname = sys.argv[1]
+        with open(fname, 'rb') as fd:
+            inp = pickle.load(fd)
+        handle_input_spec(inp, sys.argv[2])
     else:
-        print('Usage: %s [data file]' % sys.argv[0])
+        print('Usage: %s [data file] [plot spec]' % sys.argv[0])
         sys.exit(-1)
 
 if __name__ == '__main__':
