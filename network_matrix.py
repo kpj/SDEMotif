@@ -187,7 +187,7 @@ def cluster_data(mat, metric):
 def get_matrix_cmap():
     """ Assemble colormap for matrix
     """
-    col_list = [(0.7,0.7,0.7), (0,0,1), (1,0,0)]
+    col_list = [(0.7,0.7,0.7), (0,0,1), (1,0,0), (0,1,0)]
     cmap = mpl.colors.ListedColormap(col_list, name='highlighter')
     cmap.set_under('white')
     return cmap
@@ -218,13 +218,9 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
             dat.append((yticks[i], row))
         df = pd.DataFrame.from_items(dat, columns=xticks, orient='index')
 
-        col_list = [(.7,.7,.7), (0,0,1), (1,0,0)]
-        cmap = mpl.colors.ListedColormap(col_list, name='highlighter')
-        cmap.set_under('white')
-
         plt.figure()
         cg = sns.clustermap(
-            df, cmap=cmap, vmin=0, vmax=np.max(data),
+            df, cmap=get_matrix_cmap(), vmin=0, vmax=3,
             row_cluster=False, metric=metr)
 
         plt.setp(cg.ax_heatmap.xaxis.get_ticklabels(), rotation=90, size=6)
@@ -255,7 +251,7 @@ def plot_result(inp, vfunc, sfuncs, title, fname):
         plt.imshow(
             data,
             interpolation='nearest', cmap=get_matrix_cmap(),
-            vmin=0, vmax=np.max(data))
+            vmin=0, vmax=3)
         plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
         # mark "zoomed" columns
@@ -366,7 +362,7 @@ def plot_individuals(examples, fname, val_func=None):
             if not val_func is None:
                 mark_ax.imshow(
                     [[handle_enh_entry(raw, enh, val_func)]],
-                    cmap=get_matrix_cmap(), vmin=0, vmax=2) # TODO: find vmax in more reliable way
+                    cmap=get_matrix_cmap(), vmin=0, vmax=3)
                 mark_ax.axis('off')
             else:
                 print('Tried to use `val_func`, but it\'s None')
