@@ -1,0 +1,5 @@
+Reaction,Requirement Matrix - Compound 1,,Requirement Matrix - Compound 2,,Result Matrix,,Transformation
+    ,-H,-O,-H,-O,-H,-O,,
+rea1, 3, 2, 4, 0,-1, 2,bla,23
+rea2, 0, 1, 1, 1, 1, 0,blu,42
+rea3, 2, 3, X,  ,-2,-1,blo,66
