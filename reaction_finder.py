@@ -142,13 +142,32 @@ def guess_new_compounds(combs, cdata, rdata):
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
     """
+    def work(cd, rd):
+        return guess_new_compounds(combine_data(cd, rd), cd, rd)
+
     compound_data = read_compounds_file(compound_fname)
     reaction_data = read_reactions_file(reaction_fname)
 
-    combs = combine_data(compound_data, reaction_data)
-    res = guess_new_compounds(combs, compound_data, reaction_data)
-
+    res = work(compound_data, reaction_data)
     print('Found {} new compounds'.format(len(res)))
+
+    # find further jumps
+    excerpt = dict(list(res.items())[:1])
+    print(excerpt)
+
+    new_comps = {}
+    new_comps.update(compound_data)
+    new_comps.update(excerpt)
+
+    res2 = work(new_comps, reaction_data)
+    print('Found {} new compounds'.format(len(res2)))
+
+    # extract newly found jumps
+    jumps = list(set.difference(set(res2), set(res)))
+    print(len(jumps))
+
+    print(jumps[:10])
+
 
 if __name__ == '__main__':
     main('data/Compound_List.csv', 'data/Reaction_List.csv')
