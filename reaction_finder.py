@@ -93,7 +93,7 @@ def match(cgroups, react_groups):
     """ Check if given compound could be reaction partner at given `pos`
     """
     for group, amount in cgroups.items():
-        if not react_groups is None and amount < react_groups[group]:
+        if react_groups is None or amount < react_groups[group]:
             return False
     return True
 
@@ -102,7 +102,7 @@ def check_pair(c1, c2, cdata, rdata):
     """
     reacts = []
     for rname, spec in rdata.items():
-        if match(cdata[c1], spec['c1']) and match(cdata[c2], spec['c2']):
+        if (c2 is None and spec['c2'] is None and match(cdata[c1], spec['c1'])) or (not c2 is None and match(cdata[c1], spec['c1']) and match(cdata[c2], spec['c2'])):
             reacts.append(rname)
     return reacts
 
@@ -111,9 +111,15 @@ def combine_data(cdata, rdata):
     """
     # compute cross-product of all compounds
     perms = list(itertools.permutations(cdata.keys(), 2))
+    data = collections.defaultdict(list)
+
+    # find single reactions
+    for c1 in cdata.keys():
+        res = check_pair(c1, None, cdata, rdata)
+        for react in res:
+            data[react].append((c1, None))
 
     # find reaction partners
-    data = collections.defaultdict(list)
     for c1, c2 in perms:
         res = check_pair(c1, c2, cdata, rdata)
         for react in res:
@@ -130,12 +136,20 @@ def guess_new_compounds(combs, cdata, rdata):
     for rname, pairs in combs.items():
         r_spec = rdata[rname]['res']
         for c1, c2 in pairs:
-            c1_spec, c2_spec = cdata[c1], cdata[c2]
+            if c2 is None:
+                c1_spec = cdata[c1]
 
-            new_spec = dict(m(c1_spec) + m(c2_spec) + m(r_spec))
-            new_name = '({c1}) {r} ({c2})'.format(r=rname, c1=c1, c2=c2)
+                new_spec = dict(m(c1_spec) + m(r_spec))
+                new_name = '({c1}) {r} (None)'.format(r=rname, c1=c1)
 
-            data[new_name] = new_spec
+                data[new_name] = new_spec
+            else:
+                c1_spec, c2_spec = cdata[c1], cdata[c2]
+
+                new_spec = dict(m(c1_spec) + m(c2_spec) + m(r_spec))
+                new_name = '({c1}) {r} ({c2})'.format(r=rname, c1=c1, c2=c2)
+
+                data[new_name] = new_spec
 
     return data
 
