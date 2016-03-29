@@ -7,7 +7,7 @@ import itertools
 import collections
 
 
-def read_compounds_file(fname):
+def read_compounds_file(file_spec):
     """ Transform data from compounds file into usable format:
 
         {
@@ -19,7 +19,7 @@ def read_compounds_file(fname):
         }
     """
     data = collections.defaultdict(dict)
-    with open(fname, 'r') as fd:
+    with open(file_spec, 'r') if isinstance(file_spec, str) else file_spec as fd:
         reader = csv.reader(fd)
 
         # parse header
@@ -39,7 +39,7 @@ def read_compounds_file(fname):
 
     return dict(data)
 
-def read_reactions_file(fname):
+def read_reactions_file(file_spec):
     """ Transform data from reactions file into usable format:
 
         {
@@ -61,7 +61,7 @@ def read_reactions_file(fname):
         }
     """
     data = collections.defaultdict(lambda: collections.defaultdict(dict))
-    with open(fname, 'r') as fd:
+    with open(file_spec, 'r') if isinstance(file_spec, str) else file_spec as fd:
         reader = csv.reader(fd)
 
         head = next(reader)
@@ -141,33 +141,34 @@ def guess_new_compounds(combs, cdata, rdata):
     for rname, pairs in combs.items():
         r_spec = rdata[rname]['res']
         for c1, c2 in pairs:
-            if c2 is None:
-                c1_spec = cdata[c1]
+            c1_spec = cdata[c1]
+            c2_spec = cdata[c2] if not c2 is None else {}
 
-                new_spec = dict(m(c1_spec) + m(r_spec))
-                new_name = '({c1}) {r} (None)'.format(r=rname, c1=c1)
+            new_spec = dict(m(c1_spec) + m(c2_spec) + m(r_spec))
+            new_name = '({c1}) {r} ({c2})'.format(r=rname, c1=c1, c2=c2)
 
-                data[new_name] = new_spec
-            else:
-                c1_spec, c2_spec = cdata[c1], cdata[c2]
+            for g in list(c1_spec.keys()) + list(c2_spec.keys()):
+                if not g in new_spec: new_spec[g] = 0
 
-                new_spec = dict(m(c1_spec) + m(c2_spec) + m(r_spec))
-                new_name = '({c1}) {r} ({c2})'.format(r=rname, c1=c1, c2=c2)
-
-                data[new_name] = new_spec
+            data[new_name] = new_spec
 
     return data
+
+def iterate_once(compound_data, reaction_data):
+    """ Find new products in given data
+    """
+    res = guess_new_compounds(
+        combine_data(compound_data, reaction_data),
+        compound_data, reaction_data)
+    return res
 
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
     """
-    def work(cd, rd):
-        return guess_new_compounds(combine_data(cd, rd), cd, rd)
-
     compound_data = read_compounds_file(compound_fname)
     reaction_data = read_reactions_file(reaction_fname)
 
-    res = work(compound_data, reaction_data)
+    res = iterate_once(compound_data, reaction_data)
     print('Found {} new compounds'.format(len(res)))
 
     # find further jumps

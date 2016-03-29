@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+import io
+
 from reaction_finder import *
 
 
@@ -153,3 +155,38 @@ class TestFileInput(TestCase):
                 'c2': None,
                 'res': {'-H': -2, '-O': -1}
             })
+
+class IntegrationTest(TestCase):
+    def setUp(self):
+        self.compounds = io.StringIO("""Name,-H,-O,-N
+c1,1,2,3
+c2,2,1,3
+""")
+        self.reactions = io.StringIO("""Reaction,Requirement Matrix - Compound 1,,,Requirement Matrix - Compound 2,,,Result Matrix,,,Transformation
+  ,-H,-O,-N,-H,-O,-N,-H,-O,-N,,
+r1, 1, 2, 3, 2, 1, 3, 1, 1,-6,,
+r2, 4, 4, 0, 1, 2, 0, 1, 0,-1,,
+r3, 4, 4, 0, X,  ,  , 0, 0, 1,,
+""")
+
+    def test_interactions(self):
+        comps = read_compounds_file(self.compounds)
+        reacts = read_reactions_file(self.reactions)
+
+        # first iteration
+        res = iterate_once(comps, reacts)
+        self.assertEqual(len(res), 1)
+        self.assertIn('(c1) r1 (c2)', res)
+        self.assertEqual(res['(c1) r1 (c2)'], {'-H': 4, '-O': 4, '-N': 0})
+
+        # second iteration
+        comps.update(res)
+        nres = iterate_once(comps, reacts)
+
+        self.assertEqual(len(nres), 3)
+        self.assertIn('(c1) r1 (c2)', nres)
+        self.assertIn('((c1) r1 (c2)) r2 (c1)', nres)
+        self.assertIn('((c1) r1 (c2)) r3 (None)', nres)
+        self.assertEqual(nres['(c1) r1 (c2)'], {'-H': 4, '-O': 4, '-N': 0})
+        self.assertEqual(nres['((c1) r1 (c2)) r2 (c1)'], {'-H': 6, '-O': 6, '-N': 2})
+        self.assertEqual(nres['((c1) r1 (c2)) r3 (None)'], {'-H': 4, '-O': 4, '-N': 1})
