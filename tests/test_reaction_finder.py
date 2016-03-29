@@ -111,6 +111,26 @@ class TestCompoundGuesser(TestCase):
         self.assertEqual(res['(fooC) rea1 (None)'], {'H': 1, 'O': 2})
 
 class TestFileInput(TestCase):
+    def test_compound_reader(self):
+        data = read_compounds_file('./tests/data/compounds.csv')
+
+        self.assertEqual(len(data), 3)
+        self.assertEqual(
+            data['foo'], {
+                '-H': 1,
+                '-O': 4
+            })
+        self.assertEqual(
+            data['bar'], {
+                '-H': 5,
+                '-O': 0
+            })
+        self.assertEqual(
+            data['baz'], {
+                '-H': 3,
+                '-O': 3
+            })
+
     def test_reaction_reader(self):
         data = read_reactions_file('./tests/data/reactions.csv')
 

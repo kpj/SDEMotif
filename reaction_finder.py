@@ -23,12 +23,17 @@ def read_compounds_file(fname):
         reader = csv.reader(fd)
 
         # parse header
-        group_cols, group_names = zip(*[p for p in enumerate(next(reader))
+        head = next(reader)
+
+        group_cols, group_names = zip(*[p for p in enumerate(head)
             if p[1].startswith('-')])
         group_range = range(group_cols[0], group_cols[-1]+1)
 
+        name_ind = head.index('Name')
+
+        # parse body
         for row in reader:
-            name = row[1]
+            name = row[name_ind]
             for ind in group_range:
                 data[name][group_names[ind-group_cols[0]]] = int(row[ind])
 
