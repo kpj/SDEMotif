@@ -181,7 +181,7 @@ def main(compound_fname, reaction_fname):
 
         # extract newly found jumps
         jumps = list(set.difference(set(res2), set(res)))
-        print('Found {} new compounds [{}]'.format(len(jumps), k))
+        print('Found {} new compounds [with {}]'.format(len(jumps), k))
 
 
 if __name__ == '__main__':
