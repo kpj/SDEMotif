@@ -172,21 +172,16 @@ def main(compound_fname, reaction_fname):
     print('Found {} new compounds'.format(len(res)))
 
     # find further jumps
-    excerpt = dict(list(res.items())[:1])
-    print(excerpt)
+    for k, v in res.items():
+        new_comps = {}
+        new_comps.update(compound_data)
+        new_comps.update({k: v})
 
-    new_comps = {}
-    new_comps.update(compound_data)
-    new_comps.update(excerpt)
+        res2 = iterate_once(new_comps, reaction_data)
 
-    res2 = work(new_comps, reaction_data)
-    print('Found {} new compounds'.format(len(res2)))
-
-    # extract newly found jumps
-    jumps = list(set.difference(set(res2), set(res)))
-    print(len(jumps))
-
-    print(jumps[:10])
+        # extract newly found jumps
+        jumps = list(set.difference(set(res2), set(res)))
+        print('Found {} new compounds [{}]'.format(len(jumps), k))
 
 
 if __name__ == '__main__':
