@@ -112,6 +112,27 @@ class TestCompoundGuesser(TestCase):
         self.assertTrue(len(res), 1)
         self.assertEqual(res['(fooC) rea1 (None)'], {'H': 1, 'O': 2})
 
+    def test_negative_group_number(self):
+        cdata = {
+            'fooC': {'H': 1, 'O': 1},
+            'barC': {'H': 1, 'O': 1},
+        }
+        rdata = {
+            'rea1': {
+                'c1': {'H': 0, 'O': 0},
+                'c2': {'H': 0, 'O': 0},
+                'res': {'H': -4, 'O': -3}
+            }
+        }
+        combs = {
+            'rea1': [('fooC', 'barC')]
+        }
+
+        res = guess_new_compounds(combs, cdata, rdata)
+
+        self.assertTrue(len(res), 1)
+        self.assertEqual(res['(fooC) rea1 (barC)'], {'H': -2, 'O': -1})
+
 class TestFileInput(TestCase):
     def test_compound_reader(self):
         data = read_compounds_file('./tests/data/compounds.csv')

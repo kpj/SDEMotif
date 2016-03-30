@@ -135,7 +135,11 @@ def combine_data(cdata, rdata):
 def guess_new_compounds(combs, cdata, rdata):
     """ Infer new compounds from reactions of existing ones
     """
-    m = lambda sp: collections.Counter(sp)
+    def add_specs(*args):
+        spec = {}
+        for k in args[0]:
+            spec[k] = sum([s[k] for s in args if k in s])
+        return spec
 
     data = {}
     for rname, pairs in combs.items():
@@ -144,7 +148,7 @@ def guess_new_compounds(combs, cdata, rdata):
             c1_spec = cdata[c1]
             c2_spec = cdata[c2] if not c2 is None else {}
 
-            new_spec = dict(m(c1_spec) + m(c2_spec) + m(r_spec))
+            new_spec = add_specs(c1_spec, c2_spec, r_spec)
             new_name = '({c1}) {r} ({c2})'.format(r=rname, c1=c1, c2=c2)
 
             for g in list(c1_spec.keys()) + list(c2_spec.keys()):
