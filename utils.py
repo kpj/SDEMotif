@@ -78,6 +78,7 @@ def cache_data(data, fname='results/data_cache'):
 def extract_sig_entries(mat):
     """ Extract significant entries from correlation matrix (expects 3x3 matrix)
     """
+    if mat is None: return None
     assert np.allclose(mat.transpose(), mat), 'Matrix not symmetric'
 
     ind = np.nonzero(np.tril(abs(mat), k=-1))
