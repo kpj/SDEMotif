@@ -67,8 +67,8 @@ def main(fname):
         syst = system_from_string(fname)
         syst, mat, sol = analyze_system(syst, plot_hist=True)
         if mat is None:
-            print('No sensible steady-state found')
             print(sol)
+            print('No sensible steady-state found')
         else:
             print(mat)
 
