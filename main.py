@@ -9,10 +9,13 @@ import multiprocessing
 import numpy as np
 from tqdm import tqdm
 
+import matplotlib.pylab as plt
+
 from setup import load_systems, system_from_string
 from solver import solve_system
 from utils import compute_correlation_matrix, cache_data
 from filters import filter_steady_state
+from plotter import plot_system_evolution
 
 
 def analyze_system(
@@ -67,10 +70,11 @@ def main(fname):
         syst = system_from_string(fname)
         syst, mat, sol = analyze_system(syst, plot_hist=True)
         if mat is None:
-            print(sol)
             print('No sensible steady-state found')
         else:
             print(mat)
+        plot_system_evolution(sol, plt.gca())
+        plt.show()
 
 
 if __name__ == '__main__':
