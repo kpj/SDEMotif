@@ -115,7 +115,7 @@ def combine_data(cdata, rdata):
     """ Combine compound and reaction data and extrapolate
     """
     # compute cross-product of all compounds
-    perms = list(itertools.permutations(cdata.keys(), 2))
+    prod = list(itertools.product(cdata.keys(), repeat=2))
     data = collections.defaultdict(list)
 
     # find single reactions
@@ -125,7 +125,7 @@ def combine_data(cdata, rdata):
             data[react].append((c1, None))
 
     # find reaction partners
-    for c1, c2 in perms:
+    for c1, c2 in prod:
         res = check_pair(c1, c2, cdata, rdata)
         for react in res:
             data[react].append((c1, c2))
