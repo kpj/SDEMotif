@@ -26,7 +26,7 @@ def solve_system(system, tmax=50, dt=0.1, seed=None):
     while t < tmax:
         evolution.append(state)
 
-        delta = J.dot(state) + tdsq * dtsq * npr.normal(size=(dim,)) + E
+        delta = J.dot(state) + tdsq * dtsq * npr.normal(size=dim) + E
         state = state + dt * delta
 
         t += dt
