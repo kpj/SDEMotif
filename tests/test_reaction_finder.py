@@ -204,10 +204,12 @@ r3, 4, 4, 0, X,  ,  , 0, 0, 1,,
         comps.update(res)
         nres = iterate_once(comps, reacts)
 
-        self.assertEqual(len(nres), 3)
+        self.assertEqual(len(nres), 4)
         self.assertIn('(c1) r1 (c2)', nres)
         self.assertIn('((c1) r1 (c2)) r2 (c1)', nres)
         self.assertIn('((c1) r1 (c2)) r3 (None)', nres)
+        self.assertIn('((c1) r1 (c2)) r2 ((c1) r1 (c2))', nres)
         self.assertEqual(nres['(c1) r1 (c2)'], {'-H': 4, '-O': 4, '-N': 0})
         self.assertEqual(nres['((c1) r1 (c2)) r2 (c1)'], {'-H': 6, '-O': 6, '-N': 2})
         self.assertEqual(nres['((c1) r1 (c2)) r3 (None)'], {'-H': 4, '-O': 4, '-N': 1})
+        self.assertEqual(nres['((c1) r1 (c2)) r2 ((c1) r1 (c2))'], {'-N': -1, '-O': 8, '-H': 9})
