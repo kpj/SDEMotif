@@ -312,7 +312,7 @@ def plot_result(motifs):
         series_ax = plt.subplot(gs[i, 1])
         plotter.plot_system_evolution(
             sols, series_ax,
-            xlabel='sample', show_legend=False)
+            xlabel='sample')
 
         series_ax.set_title(c3)
 
