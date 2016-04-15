@@ -275,6 +275,11 @@ def main(compound_fname, reaction_fname):
     compound_data, comp_mass = read_compounds_file(compound_fname)
     reaction_data, rea_mass = read_reactions_file(reaction_fname)
 
+    # only keep masses which have associated intensities
+    init_masses = match_masses(comp_mass)
+    compound_data = {k: compound_data[k] for k in init_masses.keys()}
+
+    print('Starting with {} compounds'.format(len(compound_data)))
     res = iterate_once(compound_data, reaction_data)
     print('Found {} new compounds'.format(len(res)))
 
@@ -289,9 +294,9 @@ def main(compound_fname, reaction_fname):
         new_comps.update(compound_data)
         new_comps.update({name: res[name]})
 
-        fubar = {}
-        fubar.update(comp_mass)
-        fubar.update({name: new_masses[name]})
+        all_masses = {}
+        all_masses.update(comp_mass)
+        all_masses.update({name: new_masses[name]})
 
         # next step
         res2 = iterate_once(new_comps, reaction_data)
@@ -302,12 +307,32 @@ def main(compound_fname, reaction_fname):
 
         # find intensities if needed
         if len(jumps) > 0:
-            new_masses2 = compute_new_masses(res2, fubar, rea_mass)
+            new_masses2 = compute_new_masses(res2, all_masses, rea_mass)
             mass_matches2 = match_masses(new_masses2)
-            print('  > Found {} new mass matches'.format(len(mass_matches2)))
 
-            choice = sorted(mass_matches2.keys())[0]
+            new_mass_matches = list(set.difference(set(mass_matches2), set(mass_matches)))
+            print('  > Found {} new mass matches'.format(len(new_mass_matches)))
+
+            choice = sorted(new_mass_matches)[0]
             print('  > {}'.format(choice))
+
+            all_masses.update(new_masses2)
+            all_mass_matches = {}
+            all_mass_matches.update(init_masses)
+            all_mass_matches.update(mass_matches)
+            all_mass_matches.update(mass_matches2)
+            break
+
+    # handle result
+    print()
+    print(choice)
+    print(' >', all_masses[choice], len(all_mass_matches[choice]))
+
+    c1, _, c2 = parse_compound_name(choice)
+    print(c1)
+    print(' >', all_masses[c1], len(all_mass_matches[c1]))
+    print(c2)
+    print(' >', all_masses[c2], len(all_mass_matches[c2]))
 
 if __name__ == '__main__':
     main('data/Compound_List.csv', 'data/Reaction_List.csv')
