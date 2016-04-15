@@ -90,7 +90,7 @@ class TestCompoundGuesser(TestCase):
         res = guess_new_compounds(combs, cdata, rdata)
 
         self.assertTrue(len(res), 1)
-        self.assertEqual(res['(fooC) rea1 (barC)'], {'H': 6, 'O': 5})
+        self.assertEqual(res['(fooC) {rea1} (barC)'], {'H': 6, 'O': 5})
 
     def test_guess_with_none(self):
         cdata = {
@@ -110,7 +110,7 @@ class TestCompoundGuesser(TestCase):
         res = guess_new_compounds(combs, cdata, rdata)
 
         self.assertTrue(len(res), 1)
-        self.assertEqual(res['(fooC) rea1 (None)'], {'H': 1, 'O': 2})
+        self.assertEqual(res['(fooC) {rea1} (None)'], {'H': 1, 'O': 2})
 
     def test_negative_group_number(self):
         cdata = {
@@ -131,7 +131,7 @@ class TestCompoundGuesser(TestCase):
         res = guess_new_compounds(combs, cdata, rdata)
 
         self.assertTrue(len(res), 1)
-        self.assertEqual(res['(fooC) rea1 (barC)'], {'H': -2, 'O': -1})
+        self.assertEqual(res['(fooC) {rea1} (barC)'], {'H': -2, 'O': -1})
 
 class TestFileInput(TestCase):
     def test_compound_reader(self):
@@ -207,19 +207,52 @@ r3, 4, 4, 0, X,  ,  , 0, 0, 1,,3.3
         # first iteration
         res = iterate_once(comps, reacts)
         self.assertEqual(len(res), 1)
-        self.assertIn('(c1) r1 (c2)', res)
-        self.assertEqual(res['(c1) r1 (c2)'], {'-H': 4, '-O': 4, '-N': 0})
+        self.assertIn('(c1) {r1} (c2)', res)
+        self.assertEqual(res['(c1) {r1} (c2)'], {'-H': 4, '-O': 4, '-N': 0})
 
         # second iteration
         comps.update(res)
         nres = iterate_once(comps, reacts)
 
         self.assertEqual(len(nres), 4)
-        self.assertIn('(c1) r1 (c2)', nres)
-        self.assertIn('((c1) r1 (c2)) r2 (c1)', nres)
-        self.assertIn('((c1) r1 (c2)) r3 (None)', nres)
-        self.assertIn('((c1) r1 (c2)) r2 ((c1) r1 (c2))', nres)
-        self.assertEqual(nres['(c1) r1 (c2)'], {'-H': 4, '-O': 4, '-N': 0})
-        self.assertEqual(nres['((c1) r1 (c2)) r2 (c1)'], {'-H': 6, '-O': 6, '-N': 2})
-        self.assertEqual(nres['((c1) r1 (c2)) r3 (None)'], {'-H': 4, '-O': 4, '-N': 1})
-        self.assertEqual(nres['((c1) r1 (c2)) r2 ((c1) r1 (c2))'], {'-N': -1, '-O': 8, '-H': 9})
+        self.assertIn('(c1) {r1} (c2)', nres)
+        self.assertIn('((c1) {r1} (c2)) {r2} (c1)', nres)
+        self.assertIn('((c1) {r1} (c2)) {r3} (None)', nres)
+        self.assertIn('((c1) {r1} (c2)) {r2} ((c1) {r1} (c2))', nres)
+        self.assertEqual(nres['(c1) {r1} (c2)'], {'-H': 4, '-O': 4, '-N': 0})
+        self.assertEqual(nres['((c1) {r1} (c2)) {r2} (c1)'], {'-H': 6, '-O': 6, '-N': 2})
+        self.assertEqual(nres['((c1) {r1} (c2)) {r3} (None)'], {'-H': 4, '-O': 4, '-N': 1})
+        self.assertEqual(nres['((c1) {r1} (c2)) {r2} ((c1) {r1} (c2))'], {'-N': -1, '-O': 8, '-H': 9})
+
+class TestNameParser(TestCase):
+    def test_basic_name(self):
+        name = '(Caffeic acid) {C-C linkage} (Rhamnazin)'
+        c1, r, c2 = parse_compound_name(name)
+
+        self.assertEqual(c1, 'Caffeic acid')
+        self.assertEqual(r, 'C-C linkage')
+        self.assertEqual(c2, 'Rhamnazin')
+
+    def test_nested_name1(self):
+        name = '(Phloretin) {C-C linkage} ((Abscisic acid) {C-C linkage} (Aurantinidin))'
+        c1, r, c2 = parse_compound_name(name)
+
+        self.assertEqual(c1, 'Phloretin')
+        self.assertEqual(r, 'C-C linkage')
+        self.assertEqual(c2, '(Abscisic acid) {C-C linkage} (Aurantinidin)')
+
+    def test_nested_name2(self):
+        name = '((Abscisic acid) {C-C linkage} (Aurantinidin)) {Condensation - Ester Formation} (Eudesmic acid)'
+        c1, r, c2 = parse_compound_name(name)
+
+        self.assertEqual(c1, '(Abscisic acid) {C-C linkage} (Aurantinidin)')
+        self.assertEqual(r, 'Condensation - Ester Formation')
+        self.assertEqual(c2, 'Eudesmic acid')
+
+    def test_rwb_name(self):
+        name = '(Ononitol) {Oxidation - (O) Addition} (None)'
+        c1, r, c2 = parse_compound_name(name)
+
+        self.assertEqual(c1, 'Ononitol')
+        self.assertEqual(r, 'Oxidation - (O) Addition')
+        self.assertEqual(c2, 'None')

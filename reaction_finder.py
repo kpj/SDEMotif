@@ -2,7 +2,6 @@
 Find reactions via combinatoric investigations of data files
 """
 
-import re
 import csv
 import itertools
 import collections
@@ -163,7 +162,7 @@ def guess_new_compounds(combs, cdata, rdata):
             c2_spec = cdata[c2] if not c2 is None else {}
 
             new_spec = add_specs(c1_spec, c2_spec, r_spec)
-            new_name = '({c1}) {r} ({c2})'.format(r=rname, c1=c1, c2=c2)
+            new_name = '({c1}) {{{r}}} ({c2})'.format(r=rname, c1=c1, c2=c2)
 
             for g in list(c1_spec.keys()) + list(c2_spec.keys()):
                 if not g in new_spec: new_spec[g] = 0
@@ -180,6 +179,46 @@ def iterate_once(compound_data, reaction_data):
         compound_data, reaction_data)
     return res
 
+def parse_compound_name(name):
+    """ Parse name and return compounds and reaction
+    """
+    assert name[0] == '(' and name[-1] == ')'
+
+    state = 'idle'
+    depth = 0
+
+    c1 = ''
+    r = ''
+    c2 = ''
+
+    for char in name:
+        if char in '({': depth += 1
+        if char in ')}': depth -= 1
+
+        if state == 'idle':
+            if depth > 0:
+                if len(c1) == 0: state = 'c1'
+                elif len(r) == 0: state = 'r'
+                elif len(c2) == 0: state = 'c2'
+        elif state == 'c1':
+            if depth > 0:
+                c1 += char
+            else:
+                state = 'idle'
+        elif state == 'r':
+            if depth > 0:
+                r += char
+            else:
+                state = 'idle'
+        elif state == 'c2':
+            if depth > 0:
+                c2 += char
+            else:
+                state = 'idle'
+
+    assert state == 'idle'
+    return c1, r, c2
+
 def compute_new_masses(new_compounds, comp_mass, rea_mass):
     """ Compute mass of new compounds from old ones plus reaction addendum
     """
@@ -187,8 +226,7 @@ def compute_new_masses(new_compounds, comp_mass, rea_mass):
 
     mdata = {}
     for name in new_compounds.keys():
-        res = re.match(r'^\((.*?)\) (.*) \((.*?)\)$', name)
-        c1, rea, c2 = res.groups()
+        c1, rea, c2 = parse_compound_name(name)
 
         new_mass = comp_mass[c1] + comp_mass[c2] + rea_mass[rea]
         mdata[name] = new_mass
@@ -260,13 +298,16 @@ def main(compound_fname, reaction_fname):
 
         # extract newly found jumps
         jumps = list(set.difference(set(res2), set(res)))
-        print('Found {} new compounds [with {}]'.format(len(jumps), name))
+        print(' > Found {} new compounds [with {}]'.format(len(jumps), name))
 
         # find intensities if needed
         if len(jumps) > 0:
             new_masses2 = compute_new_masses(res2, fubar, rea_mass)
             mass_matches2 = match_masses(new_masses2)
+            print('  > Found {} new mass matches'.format(len(mass_matches2)))
 
+            choice = sorted(mass_matches2.keys())[0]
+            print('  > {}'.format(choice))
 
 if __name__ == '__main__':
     main('data/Compound_List.csv', 'data/Reaction_List.csv')
