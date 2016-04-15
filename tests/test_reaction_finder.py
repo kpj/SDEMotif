@@ -189,7 +189,7 @@ class TestFileInput(TestCase):
 
 class IntegrationTest(TestCase):
     def setUp(self):
-        self.compounds = io.StringIO("""Name,-H,-O,-N,Exact Mass
+        self.compounds = io.StringIO("""Name,-H,-O,-N,M-H
 c1,1,2,3,1.2
 c2,2,1,3,2.3
 """)

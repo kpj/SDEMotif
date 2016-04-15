@@ -32,12 +32,13 @@ def read_compounds_file(file_spec):
         group_range = range(group_cols[0], group_cols[-1]+1)
 
         name_ind = head.index('Name')
-        mass_ind = head.index('Exact Mass')
+        mass_ind = head.index('M-H')
 
         # parse body
         for row in reader:
             name = row[name_ind]
             mass = row[mass_ind]
+            if mass == 'NA': continue
 
             for ind in group_range:
                 group_data[name][group_names[ind-group_cols[0]]] = int(row[ind])
