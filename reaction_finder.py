@@ -2,6 +2,7 @@
 Find reactions via combinatoric investigations of data files
 """
 
+import re
 import csv
 import itertools
 import collections
@@ -18,7 +19,9 @@ def read_compounds_file(file_spec):
             ...
         }
     """
-    data = collections.defaultdict(dict)
+    group_data = collections.defaultdict(dict)
+    mass_data = {}
+
     with open(file_spec, 'r') if isinstance(file_spec, str) else file_spec as fd:
         reader = csv.reader(fd)
 
@@ -30,14 +33,18 @@ def read_compounds_file(file_spec):
         group_range = range(group_cols[0], group_cols[-1]+1)
 
         name_ind = head.index('Name')
+        mass_ind = 8
 
         # parse body
         for row in reader:
             name = row[name_ind]
-            for ind in group_range:
-                data[name][group_names[ind-group_cols[0]]] = int(row[ind])
+            mass = row[mass_ind]
 
-    return dict(data)
+            for ind in group_range:
+                group_data[name][group_names[ind-group_cols[0]]] = int(row[ind])
+            mass_data[name] = float(mass)
+
+    return dict(group_data), mass_data
 
 def read_reactions_file(file_spec):
     """ Transform data from reactions file into usable format:
@@ -61,6 +68,8 @@ def read_reactions_file(file_spec):
         }
     """
     data = collections.defaultdict(lambda: collections.defaultdict(dict))
+    mdata = {}
+
     with open(file_spec, 'r') if isinstance(file_spec, str) else file_spec as fd:
         reader = csv.reader(fd)
 
@@ -68,6 +77,8 @@ def read_reactions_file(file_spec):
         groups = next(reader)
 
         rname_ind = head.index('Reaction')
+        rmass_ind = head.index('Mass Addendum')
+
         c1_reqs_ra = range(
             head.index('Requirement Matrix - Compound 1'),
             head.index('Requirement Matrix - Compound 2'))
@@ -80,6 +91,7 @@ def read_reactions_file(file_spec):
 
         for row in reader:
             name = row[rname_ind]
+            mass = row[rmass_ind]
 
             for i in c1_reqs_ra:
                 data[name]['c1'][groups[i-c1_reqs_ra[0]+1]] = int(row[i])
@@ -92,7 +104,9 @@ def read_reactions_file(file_spec):
             for i in res_mod_ra:
                 data[name]['res'][groups[i-res_mod_ra[0]+1]] = int(row[i])
 
-    return dict(data)
+            mdata[name] = float(mass)
+
+    return dict(data), mdata
 
 def match(cgroups, react_groups):
     """ Check if given compound could be reaction partner at given `pos`
@@ -166,17 +180,34 @@ def iterate_once(compound_data, reaction_data):
         compound_data, reaction_data)
     return res
 
+def compute_new_masses(new_compounds, comp_mass, rea_mass):
+    """ Compute mass of new compounds from old ones plus reaction addendum
+    """
+    comp_mass['None'] = 0 # handle single compound cases
+
+    mdata = {}
+    for name in new_compounds.keys():
+        res = re.match(r'^\((.*?)\) (.*) \((.*?)\)$', name)
+        c1, rea, c2 = res.groups()
+
+        new_mass = comp_mass[c1] + comp_mass[c2] + rea_mass[rea]
+        mdata[name] = new_mass
+
+    return mdata
+
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
     """
-    compound_data = read_compounds_file(compound_fname)
-    reaction_data = read_reactions_file(reaction_fname)
+    compound_data, comp_mass = read_compounds_file(compound_fname)
+    reaction_data, rea_mass = read_reactions_file(reaction_fname)
 
     res = iterate_once(compound_data, reaction_data)
+    new_masses = compute_new_masses(res, comp_mass, rea_mass)
+
     print('Found {} new compounds'.format(len(res)))
 
     # find further jumps
-    for k, v in res.items():
+    for k, v in sorted(res.items()):
         new_comps = {}
         new_comps.update(compound_data)
         new_comps.update({k: v})
