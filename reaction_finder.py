@@ -289,7 +289,7 @@ def main(compound_fname, reaction_fname):
     print('Found {} mass matches'.format(len(mass_matches)))
 
     # find further jumps
-    for name, intensities in sorted(mass_matches.items()):
+    for name, intensities in mass_matches.items():
         # update data
         new_comps = {}
         new_comps.update(compound_data)
@@ -314,15 +314,16 @@ def main(compound_fname, reaction_fname):
             new_mass_matches = list(set.difference(set(mass_matches2), set(mass_matches)))
             print('  > Found {} new mass matches'.format(len(new_mass_matches)))
 
-            choice = sorted(new_mass_matches)[0]
-            print('  > {}'.format(choice))
+            if len(new_mass_matches) > 0:
+                choice = new_mass_matches[0]
+                print('  > {}'.format(choice))
 
-            all_masses.update(new_masses2)
-            all_mass_matches = {}
-            all_mass_matches.update(init_masses)
-            all_mass_matches.update(mass_matches)
-            all_mass_matches.update(mass_matches2)
-            break
+                all_masses.update(new_masses2)
+                all_mass_matches = {'None': 0}
+                all_mass_matches.update(init_masses)
+                all_mass_matches.update(mass_matches)
+                all_mass_matches.update(mass_matches2)
+                break
 
     # handle result
     print()
