@@ -135,7 +135,7 @@ class TestCompoundGuesser(TestCase):
 
 class TestFileInput(TestCase):
     def test_compound_reader(self):
-        data = read_compounds_file('./tests/data/compounds.csv')
+        data, mass = read_compounds_file('./tests/data/compounds.csv')
 
         self.assertEqual(len(data), 3)
         self.assertEqual(
@@ -154,8 +154,13 @@ class TestFileInput(TestCase):
                 '-O': 3
             })
 
+        self.assertEqual(len(mass), 3)
+        self.assertEqual(mass['foo'], 1.5)
+        self.assertEqual(mass['bar'], 1.7)
+        self.assertEqual(mass['baz'], 1.1)
+
     def test_reaction_reader(self):
-        data = read_reactions_file('./tests/data/reactions.csv')
+        data, mass = read_reactions_file('./tests/data/reactions.csv')
 
         self.assertEqual(len(data), 3)
         self.assertEqual(
@@ -177,22 +182,27 @@ class TestFileInput(TestCase):
                 'res': {'-H': -2, '-O': -1}
             })
 
+        self.assertEqual(len(mass), 3)
+        self.assertEqual(mass['rea1'], -1.1)
+        self.assertEqual(mass['rea2'], 2.2)
+        self.assertEqual(mass['rea3'], -3.3)
+
 class IntegrationTest(TestCase):
     def setUp(self):
-        self.compounds = io.StringIO("""Name,-H,-O,-N
-c1,1,2,3
-c2,2,1,3
+        self.compounds = io.StringIO("""Name,-H,-O,-N,Exact Mass
+c1,1,2,3,1.2
+c2,2,1,3,2.3
 """)
-        self.reactions = io.StringIO("""Reaction,Requirement Matrix - Compound 1,,,Requirement Matrix - Compound 2,,,Result Matrix,,,Transformation
+        self.reactions = io.StringIO("""Reaction,Requirement Matrix - Compound 1,,,Requirement Matrix - Compound 2,,,Result Matrix,,,Transformation,Mass Addendum
   ,-H,-O,-N,-H,-O,-N,-H,-O,-N,,
-r1, 1, 2, 3, 2, 1, 3, 1, 1,-6,,
-r2, 4, 4, 0, 1, 2, 0, 1, 0,-1,,
-r3, 4, 4, 0, X,  ,  , 0, 0, 1,,
+r1, 1, 2, 3, 2, 1, 3, 1, 1,-6,,1.1
+r2, 4, 4, 0, 1, 2, 0, 1, 0,-1,,-2.2
+r3, 4, 4, 0, X,  ,  , 0, 0, 1,,3.3
 """)
 
     def test_interactions(self):
-        comps = read_compounds_file(self.compounds)
-        reacts = read_reactions_file(self.reactions)
+        comps, cmass = read_compounds_file(self.compounds)
+        reacts, rmass = read_reactions_file(self.reactions)
 
         # first iteration
         res = iterate_once(comps, reacts)

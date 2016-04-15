@@ -33,7 +33,7 @@ def read_compounds_file(file_spec):
         group_range = range(group_cols[0], group_cols[-1]+1)
 
         name_ind = head.index('Name')
-        mass_ind = 8
+        mass_ind = head.index('Exact Mass')
 
         # parse body
         for row in reader:
