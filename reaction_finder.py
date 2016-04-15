@@ -195,6 +195,42 @@ def compute_new_masses(new_compounds, comp_mass, rea_mass):
 
     return mdata
 
+def read_peak_data(fname):
+    """ Parse peak data file
+    """
+    data = {}
+    with open(fname) as fd:
+        reader = csv.DictReader(fd)
+        sample_keys = [k for k in reader.fieldnames if k.startswith('LC.MS.')]
+
+        for row in reader:
+            mass = row['mz']
+            ints = [row[k] for k in sample_keys]
+
+            data[float(mass)] = ints
+    return data
+
+def match_masses(masses):
+    """ Match masses with entries from peak file
+    """
+    def match(mass, thres=1e-2):
+        ms = []
+        for km, ints in peak_data.items():
+            if abs(km - mass) < thres:
+                ms.append(ints)
+        return ms
+
+    peak_data = read_peak_data('data/peaklist_filtered_assigned.csv')
+
+    data = {}
+    for name, mass in masses.items():
+        res = match(mass)
+
+        if len(res) > 0:
+            data[name] = res
+
+    return data
+
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
     """
@@ -202,21 +238,34 @@ def main(compound_fname, reaction_fname):
     reaction_data, rea_mass = read_reactions_file(reaction_fname)
 
     res = iterate_once(compound_data, reaction_data)
-    new_masses = compute_new_masses(res, comp_mass, rea_mass)
-
     print('Found {} new compounds'.format(len(res)))
 
+    new_masses = compute_new_masses(res, comp_mass, rea_mass)
+    mass_matches = match_masses(new_masses)
+    print('Found {} mass matches'.format(len(mass_matches)))
+
     # find further jumps
-    for k, v in sorted(res.items()):
+    for name, intensities in sorted(mass_matches.items()):
+        # update data
         new_comps = {}
         new_comps.update(compound_data)
-        new_comps.update({k: v})
+        new_comps.update({name: res[name]})
 
+        fubar = {}
+        fubar.update(comp_mass)
+        fubar.update({name: new_masses[name]})
+
+        # next step
         res2 = iterate_once(new_comps, reaction_data)
 
         # extract newly found jumps
         jumps = list(set.difference(set(res2), set(res)))
-        print('Found {} new compounds [with {}]'.format(len(jumps), k))
+        print('Found {} new compounds [with {}]'.format(len(jumps), name))
+
+        # find intensities if needed
+        if len(jumps) > 0:
+            new_masses2 = compute_new_masses(res2, fubar, rea_mass)
+            mass_matches2 = match_masses(new_masses2)
 
 
 if __name__ == '__main__':
