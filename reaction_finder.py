@@ -6,6 +6,14 @@ import csv
 import itertools
 import collections
 
+import numpy as np
+import scipy.stats as scis
+
+import matplotlib as mpl
+import matplotlib.pylab as plt
+
+import plotter
+
 
 def read_compounds_file(file_spec):
     """ Transform data from compounds file into usable format:
@@ -244,7 +252,7 @@ def read_peak_data(fname):
 
         for row in reader:
             mass = row['mz']
-            ints = [row[k] for k in sample_keys]
+            ints = [float(row[k]) for k in sample_keys]
 
             data[float(mass)] = ints
     return data
@@ -270,6 +278,48 @@ def match_masses(masses):
 
     return data
 
+def get_correlation_matrix(sols):
+    """ Compute correlation matrix for given list of time series
+    """
+    dim = len(sols)
+    mat = np.empty((dim, dim))
+
+    for i in range(dim):
+        for j in range(dim):
+            cc, pval = scis.pearsonr(sols[i], sols[j])
+            mat[i, j] = cc
+
+    return mat
+
+def plot_result(motifs):
+    """ Create result plot
+    """
+    plt.figure(figsize=(25, 4 * len(motifs)))
+    gs = mpl.gridspec.GridSpec(len(motifs), 2, width_ratios=[1, 2])
+
+    for i, (c1, c2, c3, masses) in enumerate(motifs):
+        # get intensities
+        sols = []
+        for foo in [c1, c2, c3]:
+            sols.append(masses[foo][0])
+
+        # compute other data
+        corr_mat = get_correlation_matrix(sols)
+
+        # plot
+        plotter.plot_corr_mat(corr_mat, plt.subplot(gs[i, 0]))
+
+        series_ax = plt.subplot(gs[i, 1])
+        plotter.plot_system_evolution(
+            sols, series_ax,
+            xlabel='sample', show_legend=False)
+
+        series_ax.set_title(c3)
+
+    plt.tight_layout()
+    plotter.save_figure('images/rl_motifs.pdf', bbox_inches='tight')
+    plt.close()
+
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
     """
@@ -288,7 +338,13 @@ def main(compound_fname, reaction_fname):
     mass_matches = match_masses(new_masses)
     print('Found {} mass matches'.format(len(mass_matches)))
 
+    # keep all masses together
+    all_mass_matches = {'None': [0]}
+    all_mass_matches.update(init_masses)
+    all_mass_matches.update(mass_matches)
+
     # find further jumps
+    motifs = []
     for name, intensities in mass_matches.items():
         # update data
         new_comps = {}
@@ -319,22 +375,28 @@ def main(compound_fname, reaction_fname):
                 print('  > {}'.format(choice))
 
                 all_masses.update(new_masses2)
-                all_mass_matches = {'None': 0}
-                all_mass_matches.update(init_masses)
-                all_mass_matches.update(mass_matches)
                 all_mass_matches.update(mass_matches2)
-                break
 
-    # handle result
-    print()
-    print(choice)
-    print(' >', all_masses[choice], len(all_mass_matches[choice]))
+                # handle result
+                #print(choice)
+                #print(' >', all_masses[choice], len(all_mass_matches[choice]))
 
-    c1, _, c2 = parse_compound_name(choice)
-    print(c1)
-    print(' >', all_masses[c1], len(all_mass_matches[c1]))
-    print(c2)
-    print(' >', all_masses[c2], len(all_mass_matches[c2]))
+                c1, _, c2 = parse_compound_name(choice)
+                if c2 == 'None': continue
+
+                #print(c1)
+                #print(' >', all_masses[c1], len(all_mass_matches[c1]))
+                #print(c2)
+                #print(' >', all_masses[c2], len(all_mass_matches[c2]))
+                #print()
+
+                motifs.append((c1, c2, choice, all_mass_matches))
+
+                if len(motifs) > 5:
+                    break
+
+    # plot stuff
+    plot_result(motifs)
 
 if __name__ == '__main__':
     main('data/Compound_List.csv', 'data/Reaction_List.csv')
