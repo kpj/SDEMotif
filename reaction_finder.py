@@ -286,16 +286,37 @@ def get_correlation_matrix(sols):
 
     for i in range(dim):
         for j in range(dim):
-            cc, pval = scis.pearsonr(sols[i], sols[j])
+            cc, _ = scis.pearsonr(sols[i], sols[j])
             mat[i, j] = cc
 
     return mat
 
+def plot_all_correlations(comps, masses, ax):
+    """ Plot correlations between all intensity combinations
+    """
+    col_list = ['red', 'blue', 'green']
+
+    for c1 in comps:
+        for c2 in comps:
+            if c1 == c2: break
+            corrs = []
+
+            # compute correlations
+            for int1 in masses[c1]:
+                for int2 in masses[c2]:
+                    cc, _ = scis.pearsonr(int1, int2)
+                    corrs.append(cc)
+
+            # plot histogram
+            plotter.plot_histogram(
+                corrs, ax,
+                alpha=0.5, facecolor=col_list.pop())
+
 def plot_result(motifs):
     """ Create result plot
     """
-    plt.figure(figsize=(25, 4 * len(motifs)))
-    gs = mpl.gridspec.GridSpec(len(motifs), 2, width_ratios=[1, 2])
+    plt.figure(figsize=(30, 4 * len(motifs)))
+    gs = mpl.gridspec.GridSpec(len(motifs), 3, width_ratios=[1, 2, 1])
 
     for i, (c1, c2, c3, masses) in enumerate(motifs):
         # get intensities
@@ -313,8 +334,9 @@ def plot_result(motifs):
         plotter.plot_system_evolution(
             sols, series_ax,
             xlabel='sample')
-
         series_ax.set_title(c3)
+
+        plot_all_correlations([c1, c2, c3], masses, plt.subplot(gs[i, 2]))
 
     plt.tight_layout()
     plotter.save_figure('images/rl_motifs.pdf', bbox_inches='tight')
@@ -392,7 +414,7 @@ def main(compound_fname, reaction_fname):
 
                 motifs.append((c1, c2, choice, all_mass_matches))
 
-                if len(motifs) > 5:
+                if len(motifs) > 0:
                     break
 
     # plot stuff
