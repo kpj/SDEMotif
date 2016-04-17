@@ -90,7 +90,7 @@ def main(data):
 
     plot_space(df)
 
-    extr = df[df.abs_corr_diff>1]
+    extr = df[df.abs_corr_diff>0.8]
     print(extr)
 
     mpl.style.use('default')
