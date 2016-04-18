@@ -17,7 +17,8 @@ class TestSteuerSystem(TestCase):
 
         syst, mat, sol = analyze_system(
             steuer_syst,
-            repetition_num=100)
+            repetition_num=100,
+            use_ode_sde_diff=False)
 
         self.assertEqual(steuer_syst, syst)
 

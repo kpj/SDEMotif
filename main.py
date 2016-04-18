@@ -22,24 +22,33 @@ from plotter import plot_system_evolution
 def analyze_system(
     system, repetition_num=100,
     filter_trivial_ss=True, filter_mask=None,
-    plot_hist=False
+    plot_hist=False, use_ode_sde_diff=True
 ):
     """ Generate steady states for given system.
         `filter_mask` is a list of nodes to be excluded from filtering.
         A filtered entry must have a None correlation matrix
     """
-    ode_system = copy.copy(system)
-    ode_system.fluctuation_vector = np.zeros(system.fluctuation_vector.shape)
+    if use_ode_sde_diff:
+        ode_system = copy.copy(system)
+        ode_system.fluctuation_vector = np.zeros(system.fluctuation_vector.shape)
 
     ss_data = []
     for _ in range(repetition_num):
         sde_sol = solve_system(system)
-        ode_sol = solve_system(ode_system)
+        if use_ode_sde_diff:
+            ode_sol = solve_system(ode_system)
 
-        sol = ode_sol - sde_sol
+        if use_ode_sde_diff:
+            sol = ode_sol - sde_sol
+        else:
+            sol = sde_sol
         sol_extract = sol.T[int(len(sol.T)*3/4):]
 
-        ode_sol_extract = ode_sol.T[int(len(ode_sol.T)*3/4):]
+        if use_ode_sde_diff:
+            ode_sol_extract = ode_sol.T[int(len(ode_sol.T)*3/4):]
+        else:
+            ode_sol_extract = sol_extract
+
         if not filter_trivial_ss or not filter_steady_state(ode_sol_extract, filter_mask):
             ss_data.append(sol_extract)
         else:
