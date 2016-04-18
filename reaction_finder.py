@@ -371,6 +371,7 @@ def main(compound_fname, reaction_fname, num=10):
 
     # find 3 motif networks
     motifs = []
+    used_compounds = set()
     done = False
     with tqdm(total=num) as pbar:
         for comp_level0, groups_level0 in compounds_level0.items():
@@ -393,7 +394,14 @@ def main(compound_fname, reaction_fname, num=10):
                 # find actual 3 node motifs
                 for comp_level2, groups_level2 in compounds_level2.items():
                     c1_level2, _, c2_level2 = parse_compound_name(comp_level2)
-                    if not ((comp_level0 == c1_level2 and comp_level1 == c2_level2) or (comp_level0 == c2_level2 and comp_level1 == c1_level2)): continue
+
+                    # connected motif check
+                    if not ((comp_level0 == c1_level2 and comp_level1 == c2_level2) or (comp_level0 == c2_level2 and comp_level1 == c1_level2)):
+                        continue
+
+                    # compounds not already used
+                    if comp_level0 in used_compounds or comp_level1 in used_compounds or comp_level2 in used_compounds:
+                        continue
 
                     # compute all intensity vectors
                     intensities_all = {}
@@ -404,6 +412,8 @@ def main(compound_fname, reaction_fname, num=10):
                     # save result
                     motifs.append(
                         (comp_level0, comp_level1, comp_level2, intensities_all))
+
+                    used_compounds.update([comp_level0, comp_level1, comp_level2])
 
                     pbar.update()
                     if len(motifs) > num:
