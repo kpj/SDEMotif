@@ -4,6 +4,7 @@ Infer metabolite correlation patterns from network motifs
 
 import os
 import sys
+import copy
 import multiprocessing
 
 import numpy as np
@@ -27,12 +28,19 @@ def analyze_system(
         `filter_mask` is a list of nodes to be excluded from filtering.
         A filtered entry must have a None correlation matrix
     """
+    ode_system = copy.copy(system)
+    ode_system.fluctuation_vector = np.zeros(system.fluctuation_vector.shape)
+
     ss_data = []
     for _ in range(repetition_num):
-        sol = solve_system(system)
+        sde_sol = solve_system(system)
+        ode_sol = solve_system(ode_system)
+
+        sol = ode_sol - sde_sol
         sol_extract = sol.T[int(len(sol.T)*3/4):]
 
-        if not filter_trivial_ss or not filter_steady_state(sol_extract, filter_mask):
+        ode_sol_extract = ode_sol.T[int(len(ode_sol.T)*3/4):]
+        if not filter_trivial_ss or not filter_steady_state(ode_sol_extract, filter_mask):
             ss_data.append(sol_extract)
         else:
             return system, None, sol

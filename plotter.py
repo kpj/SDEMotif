@@ -33,7 +33,7 @@ def plot_system_evolution(sol, ax, show_legend=True, labels=None, xlabel='time')
             else:
                 ax.plot(series, label=labels[i])
 
-    ax.set_ylim((0, ax.get_ylim()[1]))
+    #ax.set_ylim((0, ax.get_ylim()[1]))
     ax.set_xlabel(xlabel)
     ax.set_ylabel('concentration')
     if show_legend: ax.legend(loc='best', ncol=2)
