@@ -291,7 +291,7 @@ def get_correlation_matrix(sols):
 
     return mat
 
-def plot_all_correlations(comps, masses, ax):
+def plot_all_correlations(comps, intensities, ax):
     """ Plot correlations between all intensity combinations
     """
     col_list = ['red', 'blue', 'green']
@@ -302,8 +302,8 @@ def plot_all_correlations(comps, masses, ax):
             corrs = []
 
             # compute correlations
-            for int1 in masses[c1]:
-                for int2 in masses[c2]:
+            for int1 in intensities[c1]:
+                for int2 in intensities[c2]:
                     cc, _ = scis.pearsonr(int1, int2)
                     corrs.append(cc)
 
@@ -318,11 +318,11 @@ def plot_result(motifs):
     plt.figure(figsize=(30, 4 * len(motifs)))
     gs = mpl.gridspec.GridSpec(len(motifs), 3, width_ratios=[1, 2, 1])
 
-    for i, (c1, c2, c3, masses) in enumerate(motifs):
+    for i, (c1, c2, c3, intensities) in enumerate(motifs):
         # get intensities
         sols = []
         for foo in [c1, c2, c3]:
-            sols.append(masses[foo][0])
+            sols.append(intensities[foo][0])
 
         # compute other data
         corr_mat = get_correlation_matrix(sols)
@@ -336,7 +336,7 @@ def plot_result(motifs):
             xlabel='sample')
         series_ax.set_title(c3)
 
-        plot_all_correlations([c1, c2, c3], masses, plt.subplot(gs[i, 2]))
+        plot_all_correlations([c1, c2, c3], intensities, plt.subplot(gs[i, 2]))
 
     plt.tight_layout()
     plotter.save_figure('images/rl_motifs.pdf', bbox_inches='tight')
@@ -345,77 +345,70 @@ def plot_result(motifs):
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
     """
-    compound_data, comp_mass = read_compounds_file(compound_fname)
-    reaction_data, rea_mass = read_reactions_file(reaction_fname)
+    compound_data, masses_level0 = read_compounds_file(compound_fname)
+    reaction_data, masses_reactions = read_reactions_file(reaction_fname)
 
     # only keep masses which have associated intensities
-    init_masses = match_masses(comp_mass)
-    compound_data = {k: compound_data[k] for k in init_masses.keys()}
+    intensities_level0 = match_masses(masses_level0)
+    compounds_level0 = {k: compound_data[k] for k in intensities_level0.keys()}
 
-    print('Starting with {} compounds'.format(len(compound_data)))
-    res = iterate_once(compound_data, reaction_data)
-    print('Found {} new compounds'.format(len(res)))
+    # find new compounds
+    print('Starting with {} compounds'.format(len(compounds_level0)))
+    comp_tmp = iterate_once(compounds_level0, reaction_data)
+    masses_level1 = compute_new_masses(comp_tmp, masses_level0, masses_reactions)
 
-    new_masses = compute_new_masses(res, comp_mass, rea_mass)
-    mass_matches = match_masses(new_masses)
-    print('Found {} mass matches'.format(len(mass_matches)))
+    intensities_level1 = match_masses(masses_level1)
+    compounds_level1 = {k: comp_tmp[k] for k in intensities_level1.keys()}
+
+    print('Found {} new compounds'.format(len(compounds_level1)))
 
     # keep all masses together
-    all_mass_matches = {'None': [0]}
-    all_mass_matches.update(init_masses)
-    all_mass_matches.update(mass_matches)
+    masses_all = {'None': 0}
+    masses_all.update(masses_level0)
+    masses_all.update(masses_level1)
 
-    # find further jumps
+    # find 3 motif networks
     motifs = []
-    for name, intensities in mass_matches.items():
-        # update data
-        new_comps = {}
-        new_comps.update(compound_data)
-        new_comps.update({name: res[name]})
+    done = False
+    for comp_level0, groups_level0 in compounds_level0.items():
+        for comp_level1, groups_level1 in compounds_level1.items():
+            c1_level1, _, c2_level1 = parse_compound_name(comp_level1)
+            if not comp_level0 in [c1_level1, c2_level1]: continue
 
-        all_masses = {}
-        all_masses.update(comp_mass)
-        all_masses.update({name: new_masses[name]})
+            # combine old with new components
+            comp_tmp = iterate_once(
+                dict([
+                    (comp_level0, groups_level0),
+                    (comp_level1, groups_level1)
+                ]), reaction_data)
+            masses_level2 = compute_new_masses(comp_tmp, masses_all, masses_reactions)
 
-        # next step
-        res2 = iterate_once(new_comps, reaction_data)
+            # check which are associated with intensities
+            intensities_level2 = match_masses(masses_level2)
+            compounds_level2 = {k: comp_tmp[k] for k in intensities_level2.keys()}
 
-        # extract newly found jumps
-        jumps = list(set.difference(set(res2), set(res)))
-        print(' > Found {} new compounds [with {}]'.format(len(jumps), name))
+            # find actual 3 node motifs
+            for comp_level2, groups_level2 in compounds_level2.items():
+                c1_level2, _, c2_level2 = parse_compound_name(comp_level2)
+                if not ((comp_level0 == c1_level2 and comp_level1 == c2_level2) or (comp_level0 == c2_level2 and comp_level1 == c1_level2)): continue
+                print('> Found motif')
 
-        # find intensities if needed
-        if len(jumps) > 0:
-            new_masses2 = compute_new_masses(res2, all_masses, rea_mass)
-            mass_matches2 = match_masses(new_masses2)
+                # compute all intensity vectors
+                intensities_all = {}
+                intensities_all.update(intensities_level0)
+                intensities_all.update(intensities_level1)
+                intensities_all.update(intensities_level2)
 
-            new_mass_matches = list(set.difference(set(mass_matches2), set(mass_matches)))
-            print('  > Found {} new mass matches'.format(len(new_mass_matches)))
-
-            if len(new_mass_matches) > 0:
-                choice = new_mass_matches[0]
-                print('  > {}'.format(choice))
-
-                all_masses.update(new_masses2)
-                all_mass_matches.update(mass_matches2)
-
-                # handle result
-                #print(choice)
-                #print(' >', all_masses[choice], len(all_mass_matches[choice]))
-
-                c1, _, c2 = parse_compound_name(choice)
-                if c2 == 'None': continue
-
-                #print(c1)
-                #print(' >', all_masses[c1], len(all_mass_matches[c1]))
-                #print(c2)
-                #print(' >', all_masses[c2], len(all_mass_matches[c2]))
-                #print()
-
-                motifs.append((c1, c2, choice, all_mass_matches))
+                # save result
+                motifs.append(
+                    (comp_level0, comp_level1, comp_level2, intensities_all))
 
                 if len(motifs) > 0:
-                    break
+                    done = True
+
+                if done: break
+            if done: break
+        if done: break
 
     # plot stuff
     plot_result(motifs)
