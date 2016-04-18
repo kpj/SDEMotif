@@ -12,6 +12,8 @@ import scipy.stats as scis
 import matplotlib as mpl
 import matplotlib.pylab as plt
 
+from tqdm import tqdm
+
 import plotter
 
 
@@ -342,7 +344,7 @@ def plot_result(motifs):
     plotter.save_figure('images/rl_motifs.pdf', bbox_inches='tight')
     plt.close()
 
-def main(compound_fname, reaction_fname):
+def main(compound_fname, reaction_fname, num=10):
     """ Read in data and start experiment
     """
     compound_data, masses_level0 = read_compounds_file(compound_fname)
@@ -370,45 +372,46 @@ def main(compound_fname, reaction_fname):
     # find 3 motif networks
     motifs = []
     done = False
-    for comp_level0, groups_level0 in compounds_level0.items():
-        for comp_level1, groups_level1 in compounds_level1.items():
-            c1_level1, _, c2_level1 = parse_compound_name(comp_level1)
-            if not comp_level0 in [c1_level1, c2_level1]: continue
+    with tqdm(total=num) as pbar:
+        for comp_level0, groups_level0 in compounds_level0.items():
+            for comp_level1, groups_level1 in compounds_level1.items():
+                c1_level1, _, c2_level1 = parse_compound_name(comp_level1)
+                if not comp_level0 in [c1_level1, c2_level1]: continue
 
-            # combine old with new components
-            comp_tmp = iterate_once(
-                dict([
-                    (comp_level0, groups_level0),
-                    (comp_level1, groups_level1)
-                ]), reaction_data)
-            masses_level2 = compute_new_masses(comp_tmp, masses_all, masses_reactions)
+                # combine old with new components
+                comp_tmp = iterate_once(
+                    dict([
+                        (comp_level0, groups_level0),
+                        (comp_level1, groups_level1)
+                    ]), reaction_data)
+                masses_level2 = compute_new_masses(comp_tmp, masses_all, masses_reactions)
 
-            # check which are associated with intensities
-            intensities_level2 = match_masses(masses_level2)
-            compounds_level2 = {k: comp_tmp[k] for k in intensities_level2.keys()}
+                # check which are associated with intensities
+                intensities_level2 = match_masses(masses_level2)
+                compounds_level2 = {k: comp_tmp[k] for k in intensities_level2.keys()}
 
-            # find actual 3 node motifs
-            for comp_level2, groups_level2 in compounds_level2.items():
-                c1_level2, _, c2_level2 = parse_compound_name(comp_level2)
-                if not ((comp_level0 == c1_level2 and comp_level1 == c2_level2) or (comp_level0 == c2_level2 and comp_level1 == c1_level2)): continue
-                print('> Found motif')
+                # find actual 3 node motifs
+                for comp_level2, groups_level2 in compounds_level2.items():
+                    c1_level2, _, c2_level2 = parse_compound_name(comp_level2)
+                    if not ((comp_level0 == c1_level2 and comp_level1 == c2_level2) or (comp_level0 == c2_level2 and comp_level1 == c1_level2)): continue
 
-                # compute all intensity vectors
-                intensities_all = {}
-                intensities_all.update(intensities_level0)
-                intensities_all.update(intensities_level1)
-                intensities_all.update(intensities_level2)
+                    # compute all intensity vectors
+                    intensities_all = {}
+                    intensities_all.update(intensities_level0)
+                    intensities_all.update(intensities_level1)
+                    intensities_all.update(intensities_level2)
 
-                # save result
-                motifs.append(
-                    (comp_level0, comp_level1, comp_level2, intensities_all))
+                    # save result
+                    motifs.append(
+                        (comp_level0, comp_level1, comp_level2, intensities_all))
 
-                if len(motifs) > 0:
-                    done = True
+                    pbar.update()
+                    if len(motifs) > num:
+                        done = True
 
+                    if done: break
                 if done: break
             if done: break
-        if done: break
 
     # plot stuff
     plot_result(motifs)
