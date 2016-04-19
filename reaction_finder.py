@@ -7,10 +7,12 @@ import itertools
 import collections
 
 import numpy as np
+import pandas as pd
 import scipy.stats as scis
 
 import matplotlib as mpl
 import matplotlib.pylab as plt
+import seaborn as sns
 
 from tqdm import tqdm
 
@@ -435,6 +437,49 @@ def find_small_motifs(
     # plot stuff
     plot_result(motifs)
 
+def investigate_reactions(
+    compounds_level0, masses_level0, intensities_level0,
+    reaction_data, masses_reactions
+):
+    """ Find out if reactions induce correlation patterns
+    """
+    # combine initial compounds
+    comp_tmp = iterate_once(compounds_level0, reaction_data)
+    masses_level1 = compute_new_masses(comp_tmp, masses_level0, masses_reactions)
+
+    intensities_level1 = match_masses(masses_level1)
+    print('Found {} new compounds'.format(len(intensities_level1)))
+
+    intensities_all = {}
+    intensities_all.update(intensities_level0)
+    intensities_all.update(intensities_level1)
+
+    # compute all correlations for all compounds
+    rea_corrs = []
+    for compound in tqdm(intensities_level1.keys()):
+        c1, rea, c2 = parse_compound_name(compound)
+        if c2 == 'None': continue
+
+        for int1 in intensities_all[c1]:
+            for int2 in intensities_all[c2]:
+                cc, _ = scis.pearsonr(int1, int2)
+                rea_corrs.append({'reaction': rea, 'correlation': cc})
+    df = pd.DataFrame.from_dict(rea_corrs)
+
+    # plot result
+    fig = plt.figure()
+    for rea in df.reaction.unique():
+        corrs = df[df.reaction==rea].correlation
+        sns.distplot(
+            corrs, label=rea,
+            kde=False, bins=np.linspace(-1, 1, 200))
+
+    plt.legend(loc='best')
+
+    plt.tight_layout()
+    plotter.save_figure('images/rl_reaction_patterns.pdf', bbox_inches='tight')
+    plt.close()
+
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
     """
@@ -449,6 +494,10 @@ def main(compound_fname, reaction_fname):
     print('Starting with {} compounds'.format(len(compounds_level0)))
 
     # investigate results
+    investigate_reactions(
+        compounds_level0, masses_level0, intensities_level0,
+        reaction_data, masses_reactions)
+
     find_small_motifs(
         compounds_level0, masses_level0, intensities_level0,
         reaction_data, masses_reactions)
