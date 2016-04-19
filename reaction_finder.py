@@ -298,21 +298,34 @@ def plot_all_correlations(comps, intensities, ax):
     """
     col_list = ['red', 'blue', 'green']
 
+    tmp = collections.defaultdict(lambda: collections.defaultdict(list))
     for c1 in comps:
         for c2 in comps:
             if c1 == c2: break
-            corrs = []
+            corrs = {}
 
             # compute correlations
-            for int1 in intensities[c1]:
-                for int2 in intensities[c2]:
+            for i, int1 in enumerate(intensities[c1]):
+                for j, int2 in enumerate(intensities[c2]):
                     cc, _ = scis.pearsonr(int1, int2)
-                    corrs.append(cc)
+                    corrs[(i,j)] = cc
+
+            c1_idx, c2_idx = max(corrs.keys(), key=lambda k: corrs[k])
+            tmp[c1][c1_idx].append(corrs[(c1_idx, c2_idx)])
+            tmp[c2][c2_idx].append(corrs[(c1_idx, c2_idx)])
 
             # plot histogram
             plotter.plot_histogram(
-                corrs, ax,
+                list(corrs.values()), ax,
                 alpha=0.5, facecolor=col_list.pop())
+
+    # choose final selection
+    sel = {}
+    for c, maps in tmp.items():
+        choice = max(maps.keys(), key=lambda k: sum(maps[k]))
+        sel[c] = choice
+
+    return sel
 
 def plot_result(motifs):
     """ Create result plot
@@ -321,15 +334,18 @@ def plot_result(motifs):
     gs = mpl.gridspec.GridSpec(len(motifs), 3, width_ratios=[1, 2, 1])
 
     for i, (c1, c2, c3, intensities) in enumerate(motifs):
+        # plot all possible correlations and select optimal one
+        sel = plot_all_correlations([c1, c2, c3], intensities, plt.subplot(gs[i, 2]))
+
         # get intensities
         sols = []
         for foo in [c1, c2, c3]:
-            sols.append(intensities[foo][0])
+            sols.append(intensities[foo][sel[foo]])
 
-        # compute other data
+        # compute correlation matrix
         corr_mat = get_correlation_matrix(sols)
 
-        # plot
+        # plot rest
         plotter.plot_corr_mat(corr_mat, plt.subplot(gs[i, 0]))
 
         series_ax = plt.subplot(gs[i, 1])
@@ -337,8 +353,6 @@ def plot_result(motifs):
             sols, series_ax,
             xlabel='sample')
         series_ax.set_title(c3)
-
-        plot_all_correlations([c1, c2, c3], intensities, plt.subplot(gs[i, 2]))
 
     plt.tight_layout()
     plotter.save_figure('images/rl_motifs.pdf', bbox_inches='tight')
@@ -416,7 +430,7 @@ def main(compound_fname, reaction_fname, num=10):
                     used_compounds.update([comp_level0, comp_level1, comp_level2])
 
                     pbar.update()
-                    if len(motifs) > num:
+                    if len(motifs) >= num:
                         done = True
 
                     if done: break
