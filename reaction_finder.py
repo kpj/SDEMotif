@@ -358,18 +358,13 @@ def plot_result(motifs):
     plotter.save_figure('images/rl_motifs.pdf', bbox_inches='tight')
     plt.close()
 
-def main(compound_fname, reaction_fname, num=10):
-    """ Read in data and start experiment
+def find_small_motifs(
+    compounds_level0, masses_level0, intensities_level0,
+    reaction_data, masses_reactions,
+    num=10
+):
+    """ Look for 3 node motifs
     """
-    compound_data, masses_level0 = read_compounds_file(compound_fname)
-    reaction_data, masses_reactions = read_reactions_file(reaction_fname)
-
-    # only keep masses which have associated intensities
-    intensities_level0 = match_masses(masses_level0)
-    compounds_level0 = {k: compound_data[k] for k in intensities_level0.keys()}
-
-    # find new compounds
-    print('Starting with {} compounds'.format(len(compounds_level0)))
     comp_tmp = iterate_once(compounds_level0, reaction_data)
     masses_level1 = compute_new_masses(comp_tmp, masses_level0, masses_reactions)
 
@@ -439,6 +434,25 @@ def main(compound_fname, reaction_fname, num=10):
 
     # plot stuff
     plot_result(motifs)
+
+def main(compound_fname, reaction_fname):
+    """ Read in data and start experiment
+    """
+    compound_data, masses_level0 = read_compounds_file(compound_fname)
+    reaction_data, masses_reactions = read_reactions_file(reaction_fname)
+
+    # only keep masses which have associated intensities
+    intensities_level0 = match_masses(masses_level0)
+    compounds_level0 = {k: compound_data[k] for k in intensities_level0.keys()}
+
+    # find new compounds
+    print('Starting with {} compounds'.format(len(compounds_level0)))
+
+    # investigate results
+    find_small_motifs(
+        compounds_level0, masses_level0, intensities_level0,
+        reaction_data, masses_reactions)
+
 
 if __name__ == '__main__':
     main('data/Compound_List.csv', 'data/Reaction_List.csv')
