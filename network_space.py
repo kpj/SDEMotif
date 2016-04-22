@@ -7,8 +7,10 @@ import pickle
 
 import numpy as np
 import pandas as pd
+
 import seaborn as sns
 import matplotlib as mpl
+import matplotlib.pylab as plt
 
 from utils import extract_sig_entries
 from plotter import save_figure
@@ -70,9 +72,31 @@ def check_vanishing(row):
             if len(nv_inds) > 0 else np.nan
     })
 
-def plot_space(df):
-    """ Plot result
+def check_neg_pos_corrs(row):
+    neg_pos = []
+    pos_neg = []
+
+    for raw, enh in zip(row.raw_vals, row.enh_vals):
+        if raw < 0:
+            neg_pos.append(abs(raw-enh))
+        else:
+            pos_neg.append(abs(raw-enh))
+
+    return pd.Series({
+        'raw_res': row.raw_res,
+        'enh_res': row.enh_res,
+        'mean_negpos_corr': np.mean(neg_pos),
+        'mean_posneg_corr': np.mean(pos_neg)
+    })
+
+def plot_zeros_vs_corr_diff(df):
+    """ Plot number of zero correlations in original network against mean of absolute correlation differences
     """
+    df = df.apply(check_vanishing, axis=1)
+
+    # generate overview
+    plt.figure()
+
     sns.regplot(
         x='already_zero', y='abs_corr_diff', data=df,
         fit_reg=False,
@@ -80,23 +104,47 @@ def plot_space(df):
 
     save_figure('images/network_space.pdf')
 
-def main(data):
-    """ Analyse data
-    """
-    df = transform(data)
-    df = df.apply(
-        lambda row: check_vanishing(bin_entries(extract_entries(row))),
-        axis=1)
-
-    plot_space(df)
-
-    extr = df[df.abs_corr_diff>0.8]
+    # plot networks in detail
+    extr = df[df.abs_corr_diff > 0.8]
     print(extr)
 
     mpl.style.use('default')
     plot_individuals(
         list(zip(extr.raw_res.tolist(), extr.enh_res.tolist())),
         'images/extreme.pdf')
+
+def plot_neg_pos_corrs(df):
+    """ Plot neg - pos corrs on x and pos - neg corrs on y axis
+    """
+    df = df.apply(check_neg_pos_corrs, axis=1)
+
+    # generate overview
+    plt.figure()
+    sns.regplot(
+        x='mean_negpos_corr', y='mean_posneg_corr', data=df,
+        fit_reg=False)
+    save_figure('images/network_space2.pdf')
+
+    # plot networks in detail
+    extr = df[(df.mean_negpos_corr > 0.6) & (df.mean_posneg_corr > 0.6)]
+    print(extr)
+
+    mpl.style.use('default')
+    plot_individuals(
+        list(zip(extr.raw_res.tolist(), extr.enh_res.tolist())),
+        'images/extreme2.pdf')
+
+def main(data):
+    """ Analyse data
+    """
+    df = transform(data)
+    df = df.apply(
+        lambda row: bin_entries(extract_entries(row)),
+        axis=1)
+
+    plot_neg_pos_corrs(df)
+    plot_zeros_vs_corr_diff(df)
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 2:
