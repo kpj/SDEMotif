@@ -336,12 +336,17 @@ def select_row_by_count(data, mat, pat):
 def plot_individuals(examples, fname, val_func=None):
     """ Plot a selection of individual results
     """
+    if val_func is None:
+        mod = -1
+    else:
+        mod = 0
+
     # plot selected networks
     if len(examples[0]) == 2: # is pair of networks
         fig = plt.figure(figsize=(50, 4*len(examples)))
         gs = mpl.gridspec.GridSpec(
-            len(examples), 6,
-            width_ratios=[1, 2, 1, 2, 1, 4])
+            len(examples), 6+mod,
+            width_ratios=[1, 2, 1, 2, 1+(-3*mod), 4])
     else: # each entry is single network
         fig = plt.figure(figsize=(25, 4*len(examples)))
         gs = mpl.gridspec.GridSpec(len(examples), 3, width_ratios=[1, 1, 2])
@@ -355,7 +360,7 @@ def plot_individuals(examples, fname, val_func=None):
             plot_corr_mat(raw[1], plt.subplot(gs[i, 1]))
             plot_system(enh[0], plt.subplot(gs[i, 2]))
             plot_corr_mat(enh[1], plt.subplot(gs[i, 3]))
-            plot_system_evolution(enh[2], plt.subplot(gs[i, 5]))
+            plot_system_evolution(enh[2], plt.subplot(gs[i, 5+mod]))
 
             # plot marker
             mark_ax = plt.subplot(gs[i, 4])
