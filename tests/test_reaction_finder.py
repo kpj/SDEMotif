@@ -70,22 +70,24 @@ class TestPairFinder(TestCase):
 class TestCompoundGuesser(TestCase):
     def test_simple_generation(self):
         cdata = {
-            'fooC': {'groups': {'H': 3, 'O': 2}, 'mass': 1},
-            'barC': {'groups': {'H': 4, 'O': 1}, 'mass': 1},
-            'bazC': {'groups': {'H': 0, 'O': 3}, 'mass': 1}
+            'fooC': {'groups': {'H': 3, 'O': 2}, 'mass': 1, 'atoms': {'N': 1, 'C': 1}},
+            'barC': {'groups': {'H': 4, 'O': 1}, 'mass': 1, 'atoms': {'N': 3, 'C': 0}},
+            'bazC': {'groups': {'H': 0, 'O': 3}, 'mass': 1, 'atoms': {'N': 1, 'C': 2}}
         }
         rdata = {
             'rea1': {
                 'c1': {'H': 3, 'O': 2},
                 'c2': {'H': 4, 'O': 0},
                 'group_trans': {'H': -1, 'O': 2},
-                'mass_trans': 1
+                'mass_trans': 1,
+                'atom_trans': {'c1': True, 'c2': True, 'N': 1, 'C': -2}
             },
             'rea2': {
                 'c1': {'H': 0, 'O': 1},
                 'c2': {'H': 1, 'O': 1},
                 'group_trans': {'H': 1, 'O': 0},
-                'mass_trans': 1
+                'mass_trans': 1,
+                'atom_trans': {'c1': True, 'c2': True, 'N': 0, 'C': 0}
             }
         }
         combs = {
@@ -99,12 +101,16 @@ class TestCompoundGuesser(TestCase):
             res['(fooC) {rea1} (barC)']['groups'],
             {'H': 6, 'O': 5})
         self.assertEqual(res['(fooC) {rea1} (barC)']['mass'], 3)
+        self.assertEqual(
+            res['(fooC) {rea1} (barC)']['atoms'],
+            {'N': 5, 'C': -1})
 
     def test_guess_with_none(self):
         cdata = {
             'fooC': {
                 'groups': {'H': 3, 'O': 2},
-                'mass': 2
+                'mass': 2,
+                'atoms': {'N': 4, 'C': 3}
             },
         }
         rdata = {
@@ -112,7 +118,8 @@ class TestCompoundGuesser(TestCase):
                 'c1': {'H': 3, 'O': 2},
                 'c2': None,
                 'group_trans': {'H': -2, 'O': 0},
-                'mass_trans': 1
+                'mass_trans': 1,
+                'atom_trans': {'c1': True, 'c2': False, 'N': -2, 'C': 1}
             }
         }
         combs = {
@@ -126,6 +133,9 @@ class TestCompoundGuesser(TestCase):
             res['(fooC) {rea1} (None)']['groups'],
             {'H': 1, 'O': 2})
         self.assertEqual(res['(fooC) {rea1} (None)']['mass'], 3)
+        self.assertEqual(
+            res['(fooC) {rea1} (None)']['atoms'],
+            {'N': 2, 'C': 4})
 
     def test_negative_group_number(self):
         cdata = {
@@ -137,7 +147,8 @@ class TestCompoundGuesser(TestCase):
                 'c1': {'H': 0, 'O': 0},
                 'c2': {'H': 0, 'O': 0},
                 'group_trans': {'H': -4, 'O': -3},
-                'mass_trans': 6
+                'mass_trans': 6,
+                'atom_trans': {'c1': False, 'c2': False}
             }
         }
         combs = {
@@ -174,6 +185,22 @@ class TestFileInput(TestCase):
                 '-O': 3
             })
 
+        self.assertEqual(
+            data['foo']['atoms'], {
+                'N': 0,
+                'C': 5
+            })
+        self.assertEqual(
+            data['bar']['atoms'], {
+                'N': 2,
+                'C': 3
+            })
+        self.assertEqual(
+            data['baz']['atoms'], {
+                'N': 1,
+                'C': 1
+            })
+
         self.assertEqual(data['foo']['mass'], 1.5)
         self.assertEqual(data['bar']['mass'], 1.7)
         self.assertEqual(data['baz']['mass'], 1.1)
@@ -187,21 +214,24 @@ class TestFileInput(TestCase):
                 'c1': {'-H': 3, '-O': 2},
                 'c2': {'-H': 4, '-O': 0},
                 'group_trans': {'-H': -1, '-O': 2},
-                'mass_trans': -1.1
+                'mass_trans': -1.1,
+                'atom_trans': {'c1': True, 'c2': True, 'H': -2, 'O': -1}
             })
         self.assertEqual(
             data['rea2'], {
                 'c1': {'-H': 0, '-O': 1},
                 'c2': {'-H': 1, '-O': 1},
                 'group_trans': {'-H': 1, '-O': 0},
-                'mass_trans': 2.2
+                'mass_trans': 2.2,
+                'atom_trans': {'c1': True, 'c2': False, 'O': 1}
             })
         self.assertEqual(
             data['rea3'], {
                 'c1': {'-H': 2, '-O': 3},
                 'c2': None,
                 'group_trans': {'-H': -2, '-O': -1},
-                'mass_trans': -3.3
+                'mass_trans': -3.3,
+                'atom_trans': {'c1': True, 'c2': False, 'H': -2, 'O': -1}
             })
 
 class IntegrationTest(TestCase):
@@ -286,3 +316,25 @@ class TestNameParser(TestCase):
         self.assertEqual(c1, 'Ononitol')
         self.assertEqual(r, 'Oxidation - (O) Addition')
         self.assertEqual(c2, 'None')
+
+class TestAtomTransformationParser(TestCase):
+    def test_easy_case(self):
+        inp = 'M1 + M2 - H2O'
+        res = parse_atom_transformation(inp)
+
+        self.assertEqual(res, {
+            'c1': True,
+            'c2': True,
+            'H': -2,
+            'O': -1
+        })
+
+    def test_no_c2(self):
+        inp = 'M1 + H2'
+        res = parse_atom_transformation(inp)
+
+        self.assertEqual(res, {
+            'c1': True,
+            'c2': False,
+            'H': 2
+        })

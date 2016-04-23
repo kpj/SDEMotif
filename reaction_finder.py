@@ -19,6 +19,8 @@ from tqdm import tqdm
 import plotter
 
 
+ATOM_LIST = 'CHONS'
+
 def read_compounds_file(file_spec):
     """ Transform data from compounds file into usable format:
 
@@ -45,21 +47,32 @@ def read_compounds_file(file_spec):
             if p[1].startswith('-')])
         group_range = range(group_cols[0], group_cols[-1]+1)
 
+        atom_range = {}
+        for a in ATOM_LIST:
+            try:
+                atom_range[head.index(a)] = a
+            except ValueError:
+                pass
+
         name_ind = head.index('Name')
         mass_ind = head.index('M-H')
 
         # parse body
         for row in reader:
-            name = row[name_ind]
+            name = row[name_ind].strip()
             mass = row[mass_ind]
             if mass == 'NA': continue
 
             data[name] = {
                 'groups': {},
+                'atoms': {},
                 'mass': float(mass)
             }
             for ind in group_range:
                 data[name]['groups'][group_names[ind-group_cols[0]]] = int(row[ind])
+
+            for idx, atom in atom_range.items():
+                data[name]['atoms'][atom] = int(row[idx])
 
     return data
 
@@ -95,6 +108,7 @@ def read_reactions_file(file_spec):
 
         rname_ind = head.index('Reaction')
         rmass_ind = head.index('Mass Addendum')
+        trans_ind = head.index('Transformation')
 
         c1_reqs_ra = range(
             head.index('Requirement Matrix - Compound 1'),
@@ -109,9 +123,11 @@ def read_reactions_file(file_spec):
         for row in reader:
             name = row[rname_ind]
             mass = row[rmass_ind]
+            atom_trans = parse_atom_transformation(row[trans_ind])
 
             data[name] = {
                 'mass_trans': float(mass),
+                'atom_trans': atom_trans,
                 'c1': {},
                 'c2': {},
                 'group_trans': {}
@@ -127,6 +143,61 @@ def read_reactions_file(file_spec):
                     break
             for i in res_mod_ra:
                 data[name]['group_trans'][groups[i-res_mod_ra[0]+1]] = int(row[i])
+
+    return data
+
+def parse_atom_transformation(string):
+    """ Parse reaction atom transformation description
+    """
+    cur_sign = 1
+    c1, c2 = False, False
+    data = {}
+
+    state = 'idle'
+    cur_atom = None
+
+    for char in string:
+        if char == '+':
+            cur_sign = 1
+        elif char == '-':
+            cur_sign = -1
+        else:
+            if state == 'idle':
+                if char == 'M':
+                    state = 'parseM'
+                elif char == ' ':
+                    continue
+                elif char in ATOM_LIST:
+                    state = 'parseA'
+                    cur_atom = char
+                else:
+                    raise RuntimeError('Encountered unexpected character: "{}" while in state "{}"'.format(char, state))
+            elif state == 'parseM':
+                if char == '1':
+                    c1 = True
+                elif char == '2':
+                    c2 = True
+                else:
+                    state = 'idle'
+            elif state == 'parseA':
+                if char.isdigit():
+                    data[cur_atom] = cur_sign * int(char)
+                    cur_atom = None
+                elif char == ' ':
+                    data[cur_atom] = cur_sign * 1
+                    cur_atom = None
+                    state = 'idle'
+                else:
+                    if cur_atom is None:
+                        cur_atom = char
+                    data[cur_atom] = cur_sign * 1
+    if state == 'parseA' and not cur_atom is None:
+        data[cur_atom] = cur_sign * 1
+
+    data.update({
+        'c1': c1,
+        'c2': c2
+    })
 
     return data
 
@@ -177,7 +248,9 @@ def combine_data(cdata, rdata):
     return data
 
 def guess_new_compounds(combs, cdata, rdata):
-    """ Infer new compounds from reactions of existing ones
+    """ Infer new compounds from reactions of existing ones.
+
+        All kinds of new information computation take place here
     """
     def add_specs(*args):
         spec = {}
@@ -187,18 +260,19 @@ def guess_new_compounds(combs, cdata, rdata):
 
     data = {}
     for rname, pairs in combs.items():
-        r_spec = rdata[rname]['group_trans']
+        r_groups = rdata[rname]['group_trans']
         r_mass = rdata[rname]['mass_trans']
+        r_atoms = rdata[rname]['atom_trans']
 
         for c1, c2 in pairs:
             # compute new groups
-            c1_spec = cdata[c1]['groups']
-            c2_spec = cdata[c2]['groups'] if not c2 is None else {}
+            c1_groups = cdata[c1]['groups']
+            c2_groups = cdata[c2]['groups'] if not c2 is None else {}
 
-            new_spec = add_specs(c1_spec, c2_spec, r_spec)
+            new_groups = add_specs(c1_groups, c2_groups, r_groups)
 
-            for g in list(c1_spec.keys()) + list(c2_spec.keys()):
-                if not g in new_spec: new_spec[g] = 0
+            for g in list(c1_groups.keys()) + list(c2_groups.keys()):
+                if not g in new_groups: new_groups[g] = 0
 
             # compute new result
             c1_mass = cdata[c1]['mass']
@@ -206,12 +280,20 @@ def guess_new_compounds(combs, cdata, rdata):
 
             new_mass = c1_mass + r_mass + c2_mass
 
+            # compute new atoms
+            c1_atoms = cdata[c1]['atoms'] if r_atoms['c1'] else {}
+            c2_atoms = cdata[c2]['atoms'] if r_atoms['c2'] else {}
+            r_trans = {k: v for k,v in r_atoms.items() if k in ATOM_LIST}
+
+            new_atoms = add_specs(c1_atoms, c2_atoms, r_trans)
+
             # store results
             new_name = '({c1}) {{{r}}} ({c2})'.format(r=rname, c1=c1, c2=c2)
 
             data[new_name] = {
-                'groups': new_spec,
-                'mass': new_mass
+                'groups': new_groups,
+                'mass': new_mass,
+                'atoms': new_atoms
             }
 
     return data

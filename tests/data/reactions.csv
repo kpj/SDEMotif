@@ -1,5 +1,5 @@
 Reaction,Requirement Matrix - Compound 1,,Requirement Matrix - Compound 2,,Result Matrix,,Transformation,Mass Addendum
     ,-H,-O,-H,-O,-H,-O,,
-rea1, 3, 2, 4, 0,-1, 2,bla,-1.1
-rea2, 0, 1, 1, 1, 1, 0,blu, 2.2
-rea3, 2, 3, X,  ,-2,-1,blo,-3.3
+rea1, 3, 2, 4, 0,-1, 2,M1 + M2 - H2O,-1.1
+rea2, 0, 1, 1, 1, 1, 0,M1 + O, 2.2
+rea3, 2, 3, X,  ,-2,-1,M1 - H2O,-3.3
