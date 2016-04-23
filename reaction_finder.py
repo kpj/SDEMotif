@@ -24,14 +24,16 @@ def read_compounds_file(file_spec):
 
         {
             <compound name>: {
-                <chemical group>: <amount>,
-                ...
+                'groups': {
+                    <chemical group>: <amount>,
+                    ...
+                },
+                'mass': <mass>
             },
             ...
         }
     """
-    group_data = collections.defaultdict(dict)
-    mass_data = {}
+    data = {}
 
     with open(file_spec, 'r') if isinstance(file_spec, str) else file_spec as fd:
         reader = csv.reader(fd)
@@ -52,11 +54,14 @@ def read_compounds_file(file_spec):
             mass = row[mass_ind]
             if mass == 'NA': continue
 
+            data[name] = {
+                'groups': {},
+                'mass': float(mass)
+            }
             for ind in group_range:
-                group_data[name][group_names[ind-group_cols[0]]] = int(row[ind])
-            mass_data[name] = float(mass)
+                data[name]['groups'][group_names[ind-group_cols[0]]] = int(row[ind])
 
-    return dict(group_data), mass_data
+    return data
 
 def read_reactions_file(file_spec):
     """ Transform data from reactions file into usable format:
@@ -71,16 +76,16 @@ def read_reactions_file(file_spec):
                     <chemical group>: <amount>,
                     ...
                 },
-                'res': {
+                'group_trans': {
                     <chemical group>: <amount>,
                     ...
-                }
+                },
+                'mass_trans': <mass transformation>
             },
             ...
         }
     """
-    data = collections.defaultdict(lambda: collections.defaultdict(dict))
-    mdata = {}
+    data = {}
 
     with open(file_spec, 'r') if isinstance(file_spec, str) else file_spec as fd:
         reader = csv.reader(fd)
@@ -105,6 +110,13 @@ def read_reactions_file(file_spec):
             name = row[rname_ind]
             mass = row[rmass_ind]
 
+            data[name] = {
+                'mass_trans': float(mass),
+                'c1': {},
+                'c2': {},
+                'group_trans': {}
+            }
+
             for i in c1_reqs_ra:
                 data[name]['c1'][groups[i-c1_reqs_ra[0]+1]] = int(row[i])
             for i in c2_reqs_ra:
@@ -114,11 +126,9 @@ def read_reactions_file(file_spec):
                     data[name]['c2'] = None
                     break
             for i in res_mod_ra:
-                data[name]['res'][groups[i-res_mod_ra[0]+1]] = int(row[i])
+                data[name]['group_trans'][groups[i-res_mod_ra[0]+1]] = int(row[i])
 
-            mdata[name] = float(mass)
-
-    return dict(data), mdata
+    return data
 
 def match(cgroups, react_groups):
     """ Check if given compound could be reaction partner at given `pos`
@@ -133,7 +143,15 @@ def check_pair(c1, c2, cdata, rdata):
     """
     reacts = []
     for rname, spec in rdata.items():
-        if (c2 is None and spec['c2'] is None and match(cdata[c1], spec['c1'])) or (not c2 is None and match(cdata[c1], spec['c1']) and match(cdata[c2], spec['c2'])):
+        if (
+            c2 is None and
+            spec['c2'] is None and
+            match(cdata[c1]['groups'], spec['c1'])
+        ) or (
+            not c2 is None and
+            match(cdata[c1]['groups'], spec['c1']) and
+            match(cdata[c2]['groups'], spec['c2'])
+        ):
             reacts.append(rname)
     return reacts
 
@@ -169,18 +187,32 @@ def guess_new_compounds(combs, cdata, rdata):
 
     data = {}
     for rname, pairs in combs.items():
-        r_spec = rdata[rname]['res']
+        r_spec = rdata[rname]['group_trans']
+        r_mass = rdata[rname]['mass_trans']
+
         for c1, c2 in pairs:
-            c1_spec = cdata[c1]
-            c2_spec = cdata[c2] if not c2 is None else {}
+            # compute new groups
+            c1_spec = cdata[c1]['groups']
+            c2_spec = cdata[c2]['groups'] if not c2 is None else {}
 
             new_spec = add_specs(c1_spec, c2_spec, r_spec)
-            new_name = '({c1}) {{{r}}} ({c2})'.format(r=rname, c1=c1, c2=c2)
 
             for g in list(c1_spec.keys()) + list(c2_spec.keys()):
                 if not g in new_spec: new_spec[g] = 0
 
-            data[new_name] = new_spec
+            # compute new result
+            c1_mass = cdata[c1]['mass']
+            c2_mass = cdata[c2]['mass'] if not c2 is None else 0
+
+            new_mass = c1_mass + r_mass + c2_mass
+
+            # store results
+            new_name = '({c1}) {{{r}}} ({c2})'.format(r=rname, c1=c1, c2=c2)
+
+            data[new_name] = {
+                'groups': new_spec,
+                'mass': new_mass
+            }
 
     return data
 
@@ -232,20 +264,6 @@ def parse_compound_name(name):
     assert state == 'idle'
     return c1, r, c2
 
-def compute_new_masses(new_compounds, comp_mass, rea_mass):
-    """ Compute mass of new compounds from old ones plus reaction addendum
-    """
-    comp_mass['None'] = 0 # handle single compound cases
-
-    mdata = {}
-    for name in new_compounds.keys():
-        c1, rea, c2 = parse_compound_name(name)
-
-        new_mass = comp_mass[c1] + comp_mass[c2] + rea_mass[rea]
-        mdata[name] = new_mass
-
-    return mdata
-
 def read_peak_data(fname):
     """ Parse peak data file
     """
@@ -274,8 +292,8 @@ def match_masses(masses):
     peak_data = read_peak_data('data/peaklist_filtered_assigned.csv')
 
     data = {}
-    for name, mass in masses.items():
-        res = match(mass)
+    for name, dic in masses.items():
+        res = match(dic['mass'])
 
         if len(res) > 0:
             data[name] = res
@@ -332,6 +350,8 @@ def plot_all_correlations(comps, intensities, ax):
 def plot_result(motifs):
     """ Create result plot
     """
+    mpl.style.use('default')
+
     plt.figure(figsize=(30, 4 * len(motifs)))
     gs = mpl.gridspec.GridSpec(len(motifs), 3, width_ratios=[1, 2, 1])
 
@@ -361,24 +381,18 @@ def plot_result(motifs):
     plt.close()
 
 def find_small_motifs(
-    compounds_level0, masses_level0, intensities_level0,
-    reaction_data, masses_reactions,
+    compounds_level0, intensities_level0,
+    reaction_data,
     num=10
 ):
     """ Look for 3 node motifs
     """
     comp_tmp = iterate_once(compounds_level0, reaction_data)
-    masses_level1 = compute_new_masses(comp_tmp, masses_level0, masses_reactions)
 
-    intensities_level1 = match_masses(masses_level1)
+    intensities_level1 = match_masses(comp_tmp)
     compounds_level1 = {k: comp_tmp[k] for k in intensities_level1.keys()}
 
     print('Found {} new compounds'.format(len(compounds_level1)))
-
-    # keep all masses together
-    masses_all = {'None': 0}
-    masses_all.update(masses_level0)
-    masses_all.update(masses_level1)
 
     # find 3 motif networks
     motifs = []
@@ -396,10 +410,9 @@ def find_small_motifs(
                         (comp_level0, groups_level0),
                         (comp_level1, groups_level1)
                     ]), reaction_data)
-                masses_level2 = compute_new_masses(comp_tmp, masses_all, masses_reactions)
 
                 # check which are associated with intensities
-                intensities_level2 = match_masses(masses_level2)
+                intensities_level2 = match_masses(comp_tmp)
                 compounds_level2 = {k: comp_tmp[k] for k in intensities_level2.keys()}
 
                 # find actual 3 node motifs
@@ -438,16 +451,15 @@ def find_small_motifs(
     plot_result(motifs)
 
 def investigate_reactions(
-    compounds_level0, masses_level0, intensities_level0,
-    reaction_data, masses_reactions
+    compounds_level0, intensities_level0,
+    reaction_data
 ):
     """ Find out if reactions induce correlation patterns
     """
     # combine initial compounds
     comp_tmp = iterate_once(compounds_level0, reaction_data)
-    masses_level1 = compute_new_masses(comp_tmp, masses_level0, masses_reactions)
 
-    intensities_level1 = match_masses(masses_level1)
+    intensities_level1 = match_masses(comp_tmp)
     print('Found {} new compounds'.format(len(intensities_level1)))
 
     intensities_all = {}
@@ -483,11 +495,11 @@ def investigate_reactions(
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
     """
-    compound_data, masses_level0 = read_compounds_file(compound_fname)
-    reaction_data, masses_reactions = read_reactions_file(reaction_fname)
+    compound_data = read_compounds_file(compound_fname)
+    reaction_data = read_reactions_file(reaction_fname)
 
     # only keep masses which have associated intensities
-    intensities_level0 = match_masses(masses_level0)
+    intensities_level0 = match_masses(compound_data)
     compounds_level0 = {k: compound_data[k] for k in intensities_level0.keys()}
 
     # find new compounds
@@ -495,12 +507,12 @@ def main(compound_fname, reaction_fname):
 
     # investigate results
     investigate_reactions(
-        compounds_level0, masses_level0, intensities_level0,
-        reaction_data, masses_reactions)
+        compounds_level0, intensities_level0,
+        reaction_data)
 
     find_small_motifs(
-        compounds_level0, masses_level0, intensities_level0,
-        reaction_data, masses_reactions)
+        compounds_level0, intensities_level0,
+        reaction_data)
 
 
 if __name__ == '__main__':

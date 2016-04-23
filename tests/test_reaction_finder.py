@@ -21,25 +21,28 @@ class TestMatcher(TestCase):
 class TestPairFinder(TestCase):
     def test_simple_finder(self):
         cdata = {
-            'fooC': {'H': 3, 'O': 2},
-            'barC': {'H': 4, 'O': 1},
-            'bazC': {'H': 0, 'O': 3}
+            'fooC': {'groups': {'H': 3, 'O': 2}},
+            'barC': {'groups': {'H': 4, 'O': 1}},
+            'bazC': {'groups': {'H': 0, 'O': 3}}
         }
         rdata = {
             'rea1': {
                 'c1': {'H': 3, 'O': 2},
                 'c2': {'H': 4, 'O': 0},
-                'res': {'H': -1, 'O': 2}
+                'group_trans': {'H': -1, 'O': 2},
+                'mass_trans': 1
             },
             'rea2': {
                 'c1': {'H': 0, 'O': 1},
                 'c2': {'H': 1, 'O': 1},
-                'res': {'H': 1, 'O': 0}
+                'group_trans': {'H': 1, 'O': 0},
+                'mass_trans': 1
             },
             'rea3': {
                 'c1': {'H': 4, 'O': 0},
                 'c2': None,
-                'res': {'H': -2, 'O': 1}
+                'group_trans': {'H': -2, 'O': 1},
+                'mass_trans': 1
             }
         }
 
@@ -67,20 +70,22 @@ class TestPairFinder(TestCase):
 class TestCompoundGuesser(TestCase):
     def test_simple_generation(self):
         cdata = {
-            'fooC': {'H': 3, 'O': 2},
-            'barC': {'H': 4, 'O': 1},
-            'bazC': {'H': 0, 'O': 3}
+            'fooC': {'groups': {'H': 3, 'O': 2}, 'mass': 1},
+            'barC': {'groups': {'H': 4, 'O': 1}, 'mass': 1},
+            'bazC': {'groups': {'H': 0, 'O': 3}, 'mass': 1}
         }
         rdata = {
             'rea1': {
                 'c1': {'H': 3, 'O': 2},
                 'c2': {'H': 4, 'O': 0},
-                'res': {'H': -1, 'O': 2}
+                'group_trans': {'H': -1, 'O': 2},
+                'mass_trans': 1
             },
             'rea2': {
                 'c1': {'H': 0, 'O': 1},
                 'c2': {'H': 1, 'O': 1},
-                'res': {'H': 1, 'O': 0}
+                'group_trans': {'H': 1, 'O': 0},
+                'mass_trans': 1
             }
         }
         combs = {
@@ -90,17 +95,24 @@ class TestCompoundGuesser(TestCase):
         res = guess_new_compounds(combs, cdata, rdata)
 
         self.assertTrue(len(res), 1)
-        self.assertEqual(res['(fooC) {rea1} (barC)'], {'H': 6, 'O': 5})
+        self.assertEqual(
+            res['(fooC) {rea1} (barC)']['groups'],
+            {'H': 6, 'O': 5})
+        self.assertEqual(res['(fooC) {rea1} (barC)']['mass'], 3)
 
     def test_guess_with_none(self):
         cdata = {
-            'fooC': {'H': 3, 'O': 2},
+            'fooC': {
+                'groups': {'H': 3, 'O': 2},
+                'mass': 2
+            },
         }
         rdata = {
             'rea1': {
                 'c1': {'H': 3, 'O': 2},
                 'c2': None,
-                'res': {'H': -2, 'O': 0}
+                'group_trans': {'H': -2, 'O': 0},
+                'mass_trans': 1
             }
         }
         combs = {
@@ -110,18 +122,22 @@ class TestCompoundGuesser(TestCase):
         res = guess_new_compounds(combs, cdata, rdata)
 
         self.assertTrue(len(res), 1)
-        self.assertEqual(res['(fooC) {rea1} (None)'], {'H': 1, 'O': 2})
+        self.assertEqual(
+            res['(fooC) {rea1} (None)']['groups'],
+            {'H': 1, 'O': 2})
+        self.assertEqual(res['(fooC) {rea1} (None)']['mass'], 3)
 
     def test_negative_group_number(self):
         cdata = {
-            'fooC': {'H': 1, 'O': 1},
-            'barC': {'H': 1, 'O': 1},
+            'fooC': {'groups': {'H': 1, 'O': 1}, 'mass': -4},
+            'barC': {'groups': {'H': 1, 'O': 1}, 'mass': -4},
         }
         rdata = {
             'rea1': {
                 'c1': {'H': 0, 'O': 0},
                 'c2': {'H': 0, 'O': 0},
-                'res': {'H': -4, 'O': -3}
+                'group_trans': {'H': -4, 'O': -3},
+                'mass_trans': 6
             }
         }
         combs = {
@@ -131,61 +147,62 @@ class TestCompoundGuesser(TestCase):
         res = guess_new_compounds(combs, cdata, rdata)
 
         self.assertTrue(len(res), 1)
-        self.assertEqual(res['(fooC) {rea1} (barC)'], {'H': -2, 'O': -1})
+        self.assertEqual(
+            res['(fooC) {rea1} (barC)']['groups'],
+            {'H': -2, 'O': -1})
+        self.assertEqual(res['(fooC) {rea1} (barC)']['mass'], -2)
 
 class TestFileInput(TestCase):
     def test_compound_reader(self):
-        data, mass = read_compounds_file('./tests/data/compounds.csv')
+        data = read_compounds_file('./tests/data/compounds.csv')
 
         self.assertEqual(len(data), 3)
+
         self.assertEqual(
-            data['foo'], {
+            data['foo']['groups'], {
                 '-H': 1,
                 '-O': 4
             })
         self.assertEqual(
-            data['bar'], {
+            data['bar']['groups'], {
                 '-H': 5,
                 '-O': 0
             })
         self.assertEqual(
-            data['baz'], {
+            data['baz']['groups'], {
                 '-H': 3,
                 '-O': 3
             })
 
-        self.assertEqual(len(mass), 3)
-        self.assertEqual(mass['foo'], 1.5)
-        self.assertEqual(mass['bar'], 1.7)
-        self.assertEqual(mass['baz'], 1.1)
+        self.assertEqual(data['foo']['mass'], 1.5)
+        self.assertEqual(data['bar']['mass'], 1.7)
+        self.assertEqual(data['baz']['mass'], 1.1)
 
     def test_reaction_reader(self):
-        data, mass = read_reactions_file('./tests/data/reactions.csv')
+        data = read_reactions_file('./tests/data/reactions.csv')
 
         self.assertEqual(len(data), 3)
         self.assertEqual(
             data['rea1'], {
                 'c1': {'-H': 3, '-O': 2},
                 'c2': {'-H': 4, '-O': 0},
-                'res': {'-H': -1, '-O': 2}
+                'group_trans': {'-H': -1, '-O': 2},
+                'mass_trans': -1.1
             })
         self.assertEqual(
             data['rea2'], {
                 'c1': {'-H': 0, '-O': 1},
                 'c2': {'-H': 1, '-O': 1},
-                'res': {'-H': 1, '-O': 0}
+                'group_trans': {'-H': 1, '-O': 0},
+                'mass_trans': 2.2
             })
         self.assertEqual(
             data['rea3'], {
                 'c1': {'-H': 2, '-O': 3},
                 'c2': None,
-                'res': {'-H': -2, '-O': -1}
+                'group_trans': {'-H': -2, '-O': -1},
+                'mass_trans': -3.3
             })
-
-        self.assertEqual(len(mass), 3)
-        self.assertEqual(mass['rea1'], -1.1)
-        self.assertEqual(mass['rea2'], 2.2)
-        self.assertEqual(mass['rea3'], -3.3)
 
 class IntegrationTest(TestCase):
     def setUp(self):
@@ -201,14 +218,17 @@ r3, 4, 4, 0, X,  ,  , 0, 0, 1,,3.3
 """)
 
     def test_interactions(self):
-        comps, cmass = read_compounds_file(self.compounds)
-        reacts, rmass = read_reactions_file(self.reactions)
+        comps = read_compounds_file(self.compounds)
+        reacts = read_reactions_file(self.reactions)
 
         # first iteration
         res = iterate_once(comps, reacts)
         self.assertEqual(len(res), 1)
         self.assertIn('(c1) {r1} (c2)', res)
-        self.assertEqual(res['(c1) {r1} (c2)'], {'-H': 4, '-O': 4, '-N': 0})
+        self.assertEqual(
+            res['(c1) {r1} (c2)']['groups'],
+            {'-H': 4, '-O': 4, '-N': 0})
+        self.assertEqual(res['(c1) {r1} (c2)']['mass'], 4.6)
 
         # second iteration
         comps.update(res)
@@ -219,10 +239,20 @@ r3, 4, 4, 0, X,  ,  , 0, 0, 1,,3.3
         self.assertIn('((c1) {r1} (c2)) {r2} (c1)', nres)
         self.assertIn('((c1) {r1} (c2)) {r3} (None)', nres)
         self.assertIn('((c1) {r1} (c2)) {r2} ((c1) {r1} (c2))', nres)
-        self.assertEqual(nres['(c1) {r1} (c2)'], {'-H': 4, '-O': 4, '-N': 0})
-        self.assertEqual(nres['((c1) {r1} (c2)) {r2} (c1)'], {'-H': 6, '-O': 6, '-N': 2})
-        self.assertEqual(nres['((c1) {r1} (c2)) {r3} (None)'], {'-H': 4, '-O': 4, '-N': 1})
-        self.assertEqual(nres['((c1) {r1} (c2)) {r2} ((c1) {r1} (c2))'], {'-N': -1, '-O': 8, '-H': 9})
+        self.assertEqual(
+            nres['(c1) {r1} (c2)']['groups'],
+            {'-H': 4, '-O': 4, '-N': 0})
+        self.assertEqual(
+            nres['((c1) {r1} (c2)) {r2} (c1)']['groups'],
+            {'-H': 6, '-O': 6, '-N': 2})
+        self.assertEqual(
+            nres['((c1) {r1} (c2)) {r3} (None)']['groups'],
+            {'-H': 4, '-O': 4, '-N': 1})
+        self.assertEqual(
+            nres['((c1) {r1} (c2)) {r2} ((c1) {r1} (c2))']['groups'],
+            {'-N': -1, '-O': 8, '-H': 9})
+        self.assertEqual(nres['(c1) {r1} (c2)']['mass'], 4.6)
+        self.assertAlmostEqual(nres['((c1) {r1} (c2)) {r2} (c1)']['mass'], 3.6)
 
 class TestNameParser(TestCase):
     def test_basic_name(self):
