@@ -105,13 +105,14 @@ def plot_zeros_vs_corr_diff(df):
     save_figure('images/network_space.pdf')
 
     # plot networks in detail
-    extr = df[df.abs_corr_diff > 0.8]
+    extr = df[df.abs_corr_diff > 0.4]
     print(extr)
 
-    mpl.style.use('default')
-    plot_individuals(
-        list(zip(extr.raw_res.tolist(), extr.enh_res.tolist())),
-        'images/extreme.pdf')
+    if not extr.empty:
+        mpl.style.use('default')
+        plot_individuals(
+            list(zip(extr.raw_res.tolist(), extr.enh_res.tolist())),
+            'images/extreme.pdf')
 
 def plot_neg_pos_corrs(df):
     """ Plot neg - pos corrs on x and pos - neg corrs on y axis
@@ -129,10 +130,11 @@ def plot_neg_pos_corrs(df):
     extr = df[(df.mean_negpos_corr > 0.6) & (df.mean_posneg_corr > 0.6)]
     print(extr)
 
-    mpl.style.use('default')
-    plot_individuals(
-        list(zip(extr.raw_res.tolist(), extr.enh_res.tolist())),
-        'images/extreme2.pdf')
+    if not extr.empty:
+        mpl.style.use('default')
+        plot_individuals(
+            list(zip(extr.raw_res.tolist(), extr.enh_res.tolist()))[:5],
+            'images/extreme2.pdf')
 
 def main(data):
     """ Analyse data
