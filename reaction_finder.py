@@ -574,6 +574,25 @@ def investigate_reactions(
     plotter.save_figure('images/rl_reaction_patterns.pdf', bbox_inches='tight')
     plt.close()
 
+def list_structure_formulas(
+    compounds_level0, intensities_level0,
+    reaction_data
+):
+    """ Investigate structural formulas of molecules
+    """
+    # generate data
+    comp_tmp = iterate_once(compounds_level0, reaction_data)
+
+    intensities_level1 = match_masses(comp_tmp)
+    compounds_level1 = {k: comp_tmp[k] for k in intensities_level1.keys()}
+
+    # print data
+    for name, data in compounds_level0.items():
+        print(name, data['atoms'])
+
+    for name, data in compounds_level1.items():
+        print(name, data['atoms'])
+
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
     """
@@ -588,6 +607,10 @@ def main(compound_fname, reaction_fname):
     print('Starting with {} compounds'.format(len(compounds_level0)))
 
     # investigate results
+    list_structure_formulas(
+        compounds_level0, intensities_level0,
+        reaction_data)
+
     investigate_reactions(
         compounds_level0, intensities_level0,
         reaction_data)
