@@ -201,6 +201,15 @@ def parse_atom_transformation(string):
 
     return data
 
+def gen_atom_string(atom_data):
+    """ Convert atom-dict into readable string
+    """
+    out = ''
+    for atom in ATOM_LIST:
+        if atom in atom_data and atom_data[atom] != 0:
+            out += '{}{}'.format(atom, atom_data[atom])
+    return out
+
 def match(cgroups, react_groups):
     """ Check if given compound could be reaction partner at given `pos`
     """
@@ -588,10 +597,10 @@ def list_structure_formulas(
 
     # print data
     for name, data in compounds_level0.items():
-        print(name, data['atoms'])
+        print(name, gen_atom_string(data['atoms']))
 
     for name, data in compounds_level1.items():
-        print(name, data['atoms'])
+        print(name, gen_atom_string(data['atoms']))
 
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
