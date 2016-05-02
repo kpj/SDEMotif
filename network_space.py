@@ -89,6 +89,14 @@ def check_neg_pos_corrs(row):
         'mean_posneg_corr': np.mean(pos_neg)
     })
 
+def check_disruption(row):
+    return pd.Series({
+        'raw_res': row.raw_res,
+        'enh_res': row.enh_res,
+        'non_trivial_disruption': 1 - np.mean(abs(row.enh_vals)),
+        'mean_disruption': np.mean(abs(row.raw_vals - row.enh_vals))
+    })
+
 def plot_zeros_vs_corr_diff(df):
     """ Plot number of zero correlations in original network against mean of absolute correlation differences
     """
@@ -136,6 +144,28 @@ def plot_neg_pos_corrs(df):
             list(zip(extr.raw_res.tolist(), extr.enh_res.tolist()))[:5],
             'images/extreme2.pdf')
 
+def plot_disruptiveness(df):
+    """ Compare disruption of correlations (mean difference) to trivial disruption (1 mean(corr. of 4node network))
+    """
+    df = df.apply(check_disruption, axis=1)
+
+    # generate overview
+    plt.figure()
+    sns.regplot(
+        x='non_trivial_disruption', y='mean_disruption', data=df,
+        fit_reg=False)
+    save_figure('images/network_space2.pdf')
+
+    # plot networks in detail
+    extr = df[(df.non_trivial_disruption >= 0.6) & (df.mean_disruption >= 0.3)]
+    print(extr)
+
+    if not extr.empty:
+        mpl.style.use('default')
+        plot_individuals(
+            list(zip(extr.raw_res.tolist(), extr.enh_res.tolist())),
+            'images/extreme2.pdf')
+
 def main(data):
     """ Analyse data
     """
@@ -144,8 +174,9 @@ def main(data):
         lambda row: bin_entries(extract_entries(row)),
         axis=1)
 
-    plot_neg_pos_corrs(df)
-    plot_zeros_vs_corr_diff(df)
+    #plot_neg_pos_corrs(df)
+    #plot_zeros_vs_corr_diff(df)
+    plot_disruptiveness(df)
 
 
 if __name__ == '__main__':
