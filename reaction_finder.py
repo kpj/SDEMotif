@@ -3,6 +3,7 @@ Find reactions via combinatoric investigations of data files
 """
 
 import csv
+import random
 import itertools
 import collections
 
@@ -438,7 +439,7 @@ def plot_all_correlations(comps, intensities, ax):
 
     return sel
 
-def plot_result(motifs):
+def plot_result(motifs, fname_app=''):
     """ Create result plot
     """
     mpl.style.use('default')
@@ -465,11 +466,45 @@ def plot_result(motifs):
         plotter.plot_system_evolution(
             sols, series_ax,
             xlabel='sample')
-        series_ax.set_title(c3)
+        series_ax.set_title('{}\n{}\n{}'.format(c1, c2, c3))
 
     plt.tight_layout()
-    plotter.save_figure('images/rl_motifs.pdf', bbox_inches='tight')
+    plotter.save_figure('images/rl_motifs{}.pdf'.format(fname_app), bbox_inches='tight')
     plt.close()
+
+def find_unrelated_compounds(all_compounds, num=5):
+    """ Deconstruct nested compounds
+    """
+    def deconstruct(name, _):
+        if name.startswith('('):
+            c1, _, c2 = parse_compound_name(name)
+            res1 = deconstruct(c1, None)
+            res2 = deconstruct(c2, None)
+
+            return [c1, c2] + res1 + res2
+        else:
+            return [name]
+
+    def check(p1, p2, p3):
+        p1_l = set(filter(lambda x: x != 'None', deconstruct(*p1)))
+        p2_l = set(filter(lambda x: x != 'None', deconstruct(*p2)))
+        p3_l = set(filter(lambda x: x != 'None', deconstruct(*p3)))
+
+        res = (p1_l & p2_l) | (p1_l & p3_l) | (p2_l & p3_l)
+        return len(res) == 0
+
+    out = []
+    while len(out) < num:
+        sel = random.sample(all_compounds, 3)
+        if check(*sel):
+            p1, p2, p3 = sel
+            out.append((
+                p1[0], p2[0], p3[0],
+                {**p1[1], **p2[1], **p3[1]}
+            ))
+
+    return out
+
 
 def find_small_motifs(
     compounds_level0, intensities_level0,
@@ -486,6 +521,7 @@ def find_small_motifs(
     print('Found {} new compounds'.format(len(compounds_level1)))
 
     # find 3 motif networks
+    all_compounds = []
     motifs = []
     used_compounds = set()
     done = False
@@ -509,6 +545,12 @@ def find_small_motifs(
                 # find actual 3 node motifs
                 for comp_level2, groups_level2 in compounds_level2.items():
                     c1_level2, _, c2_level2 = parse_compound_name(comp_level2)
+
+                    all_compounds.extend([
+                        (comp_level0, intensities_level0),
+                        (comp_level1, intensities_level1),
+                        (comp_level2, intensities_level2)
+                    ])
 
                     # connected motif check
                     if not ((comp_level0 == c1_level2 and comp_level1 == c2_level2) or (comp_level0 == c2_level2 and comp_level1 == c1_level2)):
@@ -538,8 +580,11 @@ def find_small_motifs(
                 if done: break
             if done: break
 
-    # plot stuff
+    ## plot stuff
+    # motifs
     plot_result(motifs)
+    # random compounds
+    plot_result(find_unrelated_compounds(all_compounds), fname_app='_random')
 
 def investigate_reactions(
     compounds_level0, intensities_level0,
