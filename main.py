@@ -34,9 +34,9 @@ def analyze_system(
 
     ss_data = []
     for _ in range(repetition_num):
-        sde_sol = solve_system(system)
+        sde_sol = solve_system(system, tmax=100)
         if use_ode_sde_diff:
-            ode_sol = solve_system(ode_system)
+            ode_sol = solve_system(ode_system, tmax=100)
 
         if use_ode_sde_diff:
             sol = ode_sol - sde_sol
