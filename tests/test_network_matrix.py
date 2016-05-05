@@ -5,6 +5,7 @@ import numpy.testing as npt
 
 from system import SDESystem
 from network_matrix import *
+from nm_data_generator import *
 
 
 class TestFunctions(TestCase):

@@ -3,9 +3,7 @@ Investigate 3+1 node network with varied parameters
 """
 
 import sys
-import copy
 import pickle
-import itertools
 
 import numpy as np
 import pandas as pd
@@ -16,100 +14,9 @@ import seaborn as sns
 import matplotlib as mpl
 import matplotlib.pylab as plt
 
-from tqdm import tqdm
-
-from setup import generate_basic_system
-from main import analyze_system
 from utils import extract_sig_entries
 from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evolution
 
-
-def add_node_to_system(syst):
-    """ Add additional node to given system in all possible ways
-    """
-    tmp = copy.deepcopy(syst)
-
-    # adjust vectors
-    tmp.fluctuation_vector = np.append(tmp.fluctuation_vector, 0)
-    tmp.external_influence = np.append(tmp.external_influence, 0)
-    tmp.initial_state = np.append(tmp.initial_state, 1)
-
-    # generate jacobians
-    dim = tmp.jacobian.shape[0]
-
-    horz_stacks = list(itertools.product([0, 1], repeat=dim))
-    vert_stacks = list(itertools.product([0, 1], repeat=dim))
-
-    systems = []
-    for hs in horz_stacks:
-        for vs in vert_stacks:
-            cur = copy.deepcopy(tmp)
-            vs = np.append(vs, -1) # force self-inhibition
-
-            cur.jacobian = np.hstack(
-                (cur.jacobian, np.array(hs).reshape(-1, 1)))
-            cur.jacobian = np.vstack(
-                (cur.jacobian, vs))
-
-            systems.append(cur)
-
-    # sort by network density
-    def get_density(syst):
-        max_edge_num = syst.jacobian.shape[0] * (syst.jacobian.shape[0]+1)
-        return np.count_nonzero(syst.jacobian) / max_edge_num
-    systems = sorted(systems, key=get_density)
-
-    return systems
-
-def handle_systems(raw, enhanced):
-    """ Simulate given systems
-    """
-    # generate control data
-    raw_res = analyze_system(raw, filter_mask=[3])
-    if raw_res[1] is None:
-        return None
-
-    row = []
-    for enh in enhanced:
-        enh_res = analyze_system(enh, filter_mask=[3])
-        row.append(enh_res)
-
-    return [raw_res, row]
-
-def generate_data(fname, paramter_shift=10):
-    """ Generate and cache data of the form
-        {
-            'data': [
-                [raw_res, [enh_res, ...]], # some parameter configuratoin
-                ...
-            ] # rows in output plot
-        }
-    """
-    param_range = np.linspace(0.1, 5, paramter_shift)
-
-    # generate data
-    rows = []
-    for k_m in tqdm(param_range):
-        for k_23 in tqdm(param_range, nested=True):
-            syst = generate_basic_system(k_m=k_m, k_23=k_23)
-            more = add_node_to_system(syst)
-
-            res = handle_systems(syst, more)
-            if not res is None:
-                rows.append(res)
-
-    # order rows by absolute jacobian mean
-    def get_parameter_sort(row):
-        raw_res, _ = row
-        raw, _, _ = raw_res
-        return np.mean(abs(raw.jacobian))
-    rows = sorted(rows, key=get_parameter_sort)
-
-    # store matrix
-    with open(fname, 'wb') as fd:
-        pickle.dump({
-            'data': rows
-        }, fd)
 
 def sort_columns(data, sort_data, sort_functions):
     """ Sort columns of `data` by multiple sort functions applied to `sort_data` in order
@@ -506,10 +413,7 @@ def handle_input_spec(inp, spec):
 def main():
     """ Create matrix for various data functions
     """
-    if len(sys.argv) == 1:
-        fname = 'results/matrix_data.dat'
-        generate_data(fname)
-    elif len(sys.argv) == 2:
+    if len(sys.argv) == 2:
         fname = sys.argv[1]
         with open(fname, 'rb') as fd:
             inp = pickle.load(fd)
