@@ -120,7 +120,9 @@ def plot_disruptiveness(df):
     """ Compare disruption of correlations (mean difference) to trivial disruption (1 mean(corr. of 4node network))
     """
     df = df.apply(check_disruption, axis=1)
-    df = df[df.sign_diff != 0]
+
+    rm_id = df[df.sign_diff == 0].id
+    df = df[~df.id.isin(rm_id)]
 
     # generate overview
     plt.figure()
