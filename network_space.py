@@ -23,27 +23,28 @@ def transform(data):
     count = 0
     for (raw_res, raw_res_diff), enh_res_vec in data:
         for (enh_res, enh_res_diff) in enh_res_vec:
-            tmp.append({
-                'type': 'ODE',
-                'id': count,
-                'raw_res': raw_res,
-                'enh_res': enh_res,
-                'raw_mat': raw_res[1],
-                'enh_mat': enh_res[1]
-            })
-            tmp.append({
-                'type': 'ODE-SDE',
-                'id': count,
-                'raw_res': raw_res_diff,
-                'enh_res': enh_res_diff,
-                'raw_mat': raw_res_diff[1],
-                'enh_mat': enh_res_diff[1]
-            })
+            if all(not r is None for r in [raw_res[1], enh_res[1], raw_res_diff[1], enh_res_diff[1]]):
+                tmp.append({
+                    'type': 'ODE',
+                    'id': count,
+                    'raw_res': raw_res,
+                    'enh_res': enh_res,
+                    'raw_mat': raw_res[1],
+                    'enh_mat': enh_res[1]
+                })
+                tmp.append({
+                    'type': 'ODE-SDE',
+                    'id': count,
+                    'raw_res': raw_res_diff,
+                    'enh_res': enh_res_diff,
+                    'raw_mat': raw_res_diff[1],
+                    'enh_mat': enh_res_diff[1]
+                })
 
             count += 1
 
     df = pd.DataFrame.from_dict(tmp)
-    return df[~df.isnull().any(axis=1)]
+    return df
 
 def extract_entries(row):
     """ Extract needed amount of entries from each matrix
@@ -105,7 +106,7 @@ def plot_extract(df, bak_df, fname):
 
         # compare to other solution
         other = bak_df[(bak_df.id == row.id) & (bak_df.type != row.type)]
-        assert other.shape[0] == 1
+        assert other.shape[0] == 1, (row.id, other.shape)
         other = other.iloc[0]
         raw, enh = other.raw_res, other.enh_res
 
@@ -130,14 +131,16 @@ def plot_disruptiveness(df):
         x='sign_diff', y='mean_difference', data=df,
         col='type', fit_reg=False)
     save_figure('images/network_space.pdf')
+    print('Plotted space overview')
 
     # plot networks in detail
-    sub_df = df[(df.sign_diff >= 0) & (df.mean_difference >= .3)]
-    #print(sub_df)
+    sub_df = df[(df.sign_diff >= 1) & (df.mean_difference >= .6) & (df.type == 'ODE')]
+    print(' > Selection:', sub_df.shape)
 
     if not sub_df.empty:
         mpl.style.use('default')
         plot_extract(sub_df, df, 'images/extreme.pdf')
+        print('Plotted details')
 
 def main(data):
     """ Analyse data
