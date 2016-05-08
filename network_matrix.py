@@ -14,9 +14,13 @@ import seaborn as sns
 import matplotlib as mpl
 import matplotlib.pylab as plt
 
+from tqdm import tqdm
+
 from utils import extract_sig_entries
 from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evolution
 
+
+THRESHOLD = 0.2
 
 def sort_columns(data, sort_data, sort_functions):
     """ Sort columns of `data` by multiple sort functions applied to `sort_data` in order
@@ -313,13 +317,13 @@ def plot_individuals(examples, fname, val_func=None):
 #####################
 # Extractor functions
 # value functions
-def annihilate_low_correlations(vals, threshold=0.2):
+def annihilate_low_correlations(vals, threshold=THRESHOLD):
     """ Take care of small fluctuations around 0
     """
     vals[abs(vals) < threshold] = 0
     return vals
 
-def bin_correlations(vals, low_thres=-0.2, high_thres=0.2):
+def bin_correlations(vals, low_thres=-THRESHOLD, high_thres=THRESHOLD):
     """ Bin `vals` into three categories
     """
     tmp = np.zeros(vals.shape)
@@ -422,6 +426,35 @@ def handle_input_spec(inp, spec):
     data, xticks, yticks = preprocess_data(inp['data'], vfunc, [sfunc])
     print(data[slc_row, slc_col])
 
+def threshold_influence(inp):
+    """ Investigate influence of threshold
+    """
+    global THRESHOLD
+
+    threshold_list = np.logspace(-4, 1, 100)
+
+    # produce data
+    pairs = []
+    for thres in tqdm(threshold_list):
+        THRESHOLD = thres
+
+        data = []
+        for raw, enh_res in inp['data']: # for each row
+            data.append([handle_enh_entry(raw, enh, get_sign_changes) for enh in enh_res])
+        data = np.array(data)
+
+        mat_res = np.sum(data)
+        pairs.append((thres, mat_res))
+
+    # plot result
+    plt.figure()
+    plt.scatter(*zip(*pairs))
+
+    plt.title('Influence of binning threshold on number of sign changes')
+    plt.xlabel('binning threshold')
+    plt.ylabel('number of sign changes')
+
+    save_figure('images/threshold_influence.pdf', bbox_inches='tight')
 
 def main():
     """ Create matrix for various data functions
@@ -430,7 +463,8 @@ def main():
         fname = sys.argv[1]
         with open(fname, 'rb') as fd:
             inp = pickle.load(fd)
-        handle_plots(inp)
+        threshold_influence(inp)
+        #handle_plots(inp)
     elif len(sys.argv) == 3:
         fname = sys.argv[1]
         with open(fname, 'rb') as fd:
