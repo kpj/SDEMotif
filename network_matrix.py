@@ -431,7 +431,7 @@ def threshold_influence(inp):
     """
     global THRESHOLD
 
-    threshold_list = np.logspace(-4, 1, 100)
+    threshold_list = np.logspace(-4, 0, 100)
 
     # produce data
     pairs = []
@@ -443,12 +443,14 @@ def threshold_influence(inp):
             data.append([handle_enh_entry(raw, enh, get_sign_changes) for enh in enh_res])
         data = np.array(data)
 
-        mat_res = np.sum(data)
+        mat_res = np.sum(data[data!=-1])
         pairs.append((thres, mat_res))
 
     # plot result
     plt.figure()
-    plt.scatter(*zip(*pairs))
+
+    plt.plot(*zip(*pairs), 'o')
+    plt.xscale('log')
 
     plt.title('Influence of binning threshold on number of sign changes')
     plt.xlabel('binning threshold')
