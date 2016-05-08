@@ -26,17 +26,20 @@ def sort_columns(data, sort_data, sort_functions):
     inds = range(len(tmp))
     for sfunc in sort_functions[::-1]:
         tmp = [x for y, x in sorted(
-            zip(sort_tmp, tmp), key=lambda pair: sfunc(pair[0]))]
+            zip(sort_tmp, tmp), key=lambda pair: sfunc(pair[0][0]))]
         inds = [x for y, x in sorted(
-            zip(sort_tmp, inds), key=lambda pair: sfunc(pair[0]))]
-        sort_tmp = list(sorted(sort_tmp, key=sfunc))
+            zip(sort_tmp, inds), key=lambda pair: sfunc(pair[0][0]))]
+        sort_tmp = list(sorted(sort_tmp, key=lambda pair: sfunc(pair[0])))
     return np.transpose(tmp), inds
 
 def handle_enh_entry(raw_res, enh_res, val_func):
     """ Compare given networks with given function
     """
-    raw, raw_mat, raw_sol = raw_res
-    enh, enh_mat, enh_sol = enh_res
+    raw_ode, raw_odesde = raw_res
+    enh_ode, enh_odesde = enh_res
+
+    raw, raw_mat, raw_sol = raw_odesde
+    enh, enh_mat, enh_sol = enh_odesde
 
     if raw_mat is None or enh_mat is None:
         return -1
@@ -75,8 +78,8 @@ def preprocess_data(data, val_func, sort_functionality):
             'Invalid sort-method ({})'.format(sort_functionality))
 
     # generate axes labels
-    xtick_labels = np.array([xtick_func(n) for n in char_netws])[repos]
-    ytick_labels = [round(np.mean(abs(r[0].jacobian)), 2) for r, e in data]
+    xtick_labels = np.array([xtick_func(n[0]) for n in char_netws])[repos]
+    ytick_labels = [round(np.mean(abs(r[0][0].jacobian)), 2) for r, e in data]
 
     return plot_data, xtick_labels, ytick_labels
 
@@ -205,7 +208,9 @@ def select_column_by_jacobian(data, jac):
     """ Select column by approximated jacobian
     """
     ind = None
-    for i, (syst, mat, sol) in enumerate(data[0][1]):
+    for i, pair in enumerate(data[0][1]):
+        syst, _, _ = pair[0]
+
         nz = np.nonzero(syst.jacobian)
         comp_jac = np.zeros_like(syst.jacobian, dtype=int)
         comp_jac[nz] = 1
@@ -261,7 +266,15 @@ def plot_individuals(examples, fname, val_func=None):
     counter = 0
     for i, net in enumerate(examples):
         if len(net) == 2: # pair of networks
-            raw, enh = net
+            raw_p, enh_p = net
+
+            # -.- ...
+            if len(raw_p) == 2:
+                _, raw = raw_p
+                _, enh = enh_p
+            else:
+                raw = raw_p
+                enh = enh_p
 
             plot_system(raw[0], plt.subplot(gs[i, 0]))
             plot_corr_mat(raw[1], plt.subplot(gs[i, 1]))
@@ -273,7 +286,7 @@ def plot_individuals(examples, fname, val_func=None):
             mark_ax = plt.subplot(gs[i, 4])
             if not val_func is None:
                 mark_ax.imshow(
-                    [[handle_enh_entry(raw, enh, val_func)]],
+                    [[handle_enh_entry(raw_p, enh_p, val_func)]],
                     cmap=get_matrix_cmap(), vmin=0, vmax=3)
                 mark_ax.axis('off')
             else:
