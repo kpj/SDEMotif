@@ -58,7 +58,7 @@ def extract_entries(row):
         'enh_vals': extract_sig_entries(row.enh_mat[:3,:3])
     })
 
-def bin_entries(row, threshold=0.2):
+def bin_entries(row, threshold=.05):
     """ Bin entries
     """
     def rm(vals):
@@ -75,7 +75,10 @@ def bin_entries(row, threshold=0.2):
     })
 
 def check_disruption(row):
-    sdiff = (np.sign(row.raw_vals) - np.sign(row.enh_vals)) * abs(row.raw_vals - row.enh_vals)
+    sdiff = \
+        abs(np.sign(row.raw_vals)) * abs(np.sign(row.enh_vals)) * \
+        (np.sign(row.raw_vals) - np.sign(row.enh_vals)) * \
+        abs(row.raw_vals - row.enh_vals)
 
     return pd.Series({
         'type': row.type,
@@ -122,8 +125,8 @@ def plot_disruptiveness(df):
     """
     df = df.apply(check_disruption, axis=1)
 
-    rm_id = df[df.sign_diff == 0].id
-    df = df[~df.id.isin(rm_id)]
+    #rm_id = df[df.sign_diff == 0].id
+    #df = df[~df.id.isin(rm_id)]
 
     # generate overview
     plt.figure()
@@ -134,8 +137,8 @@ def plot_disruptiveness(df):
     print('Plotted space overview')
 
     # plot networks in detail
-    sub_df = df[(df.sign_diff >= 1) & (df.mean_difference >= .6) & (df.type == 'ODE')]
-    print(' > Selection:', sub_df.shape)
+    sub_df = df[(df.sign_diff >= .3) & (df.mean_difference >= .3) & (df.type == 'ODE-SDE')]
+    print(' > Selection:', sub_df.shape, sub_df.id.tolist())
 
     if not sub_df.empty:
         mpl.style.use('default')
@@ -147,10 +150,9 @@ def main(data):
     """
     df = transform(data)
     print('Transformed data...')
-    #df = df.apply(
-    #    lambda row: bin_entries(extract_entries(row)),
-    #    axis=1)
-    df = df.apply(extract_entries, axis=1)
+    df = df.apply(
+        lambda row: bin_entries(extract_entries(row)),
+        axis=1)
     print('Extracted entries...')
 
     plot_disruptiveness(df)
