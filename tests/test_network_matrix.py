@@ -38,23 +38,37 @@ class TestFunctions(TestCase):
         syst2.jacobian = np.array([[1,0],[0,1]])
 
         test_data = np.array([
-            [(self.syst, np.array([
+            [((self.syst, np.array([
                 [1,2,3],
                 [2,3,1],
                 [3,1,2],
-            ]), None), [
-                (syst2, np.array([
+            ]), None), (self.syst, np.array([
+                [1,2,3],
+                [2,3,1],
+                [3,1,2],
+            ]), None)), [
+                ((syst2, np.array([
                     [1,2,5,4],
                     [2,3,4,1],
                     [5,4,1,2],
                     [4,1,2,3]
-                ]), None),
-                (syst1, np.array([
+                ]), None), (syst2, np.array([
+                    [1,2,5,4],
+                    [2,3,4,1],
+                    [5,4,1,2],
+                    [4,1,2,3]
+                ]), None)),
+                ((syst1, np.array([
                     [1,2,3,4],
                     [2,3,4,1],
                     [3,4,1,2],
                     [4,1,2,3]
-                ]), None),
+                ]), None), (syst1, np.array([
+                    [1,2,3,4],
+                    [2,3,4,1],
+                    [3,4,1,2],
+                    [4,1,2,3]
+                ]), None)),
             ]]
         ])
 
@@ -105,7 +119,7 @@ class TestColumnSorter(TestCase):
             [-2, 3, 1, -3],
             [1, 2, 3, 4],
         ])
-        sort_data = np.array([-2, 3, 1, -3])
+        sort_data = np.array([[-2], [3], [1], [-3]])
 
         # sorting functions
         def sort_abs(val):
