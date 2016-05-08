@@ -317,15 +317,23 @@ def plot_individuals(examples, fname, val_func=None):
 #####################
 # Extractor functions
 # value functions
-def annihilate_low_correlations(vals, threshold=THRESHOLD):
+def annihilate_low_correlations(vals, threshold=None):
     """ Take care of small fluctuations around 0
     """
+    if threshold is None:
+        threshold = THRESHOLD
+
     vals[abs(vals) < threshold] = 0
     return vals
 
-def bin_correlations(vals, low_thres=-THRESHOLD, high_thres=THRESHOLD):
+def bin_correlations(vals, low_thres=None, high_thres=None):
     """ Bin `vals` into three categories
     """
+    if low_thres is None:
+        low_thres = -THRESHOLD
+    if high_thres is None:
+        high_thres = THRESHOLD
+
     tmp = np.zeros(vals.shape)
     tmp[vals < low_thres] = -1
     tmp[vals > high_thres] = 1
@@ -443,7 +451,7 @@ def threshold_influence(inp):
             data.append([handle_enh_entry(raw, enh, get_sign_changes) for enh in enh_res])
         data = np.array(data)
 
-        mat_res = np.sum(data[data!=-1])
+        mat_res = np.sum(data[data>0])
         pairs.append((thres, mat_res))
 
     # plot result
@@ -466,7 +474,7 @@ def main():
         with open(fname, 'rb') as fd:
             inp = pickle.load(fd)
         threshold_influence(inp)
-        #handle_plots(inp)
+        handle_plots(inp)
     elif len(sys.argv) == 3:
         fname = sys.argv[1]
         with open(fname, 'rb') as fd:
