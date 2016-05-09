@@ -434,7 +434,7 @@ def handle_input_spec(inp, spec):
     data, xticks, yticks = preprocess_data(inp['data'], vfunc, [sfunc])
     print(data[slc_row, slc_col])
 
-def threshold_influence(inp):
+def threshold_influence(inp, value_func=get_sign_changes):
     """ Investigate influence of threshold
     """
     global THRESHOLD
@@ -448,23 +448,30 @@ def threshold_influence(inp):
 
         data = []
         for raw, enh_res in inp['data']: # for each row
-            data.append([handle_enh_entry(raw, enh, get_sign_changes) for enh in enh_res])
+            data.append([handle_enh_entry(raw, enh, value_func) for enh in enh_res])
         data = np.array(data)
 
         mat_res = np.sum(data[data>0])
         pairs.append((thres, mat_res))
 
     # plot result
+    value_func_name = value_func.__name__[4:]
+
     plt.figure()
 
-    plt.plot(*zip(*pairs), 'o')
+    nz_vec = [(t, m) for t,m in pairs if m>0]
+    z_vec = [(t, m) for t,m in pairs if m<=0]
+
+    plt.plot(*zip(*nz_vec), 'o')
+    plt.plot(*zip(*z_vec), 'o', color='red')
+
     plt.xscale('log')
 
-    plt.title('Influence of binning threshold on number of sign changes')
+    plt.title('Influence of binning threshold on number of {}'.format(value_func_name))
     plt.xlabel('binning threshold')
-    plt.ylabel('number of sign changes')
+    plt.ylabel('number of {}'.format(value_func_name))
 
-    save_figure('images/threshold_influence.pdf', bbox_inches='tight')
+    save_figure('images/threshold_influence_{}.pdf'.format(value_func_name), bbox_inches='tight')
 
 def main():
     """ Create matrix for various data functions
@@ -473,7 +480,10 @@ def main():
         fname = sys.argv[1]
         with open(fname, 'rb') as fd:
             inp = pickle.load(fd)
+
         threshold_influence(inp)
+        threshold_influence(inp, value_func=get_rank_changes)
+
         handle_plots(inp)
     elif len(sys.argv) == 3:
         fname = sys.argv[1]
