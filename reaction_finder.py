@@ -2,7 +2,9 @@
 Find reactions via combinatoric investigations of data files
 """
 
+import os
 import csv
+import pickle
 import random
 import itertools
 import collections
@@ -18,6 +20,7 @@ import seaborn as sns
 from tqdm import tqdm
 
 import plotter
+import utils
 
 
 ATOM_LIST = 'CHONS'
@@ -427,9 +430,10 @@ def plot_all_correlations(comps, intensities, ax):
             tmp[c2][c2_idx].append(corrs[(c1_idx, c2_idx)])
 
             # plot histogram
-            plotter.plot_histogram(
-                list(corrs.values()), ax,
-                alpha=0.5, facecolor=col_list.pop())
+            if not ax is None:
+                plotter.plot_histogram(
+                    list(corrs.values()), ax,
+                    alpha=0.5, facecolor=col_list.pop())
 
     # choose final selection
     sel = {}
@@ -439,17 +443,23 @@ def plot_all_correlations(comps, intensities, ax):
 
     return sel
 
-def plot_result(motifs, fname_app=''):
+def plot_result(motifs, fname_app='', sub_num=10):
     """ Create result plot
     """
     mpl.style.use('default')
+    sub_num = min(sub_num, len(motifs))
+    print(' > Plotting results ({})'.format(fname_app[1:]))
 
-    plt.figure(figsize=(30, 4 * len(motifs)))
-    gs = mpl.gridspec.GridSpec(len(motifs), 3, width_ratios=[1, 2, 1])
+    # overview plots
+    plt.figure(figsize=(30, 4 * sub_num))
+    gs = mpl.gridspec.GridSpec(sub_num, 3, width_ratios=[1, 2, 1])
 
-    for i, (c1, c2, c3, intensities) in enumerate(motifs):
+    corrs = []
+    for i, (c1, c2, c3, intensities) in tqdm(enumerate(motifs), total=len(motifs)):
         # plot all possible correlations and select optimal one
-        sel = plot_all_correlations([c1, c2, c3], intensities, plt.subplot(gs[i, 2]))
+        sel = plot_all_correlations(
+            [c1, c2, c3], intensities,
+            plt.subplot(gs[i, 2]) if i < sub_num else None)
 
         # get intensities
         sols = []
@@ -458,6 +468,10 @@ def plot_result(motifs, fname_app=''):
 
         # compute correlation matrix
         corr_mat = get_correlation_matrix(sols)
+        corrs.extend(utils.extract_sig_entries(corr_mat))
+
+        if i >= sub_num:
+            continue
 
         # plot rest
         plotter.plot_corr_mat(corr_mat, plt.subplot(gs[i, 0]))
@@ -470,9 +484,16 @@ def plot_result(motifs, fname_app=''):
 
     plt.tight_layout()
     plotter.save_figure('images/rl_motifs{}.pdf'.format(fname_app), bbox_inches='tight')
-    plt.close()
 
-def find_unrelated_compounds(all_compounds, num=5):
+    # correlation histogram
+    plt.figure()
+
+    plotter.plot_histogram(corrs, plt.gca())
+
+    plt.tight_layout()
+    plotter.save_figure('images/rl_corr_hist{}.pdf'.format(fname_app), bbox_inches='tight')
+
+def find_unrelated_compounds(all_compounds, num=1e4):
     """ Deconstruct nested compounds
     """
     def deconstruct(name, _):
@@ -493,9 +514,13 @@ def find_unrelated_compounds(all_compounds, num=5):
         res = (p1_l & p2_l) | (p1_l & p3_l) | (p2_l & p3_l)
         return len(res) == 0
 
+    iters = itertools.permutations(all_compounds, 3)
+    iter_len = np.math.factorial(len(all_compounds))
+
+    print(' > Finding unrelated compounds')
+
     out = []
-    while len(out) < num:
-        sel = random.sample(all_compounds, 3)
+    for sel in tqdm(iters, total=min(num, iter_len)):
         if check(*sel):
             p1, p2, p3 = sel
             out.append((
@@ -503,33 +528,33 @@ def find_unrelated_compounds(all_compounds, num=5):
                 {**p1[1], **p2[1], **p3[1]}
             ))
 
-    return out
+        if len(out) >= num:
+            break
 
+    return out
 
 def find_small_motifs(
     compounds_level0, intensities_level0,
     reaction_data,
-    num=10
+    fname='results/small_motif_cache.dat'
 ):
     """ Look for 3 node motifs
     """
-    comp_tmp = iterate_once(compounds_level0, reaction_data)
+    if not os.path.isfile(fname):
+        comp_tmp = iterate_once(compounds_level0, reaction_data)
 
-    intensities_level1 = match_masses(comp_tmp)
-    compounds_level1 = {k: comp_tmp[k] for k in intensities_level1.keys()}
+        intensities_level1 = match_masses(comp_tmp)
+        compounds_level1 = {k: comp_tmp[k] for k in intensities_level1.keys()}
 
-    print('Found {} new compounds'.format(len(compounds_level1)))
+        print('Found {} new compounds'.format(len(compounds_level1)))
 
-    # find 3 motif networks
-    all_compounds = []
-    motifs = []
-    used_compounds = set()
-    done = False
-    with tqdm(total=num) as pbar:
-        for comp_level0, groups_level0 in compounds_level0.items():
-            for comp_level1, groups_level1 in compounds_level1.items():
+        # find 3 motif networks
+        all_compounds = []
+        motifs = []
+        used_compounds = set()
+        for comp_level0, groups_level0 in tqdm(compounds_level0.items()):
+            for comp_level1, groups_level1 in tqdm(compounds_level1.items()):
                 c1_level1, _, c2_level1 = parse_compound_name(comp_level1)
-                if not comp_level0 in [c1_level1, c2_level1]: continue
 
                 # combine old with new components
                 comp_tmp = iterate_once(
@@ -543,7 +568,7 @@ def find_small_motifs(
                 compounds_level2 = {k: comp_tmp[k] for k in intensities_level2.keys()}
 
                 # find actual 3 node motifs
-                for comp_level2, groups_level2 in compounds_level2.items():
+                for comp_level2, groups_level2 in tqdm(compounds_level2.items()):
                     c1_level2, _, c2_level2 = parse_compound_name(comp_level2)
 
                     all_compounds.extend([
@@ -553,6 +578,8 @@ def find_small_motifs(
                     ])
 
                     # connected motif check
+                    if not comp_level0 in [c1_level1, c2_level1]:
+                        continue
                     if not ((comp_level0 == c1_level2 and comp_level1 == c2_level2) or (comp_level0 == c2_level2 and comp_level1 == c1_level2)):
                         continue
 
@@ -572,19 +599,34 @@ def find_small_motifs(
 
                     used_compounds.update([comp_level0, comp_level1, comp_level2])
 
-                    pbar.update()
-                    if len(motifs) >= num:
-                        done = True
+            # cache results
+            data = {
+                'motifs': motifs,
+                'all_compounds': all_compounds
+            }
 
-                    if done: break
-                if done: break
-            if done: break
+            with open(fname, 'wb') as fd:
+                pickle.dump(data, fd)
+    else:
+        print('Using cached data ({})'.format(fname))
+        with open(fname, 'rb') as fd:
+            data = pickle.load(fd)
+
+    print('Overview')
+    print(' > Total #compounds:', len(data['all_compounds']))
+    print(' > #motifs:', len(data['motifs']))
 
     ## plot stuff
-    # motifs
-    plot_result(motifs)
+    print('Plotting')
+
     # random compounds
-    plot_result(find_unrelated_compounds(all_compounds), fname_app='_random')
+    plot_result(
+        find_unrelated_compounds(data['all_compounds']),
+        fname_app='_random')
+    # motifs
+    plot_result(
+        data['motifs'],
+        fname_app='_connected')
 
 def investigate_reactions(
     compounds_level0, intensities_level0,
