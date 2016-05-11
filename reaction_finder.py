@@ -5,7 +5,6 @@ Find reactions via combinatoric investigations of data files
 import os
 import csv
 import pickle
-import random
 import itertools
 import collections
 
@@ -441,7 +440,7 @@ def plot_all_correlations(comps, intensities, ax):
         choice = max(maps.keys(), key=lambda k: sum(maps[k]))
         sel[c] = choice
 
-    return sel
+    return sel, corrs.values()
 
 def plot_result(motifs, fname_app='', sub_num=10):
     """ Create result plot
@@ -457,7 +456,7 @@ def plot_result(motifs, fname_app='', sub_num=10):
     corrs = []
     for i, (c1, c2, c3, intensities) in tqdm(enumerate(motifs), total=len(motifs)):
         # plot all possible correlations and select optimal one
-        sel = plot_all_correlations(
+        sel, all_corrs = plot_all_correlations(
             [c1, c2, c3], intensities,
             plt.subplot(gs[i, 2]) if i < sub_num else None)
 
@@ -468,7 +467,7 @@ def plot_result(motifs, fname_app='', sub_num=10):
 
         # compute correlation matrix
         corr_mat = get_correlation_matrix(sols)
-        corrs.extend(utils.extract_sig_entries(corr_mat))
+        corrs.extend(all_corrs)
 
         if i >= sub_num:
             continue
