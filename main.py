@@ -22,7 +22,8 @@ from plotter import plot_system_evolution
 def analyze_system(
     system, repetition_num=100,
     filter_trivial_ss=True, filter_mask=None,
-    plot_hist=False, use_ode_sde_diff=True
+    plot_hist=False, save_stdev=False,
+    use_ode_sde_diff=True
 ):
     """ Generate steady states for given system.
         `filter_mask` is a list of nodes to be excluded from filtering.
@@ -54,7 +55,7 @@ def analyze_system(
         else:
             return system, None, sol
 
-    corr_mat = compute_correlation_matrix(np.array(ss_data), plot_hist)
+    corr_mat = compute_correlation_matrix(np.array(ss_data), plot_hist, save_stdev)
     return system, corr_mat, sol
 
 def cluster_data(data):

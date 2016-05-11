@@ -27,7 +27,7 @@ def extract(i, j, data):
     """
     return data[:,i], data[:,j]
 
-def compute_correlation_matrix(data, plot_hist=False):
+def compute_correlation_matrix(data, plot_hist=False, save_stdev=False):
     """ Compute correlation matrix of given data points
     """
     dim = data.shape[2]
@@ -62,6 +62,10 @@ def compute_correlation_matrix(data, plot_hist=False):
         plt.tight_layout()
         plt.savefig('images/simulated_corrs_hist.pdf')
         plt.close()
+
+    if save_stdev:
+        std = np.std(mats, axis=0)
+        np.save('results/correlation_stdev', std)
 
     res_mat = np.mean(mats, axis=0)
     return res_mat

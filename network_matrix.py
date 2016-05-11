@@ -2,6 +2,7 @@
 Investigate 3+1 node network with varied parameters
 """
 
+import os
 import sys
 import pickle
 
@@ -18,6 +19,8 @@ from tqdm import tqdm
 
 from utils import extract_sig_entries
 from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evolution
+from main import analyze_system
+from setup import generate_basic_system
 
 
 THRESHOLD = 0.2
@@ -39,8 +42,8 @@ def sort_columns(data, sort_data, sort_functions):
 def handle_enh_entry(raw_res, enh_res, val_func):
     """ Compare given networks with given function
     """
-    raw_ode, raw_odesde = raw_res
-    enh_ode, enh_odesde = enh_res
+    raw_sde, raw_odesde = raw_res
+    enh_sde, enh_odesde = enh_res
 
     raw, raw_mat, raw_sol = raw_odesde
     enh, enh_mat, enh_sol = enh_odesde
@@ -454,6 +457,14 @@ def threshold_influence(inp, value_func=get_sign_changes):
         mat_res = np.sum(data[data>0])
         pairs.append((thres, mat_res))
 
+    # get threshold
+    fname = 'results/correlation_stdev.npy'
+    if not os.path.isfile(fname):
+        syst = generate_basic_system()
+        analyze_system(syst, save_stdev=True)
+    std_entries = extract_sig_entries(np.load(fname))
+    stdev = np.mean(std_entries)
+
     # plot result
     value_func_name = value_func.__name__[4:]
 
@@ -465,8 +476,15 @@ def threshold_influence(inp, value_func=get_sign_changes):
     plt.plot(*zip(*nz_vec), 'o')
     plt.plot(*zip(*z_vec), 'o', color='red')
 
-    plt.xscale('log')
+    plt.axvspan(
+        xmin=1e-6, xmax=stdev,
+        alpha=0.1, color='blue')
+    plt.annotate('correlation stdev',
+        xy=(stdev, 200), xycoords='data',
+        xytext=(50, 20), textcoords='offset points',
+        arrowprops=dict(arrowstyle='->'))
 
+    plt.xscale('log')
     plt.title('Influence of binning threshold on number of {}'.format(value_func_name))
     plt.xlabel('binning threshold')
     plt.ylabel('number of {}'.format(value_func_name))
@@ -482,9 +500,9 @@ def main():
             inp = pickle.load(fd)
 
         threshold_influence(inp)
-        threshold_influence(inp, value_func=get_rank_changes)
+        #threshold_influence(inp, value_func=get_rank_changes)
 
-        handle_plots(inp)
+        #handle_plots(inp)
     elif len(sys.argv) == 3:
         fname = sys.argv[1]
         with open(fname, 'rb') as fd:
