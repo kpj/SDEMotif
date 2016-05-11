@@ -49,16 +49,20 @@ def handle_systems(raw, enhanced):
     """ Simulate given systems
     """
     # generate control data
-    raw_res_diff = analyze_system(raw, filter_mask=[3])
+    raw_res_diff = analyze_system(raw, filter_mask=[3], use_ode_sde_diff=True)
     raw_res = analyze_system(raw, filter_mask=[3], use_ode_sde_diff=False)
-    if raw_res[1] is None:
+    if raw_res[1] is None or raw_res_diff[1] is None:
         return None
 
     # generate data from altered motifs
     row = []
     for enh in enhanced:
-        enh_res_diff = analyze_system(enh, filter_mask=[3])
-        enh_res = analyze_system(enh, filter_mask=[3], use_ode_sde_diff=False)
+        enh_res_diff = analyze_system(
+            enh, filter_mask=[3],
+            use_ode_sde_diff=True)
+        enh_res = analyze_system(
+            enh, filter_mask=[3],
+            use_ode_sde_diff=False)
         row.append((enh_res, enh_res_diff))
 
     return [(raw_res, raw_res_diff), row]

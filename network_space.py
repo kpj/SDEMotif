@@ -25,7 +25,7 @@ def transform(data):
         for (enh_res, enh_res_diff) in enh_res_vec:
             if all(not r is None for r in [raw_res[1], enh_res[1], raw_res_diff[1], enh_res_diff[1]]):
                 tmp.append({
-                    'type': 'ODE',
+                    'type': 'SDE',
                     'id': count,
                     'raw_res': raw_res,
                     'enh_res': enh_res,
@@ -76,7 +76,6 @@ def bin_entries(row, threshold=.05):
 
 def check_disruption(row):
     sdiff = \
-        abs(np.sign(row.raw_vals)) * abs(np.sign(row.enh_vals)) * \
         (np.sign(row.raw_vals) - np.sign(row.enh_vals)) * \
         abs(row.raw_vals - row.enh_vals)
 
