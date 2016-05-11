@@ -681,12 +681,28 @@ def list_structure_formulas(
     intensities_level1 = match_masses(comp_tmp)
     compounds_level1 = {k: comp_tmp[k] for k in intensities_level1.keys()}
 
-    # print data
-    for name, data in compounds_level0.items():
-        print(name, gen_atom_string(data['atoms']))
+    #peak_data = read_peak_data('data/peaklist_filtered_assigned.csv')
 
-    for name, data in compounds_level1.items():
-        print(name, gen_atom_string(data['atoms']))
+    # combine data
+    intensities_all = {}
+    intensities_all.update(intensities_level0)
+    intensities_all.update(intensities_level1)
+
+    compounds_all = {}
+    compounds_all.update(compounds_level0)
+    compounds_all.update(compounds_level1)
+
+    # aggregate data
+    df_data = []
+    for name, data in compounds_all.items():
+        df_data.append({
+            'mz': data['mass'],
+            'formula': gen_atom_string(data['atoms'])
+        })
+
+    df = pd.DataFrame.from_dict(df_data)
+    print(df.head())
+    df.to_csv('data/mz_formula.csv')
 
 def main(compound_fname, reaction_fname):
     """ Read in data and start experiment
