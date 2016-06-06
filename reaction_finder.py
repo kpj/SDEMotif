@@ -532,6 +532,77 @@ def find_unrelated_compounds(all_compounds, num=1e4):
 
     return out
 
+def find_optimal_assignments(motifs):
+    """ Find optimal compound assignments
+    """
+    # find assignments
+    def get_assignment_number(entry):
+        c1, c2, c3, ints = entry
+
+        res = ints[c1] + ints[c2] + ints[c3]
+        return len(res)
+
+    assignments = {}
+    multis = set()
+    for c1, c2, c3, ints in sorted(motifs, key=get_assignment_number):
+        cur = ints[c1] + ints[c2] + ints[c3]
+        comps = c1, c2, c3
+        print(len(ints[c1]), len(ints[c2]), len(ints[c3]), sum([len(ints[c1]), len(ints[c2]), len(ints[c3])]))
+
+        # single matches
+        for c in comps:
+            if len(ints[c]) == 1:
+                if c in assignments:
+                    assert ints[c][0] == assignments[c]
+                else:
+                    assert len(ints[c]) == 1 # useless
+                    assignments[c] = ints[c][0]
+
+        # multiple matches
+        if any([len(ints[c]) > 1 for c in comps]):
+            for c1 in comps:
+                for c2 in comps:
+                    if c1 == c2: break
+                    corrs = {}
+
+                    # compute correlations
+                    for i, int1 in enumerate(ints[c1]):
+                        for j, int2 in enumerate(ints[c2]):
+                            cc, _ = scis.pearsonr(int1, int2)
+                            corrs[(i,j)] = cc
+
+                    c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k]))
+
+                    for c, idx in zip([c1, c2], [c1_idx, c2_idx]):
+                        if c in multis:
+                            continue
+                        if c in assignments:
+                            #assert ints[c][idx] == assignments[c]
+                            if not ints[c][idx] == assignments[c]:
+                                print('Multiple assignments for {}'.format(c))
+                                multis.add(c)
+                                del assignments[c]
+                        else:
+                            assignments[c] = ints[c][idx]
+
+    # stats
+    print('Found {} exact matches'.format(len(assignments)))
+    print(assignments.keys())
+
+    # plots
+    num = len(assignments)
+    plt.figure(figsize=(10, 3 * num))
+    gs = mpl.gridspec.GridSpec(num, 1)
+
+    for i, (name, ints) in enumerate(assignments.items()):
+        ax = plt.subplot(gs[i, 0])
+
+        ax.set_title(name)
+        plotter.plot_system_evolution([ints], ax, xlabel='sample')
+
+    plt.tight_layout()
+    plotter.save_figure('images/assignments.pdf', bbox_inches='tight')
+
 def find_small_motifs(
     compounds_level0, intensities_level0,
     reaction_data,
@@ -614,6 +685,9 @@ def find_small_motifs(
     print('Overview')
     print(' > Total #compounds:', len(data['all_compounds']))
     print(' > #motifs:', len(data['motifs']))
+
+    # find optimal compound assignments
+    find_optimal_assignments(data['motifs'])
 
     ## plot stuff
     print('Plotting')
