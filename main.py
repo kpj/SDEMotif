@@ -22,7 +22,7 @@ from plotter import plot_system_evolution
 def analyze_system(
     system, repetition_num=100,
     filter_trivial_ss=True, filter_mask=None,
-    plot_hist=False, save_stdev=False,
+    plot_hist=False, save_stdev=None,
     use_ode_sde_diff=True
 ):
     """ Generate steady states for given system.

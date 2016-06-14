@@ -458,12 +458,7 @@ def threshold_influence(inp, value_func=get_sign_changes):
         pairs.append((thres, mat_res))
 
     # get threshold
-    fname = 'results/correlation_stdev.npy'
-    if not os.path.isfile(fname):
-        syst = generate_basic_system()
-        analyze_system(syst, save_stdev=True)
-    std_entries = extract_sig_entries(np.load(fname))
-    stdev = np.mean(std_entries)
+    stdev = np.mean(extract_sig_entries(inp['corr_stdev']))
 
     # plot result
     value_func_name = value_func.__name__[4:]

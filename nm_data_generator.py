@@ -2,6 +2,7 @@
 Generate data to be used with e.g. network_space.py
 """
 
+import os
 import sys
 import copy
 import pickle
@@ -49,7 +50,7 @@ def handle_systems(raw, enhanced):
     """ Simulate given systems
     """
     # generate control data
-    raw_res_diff = analyze_system(raw, filter_mask=[3], use_ode_sde_diff=True)
+    raw_res_diff = analyze_system(raw, filter_mask=[3], use_ode_sde_diff=True, save_stdev='results/corr_stdev')
     raw_res = analyze_system(raw, filter_mask=[3], use_ode_sde_diff=False)
     if raw_res[1] is None or raw_res_diff[1] is None:
         return None
@@ -92,8 +93,10 @@ def generate_data(fname, paramter_shift=10):
     # store matrix
     with open(fname, 'wb') as fd:
         pickle.dump({
-            'data': rows
+            'data': rows,
+            'corr_stdev': np.load('results/corr_stdev.npy')
         }, fd)
+    os.remove('results/corr_stdev.npy')
 
 
 def main():
