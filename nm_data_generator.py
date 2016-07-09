@@ -9,7 +9,8 @@ import pickle
 import itertools
 
 import numpy as np
-from tqdm import tqdm
+import numpy.random as npr
+from tqdm import tqdm, trange
 
 from setup import generate_basic_system
 from main import analyze_system
@@ -98,6 +99,42 @@ def generate_data(fname, paramter_shift=10):
         }, fd)
     os.remove('results/corr_stdev.npy')
 
+def generate_random_data(fname, paramter_shift=10):
+    """ Generate random data for comparison with experimental one
+    """
+    def gen_rand_mat(dim=3):
+        """ Generate random correlation matrix
+        """
+        tmp = npr.uniform(-1, 1, (dim,dim))
+
+        # make matrix symmetric
+        for i in range(dim):
+            for j in range(i+1, dim):
+                tmp[i,j] = tmp[j,i]
+
+        return tmp
+
+    def handle_random_case(size):
+        random_raw = None, gen_rand_mat(), None
+
+        row = []
+        for _ in range(size):
+            random_enh = None, gen_rand_mat(4), None
+            row.append((None, random_enh))
+
+        return [(None, random_raw), row]
+
+    # generate random data
+    rows = []
+    for _ in trange(paramter_shift**2):
+        rows.append(handle_random_case(64))
+
+    # store matrix
+    with open(fname, 'wb') as fd:
+        pickle.dump({
+            'data': rows,
+            'corr_stdev': np.std([r[0][1][1] for r in rows], axis=0)
+        }, fd)
 
 def main():
     """
