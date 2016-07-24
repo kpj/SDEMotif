@@ -452,11 +452,12 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
         plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
     global THRESHOLD
-
     threshold_list = np.logspace(-4, 0, resolution)
 
+    stdev = np.mean(extract_sig_entries(inp['corr_stdev']))
+
     # produce data
-    first_data, last_data = None, None
+    first_data, last_data, std_data = None, None, None
     pairs = []
     for thres in tqdm(threshold_list):
         THRESHOLD = thres
@@ -470,15 +471,14 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
             first_data = data
         if thres == threshold_list[-1]:
             last_data = data
+        if thres >= stdev and std_data is None:
+            std_data = data
 
         mat_res = np.sum(data[data>0])
         pairs.append((thres, mat_res))
 
     print(data.shape)
     print('Data: {}x{}'.format(len(inp['data']), len(inp['data'][0][1])))
-
-    # get extra data
-    stdev = np.mean(extract_sig_entries(inp['corr_stdev']))
     total_num = data[data>=0].size * 3
 
     # plot result
@@ -513,6 +513,9 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
 
     ax = plt.axes([0.7, 0.4, .2, .2])
     plot_matrix(last_data)
+
+    ax = plt.axes([0.4, 0.2, .2, .2])
+    plot_matrix(std_data)
 
     # save result
     save_figure('images/threshold_influence_{}.pdf'.format(value_func_name), bbox_inches='tight')
