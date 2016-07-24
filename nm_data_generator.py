@@ -12,7 +12,7 @@ import numpy as np
 import numpy.random as npr
 from tqdm import tqdm, trange
 
-from setup import generate_basic_system
+from setup import generate_basic_system, generate_two_node_system
 from main import analyze_system
 
 
@@ -69,7 +69,7 @@ def handle_systems(raw, enhanced):
 
     return [(raw_res, raw_res_diff), row]
 
-def generate_data(fname, paramter_shift=10):
+def generate_data(fname, two_nodes=False, paramter_shift=10):
     """ Generate and cache data of the form
         {
             'data': [
@@ -80,16 +80,25 @@ def generate_data(fname, paramter_shift=10):
     """
     param_range = np.linspace(0.1, 5, paramter_shift)
 
+    if two_nodes:
+        gen_func = generate_two_node_system
+    else:
+        gun_func = generate_basic_system
+
     # iterate over parameter configurations and simulate system accordingly
     rows = []
     for k_m in tqdm(param_range):
         for k_23 in tqdm(param_range):
-            syst = generate_basic_system(k_m=k_m, k_23=k_23)
+            syst = gen_func(k_m=k_m, k_23=k_23)
             more = add_node_to_system(syst)
 
             res = handle_systems(syst, more)
             if not res is None:
                 rows.append(res)
+
+        # only one parameter to vary in case of two nods
+        if two_nodes:
+            break
 
     # store matrix
     with open(fname, 'wb') as fd:
@@ -144,7 +153,8 @@ def main():
         print('Usage: %s <data file>' % sys.argv[0])
         exit(-1)
 
-    generate_data(sys.argv[1])
+    generate_data(sys.argv[1], two_nodes=True)
+    #generate_random_data(sys.argv[1])
 
 if __name__ == '__main__':
     main()

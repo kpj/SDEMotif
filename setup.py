@@ -35,6 +35,22 @@ def generate_basic_system(v_in=5, k_m=1, k_23=2, D=1):
         external_influence, initial_state)
     return system
 
+def generate_two_node_system(v_in=5, D=1, k_m=1, k_23=None):
+    """ Generate system with only two nodes
+    """
+    jacobian = np.array([
+        [-1,    0],
+        [k_m,  -1]
+    ])
+    external_influence = np.array([v_in, 0])
+    fluctuation_vector = np.array([D, 0])
+    initial_state = np.array([1, 1])
+
+    system = SDESystem(
+        jacobian, fluctuation_vector,
+        external_influence, initial_state)
+    return system
+
 def generate_random_plus(num=5):
     """ Generate randomized versions of initial system plus one node
     """
