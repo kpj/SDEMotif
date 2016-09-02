@@ -454,7 +454,18 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
     global THRESHOLD
     threshold_list = np.logspace(-4, 0, resolution)
 
-    stdev = np.mean(extract_sig_entries(inp['corr_stdev']))
+    # compute stdev of difference between reference and embedded 3 node motif
+    cur_diffs = []
+    for raw, enh_res in inp['data']:
+        _, rd = raw
+        _, rdm, _ = rd
+        for enh in enh_res:
+            _, ed = enh
+            _, edm, _ = ed
+            if not edm is None:
+                diff = abs(rdm - edm[:-1,:-1])
+                cur_diffs.extend(diff.ravel())
+    stdev = np.std(cur_diffs)
 
     # produce data
     first_data, last_data, std_data = None, None, None
@@ -477,8 +488,7 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
         mat_res = np.sum(data[data>0])
         pairs.append((thres, mat_res))
 
-    print(data.shape)
-    print('Data: {}x{}'.format(len(inp['data']), len(inp['data'][0][1])))
+    print('Data shape:', data.shape)
     total_num = data[data>=0].size * 3
 
     # plot result
@@ -496,7 +506,7 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
         xmin=1e-6, xmax=stdev,
         alpha=0.1, color='blue')
     plt.annotate('correlation stdev ({:.02})'.format(stdev),
-        xy=(stdev, 200), xycoords='data',
+        xy=(stdev, .03), xycoords='data',
         xytext=(50, 20), textcoords='offset points',
         arrowprops=dict(arrowstyle='->'))
 
