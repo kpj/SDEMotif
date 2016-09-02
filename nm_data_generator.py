@@ -96,7 +96,7 @@ def generate_data(fname, two_nodes=False, paramter_shift=10):
             if not res is None:
                 rows.append(res)
 
-        # only one parameter to vary in case of two nods
+        # only one parameter to vary in case of two nodes
         if two_nodes:
             break
 
