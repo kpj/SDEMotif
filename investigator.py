@@ -3,18 +3,20 @@ Investigate data in various ways
 """
 
 import sys
+from itertools import cycle
 
 import numpy as np
 
 import matplotlib as mpl
 import matplotlib.pylab as plt
 
-from tqdm import trange
+from tqdm import tqdm, trange
 
 from utils import extract_sig_entries, compute_correlation_matrix
-from plotter import plot_histogram
+from plotter import plot_histogram, plot_system, save_figure
 from setup import generate_basic_system
 from solver import solve_system
+from nm_data_generator import add_node_to_system
 
 
 def plot_correlation_hist(data):
@@ -113,13 +115,61 @@ def check_ergodicity(reps=500):
     plt.tight_layout()
     plt.savefig('images/ergodicity_check.pdf')
 
+def single_corr_coeff_hist(reps=5000):
+    """ Plot distribution of single correlation coefficients
+    """
+    def do(syst, ax):
+        # data
+        single_run_matrices = []
+        for _ in trange(reps):
+            sol = solve_system(syst)
+
+            sol_extract = sol.T[int(len(sol.T)*3/4):]
+            single_run_mat = compute_correlation_matrix(np.array([sol_extract]))
+
+            if single_run_mat.shape == (4, 4):
+                single_run_mat = single_run_mat[:-1,:-1]
+            assert single_run_mat.shape == (3, 3)
+
+            single_run_matrices.append(single_run_mat)
+        single_run_matrices = np.asarray(single_run_matrices)
+
+        # plotting
+        cols = cycle(['b', 'r', 'g', 'c', 'm', 'y', 'k'])
+        for i, row in enumerate(single_run_matrices.T):
+            for j, series in enumerate(row):
+                if i == j: break
+                plot_histogram(
+                    series[series!=1], ax,
+                    label=r'$c_{{{},{}}}$'.format(i,j),
+                    facecolor=next(cols), alpha=0.5,
+                    bins=100)
+
+    # data
+    syst = generate_basic_system()
+    more = add_node_to_system(syst)[::10]
+    print('#more', len(more))
+
+    # plot
+    f, axes = plt.subplots(len(more), 2, figsize=(9,20))
+
+    do(syst, axes[0,0]); print()
+    for i, m in tqdm(enumerate(more), total=len(more)):
+        if i > 0:
+            plot_system(m, axes[i,0])
+        do(m, axes[i,1])
+
+    plt.tight_layout()
+    save_figure('images/correlation_distribution.pdf', bbox_inches='tight')
+
 def main(data):
     """ Analyse data
     """
-    if data is None:
-        check_ergodicity()
-    else:
-        plot_correlation_hist(data)
+    #if data is None:
+    #    check_ergodicity()
+    #else:
+    #    plot_correlation_hist(data)
+    single_corr_coeff_hist()
 
 if __name__ == '__main__':
     main(np.load(sys.argv[1])['data'] if len(sys.argv) == 2 else None)
