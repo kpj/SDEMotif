@@ -246,23 +246,23 @@ def combine_data(cdata, rdata):
     data = collections.defaultdict(list)
 
     # find single reactions
-    for c1 in cdata.keys():
+    for c1 in tqdm(cdata.keys()):
         res = check_pair(c1, None, cdata, rdata)
         for react in res:
             data[react].append((c1, None))
 
     # find reaction partners
-    for c1, c2 in prod:
+    for c1, c2 in tqdm(prod):
         res = check_pair(c1, c2, cdata, rdata)
         for react in res:
             data[react].append((c1, c2))
 
-    return data
+    return dict(data)
 
 def guess_new_compounds(combs, cdata, rdata):
     """ Infer new compounds from reactions of existing ones.
 
-        All kinds of new information computation take place here
+        All kinds of new information computations take place here
     """
     def add_specs(*args):
         spec = {}
@@ -271,12 +271,12 @@ def guess_new_compounds(combs, cdata, rdata):
         return spec
 
     data = {}
-    for rname, pairs in combs.items():
+    for rname, pairs in tqdm(combs.items()):
         r_groups = rdata[rname]['group_trans']
         r_mass = rdata[rname]['mass_trans']
         r_atoms = rdata[rname]['atom_trans']
 
-        for c1, c2 in pairs:
+        for c1, c2 in tqdm(pairs):
             # compute new groups
             c1_groups = cdata[c1]['groups']
             c2_groups = cdata[c2]['groups'] if not c2 is None else {}
@@ -533,110 +533,152 @@ def find_unrelated_compounds(all_compounds, num=1e4):
     return out
 
 def find_optimal_assignments(motifs, initial_compound_names):
-    """ Find optimal compound assignments
+    """ Find optimal compound assignments by (weighted) randomly selecting
+        motifs of low initial assignment number and choose assignments
+        which maximize intensity correlation coefficients.
+
+        Goal:
+            Enhance partially annotated MS peak file
+
+        All steps:
+            * Read compound/reaction data
+                * note known MZ values
+            * generate new compounds using reaction rules
+                * compute theoretical MZ values
+            * find motifs in all available compounds
+                * assume that compounds in motifs have high intensity correlations
+
+            * for each compound receive all possible annotations from peak file
+            * use randomized iterative procedure to find "optimal" MZ assignments
     """
     # find assignments
     def get_assignment_number(entry):
         c1, c2, c3, ints, info = entry
         return len(ints[c1]) * len(ints[c2]) * len(ints[c3])
 
-    info_all = {}
-    assignments = {}
+    def assign(motifs):
+        info_all = {}
+        assignments = {}
+        single_assignment_names = []
 
-    single_assignment_names = []
+        sorted_motifs = sorted(
+            motifs, key=get_assignment_number,
+            reverse=True)
+        while len(sorted_motifs) > 0:
+            # weighted choice of starting motif
+            size = len(sorted_motifs)
+            probs = np.exp(range(size))/np.sum(np.exp(range(size)))
 
-    for c1, c2, c3, ints, info in sorted(motifs, key=get_assignment_number):
-        comps = c1, c2, c3
-        print(len(ints[c1]), len(ints[c2]), len(ints[c3]), len(ints[c1])*len(ints[c2])*len(ints[c3]))
+            idx = np.random.choice(range(size), 1, p=probs)
+            entry = sorted_motifs[idx[0]]
+            sorted_motifs.remove(entry)
+            c1, c2, c3, ints, info = entry
 
-        info_all.update(info)
+            # process motif
+            comps = c1, c2, c3
+            #print(
+            #    len(ints[c1]), len(ints[c2]), len(ints[c3]),
+            #    len(ints[c1])*len(ints[c2])*len(ints[c3]))
 
-        # single matches
-        for c in comps:
-            if len(ints[c]) == 1:
-                if c in assignments:
-                    assert ints[c][0] == assignments[c]
-                else:
-                    assert len(ints[c]) == 1 # useless
-                    assignments[c] = ints[c][0]
-                    single_assignment_names.append(c)
+            info_all.update(info)
 
-        # multiple matches
-        for c1 in comps:
-            for c2 in comps:
-                if c1 == c2: break
-                corrs = {}
+            # single matches
+            for c in comps:
+                if len(ints[c]) == 1:
+                    if c in assignments:
+                        assert ints[c][0] == assignments[c]
+                    else:
+                        assignments[c] = ints[c][0]
+                        single_assignment_names.append(c)
 
-                # compute correlations
-                if c1 in assignments and c2 in assignments:
-                    continue
-                if not c1 in assignments and not c2 in assignments:
-                    for i, int1 in enumerate(ints[c1]):
+            # multiple matches
+            for c1 in comps:
+                for c2 in comps:
+                    if c1 == c2: break
+                    corrs = {}
+
+                    # skip if compounds are already assigned
+                    if c1 in assignments and c2 in assignments:
+                        continue
+
+                    # compute correlations
+                    if not c1 in assignments and not c2 in assignments:
+                        for i, int1 in enumerate(ints[c1]):
+                            for j, int2 in enumerate(ints[c2]):
+                                cc, _ = scis.pearsonr(int1, int2)
+                                corrs[(i,j)] = cc
+
+                        # choose highest correlation
+                        c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k]))
+                    if c1 in assignments and not c2 in assignments:
+                        int1 = assignments[c1]
                         for j, int2 in enumerate(ints[c2]):
                             cc, _ = scis.pearsonr(int1, int2)
-                            corrs[(i,j)] = cc
+                            corrs[j] = cc
+                        c1_idx, c2_idx = None, max(corrs.keys(), key=lambda k: abs(corrs[k]))
+                    if not c1 in assignments and c2 in assignments:
+                        int2 = assignments[c2]
+                        for i, int1 in enumerate(ints[c1]):
+                            cc, _ = scis.pearsonr(int1, int2)
+                            corrs[i] = cc
+                        c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k])), None
 
-                    # choose highest correlation
-                    c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k]))
-                if c1 in assignments and not c2 in assignments:
-                    int1 = assignments[c1]
-                    for j, int2 in enumerate(ints[c2]):
-                        cc, _ = scis.pearsonr(int1, int2)
-                        corrs[j] = cc
+                    for c, idx in zip([c1, c2], [c1_idx, c2_idx]):
+                        if c == c1 and c1 in assignments:
+                            assert c1_idx is None
+                        if c == c2 and c2 in assignments:
+                            assert c2_idx is None
 
-                    c1_idx, c2_idx = None, max(corrs.keys(), key=lambda k: abs(corrs[k]))
-                if not c1 in assignments and c2 in assignments:
-                    int2 = assignments[c2]
-                    for i, int1 in enumerate(ints[c1]):
-                        cc, _ = scis.pearsonr(int1, int2)
-                        corrs[i] = cc
+                        if c in assignments:
+                            continue
+                        else:
+                            assignments[c] = ints[c][idx]
+        return assignments, info_all, single_assignment_names
 
-                    c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k])), None
+    def plot_assignments(assignments, ax):
+        colors = []
+        values_initial = []
+        values_single = []
+        values_other = []
 
-                for c, idx in zip([c1, c2], [c1_idx, c2_idx]):
-                    if c == c1 and c1 in assignments:
-                        assert c1_idx is None
-                    if c == c2 and c2 in assignments:
-                        assert c2_idx is None
+        for i, (name, ints) in enumerate(assignments.items()):
+            mz = info_all[name]['mass']
 
-                    if c in assignments:
-                        continue
-                    else:
-                        assignments[c] = ints[c][idx]
+            if name in initial_compound_names:
+                values_initial.append(mz)
+            elif name in single_assignment_names:
+                values_single.append(mz)
+            else:
+                values_other.append(mz)
 
-    # stats
-    print('Found {} matches'.format(len(assignments)))
+        ax.scatter(
+            values_initial, [0]*len(values_initial),
+            color='red', alpha=0.5,
+            label='initial')
+        ax.scatter(
+            values_single, [0]*len(values_single),
+            color='green', alpha=0.5,
+            label='single')
+        ax.scatter(
+            values_other, [0]*len(values_other),
+            color='blue', alpha=0.5,
+            label='other')
+
+        ax.yaxis.set_major_locator(plt.NullLocator())
 
     # plots
-    plt.figure()
+    N = 10
+    f, axes = plt.subplots(N, 1, figsize=(9,9))
 
-    colors = []
-    values_initial = []
-    values_single = []
-    values_other = []
+    for ax in axes:
+        assignments, info_all, single_assignment_names = assign(motifs)
 
-    for i, (name, ints) in enumerate(assignments.items()):
-        mz = info_all[name]['mass']
+        for c, ints in assignments.items():
+            if c != 'Hexose': continue
 
-        if name in initial_compound_names:
-            values_initial.append(mz)
-        elif name in single_assignment_names:
-            values_single.append(mz)
-        else:
-            values_other.append(mz)
+            print(c, sum(ints))
 
-    plt.scatter(
-        values_initial, [0]*len(values_initial),
-        color='red', alpha=0.5,
-        label='initial')
-    plt.scatter(
-        values_single, [0]*len(values_single),
-        color='green', alpha=0.5,
-        label='single')
-    plt.scatter(
-        values_other, [0]*len(values_other),
-        color='blue', alpha=0.5,
-        label='other')
+        plot_assignments(assignments, ax)
 
     plt.xlabel('MZ')
     plt.legend(loc='best')
@@ -683,9 +725,9 @@ def find_small_motifs(
                     c1_level2, _, c2_level2 = parse_compound_name(comp_level2)
 
                     all_compounds.extend([
-                        (comp_level0, intensities_level0),
-                        (comp_level1, intensities_level1),
-                        (comp_level2, intensities_level2)
+                        (comp_level0, groups_level0, intensities_level0),
+                        (comp_level1, groups_level1, intensities_level1),
+                        (comp_level2, groups_level2, intensities_level2)
                     ])
 
                     # connected motif check
