@@ -10,6 +10,7 @@ import collections
 
 import numpy as np
 import pandas as pd
+import networkx as nx
 import scipy.stats as scis
 
 import matplotlib as mpl
@@ -69,7 +70,8 @@ def read_compounds_file(file_spec):
             data[name] = {
                 'groups': {},
                 'atoms': {},
-                'mass': float(mass)
+                'mass': float(mass),
+                'origin': (None, None)
             }
             for ind in group_range:
                 data[name]['groups'][group_names[ind-group_cols[0]]] = int(row[ind])
@@ -305,7 +307,8 @@ def guess_new_compounds(combs, cdata, rdata):
             data[new_name] = {
                 'groups': new_groups,
                 'mass': new_mass,
-                'atoms': new_atoms
+                'atoms': new_atoms,
+                'origin': (c1, c2)
             }
 
     return data
@@ -686,10 +689,135 @@ def find_optimal_assignments(motifs, initial_compound_names):
     plt.tight_layout()
     plotter.save_figure('images/assignments.pdf', bbox_inches='tight')
 
+def process(compound_data):
+    """ Simple reaction-combinatorics advancer
+    """
+    reaction_data = read_reactions_file('data/Reaction_List.csv')
+    tmp = iterate_once(compound_data, reaction_data)
+    ints = match_masses(tmp)
+    out = {k: tmp[k] for k in ints.keys()}
+    for k in out: out[k]['intensities'] = ints[k]
+    return out
+
+def detect_motifs(graph, motif):
+    """ Detect 3-grams in graph isomorphic to motif
+    """
+    nodes = graph.nodes()
+    trips = itertools.product(nodes, nodes, nodes)
+
+    res = []
+    for t in tqdm(trips, total=len(nodes)**3):
+        if len(set(t)) != 3:
+            continue
+
+        sub = graph.subgraph(t)
+        if nx.is_isomorphic(sub, motif):
+            res.append(sub.edges())
+
+    return res
+
+def detect_ffl(graph):
+    """ Detect feedforward loops in graph
+        c1 ---> c2
+         |       |
+         |       v
+         -----> c3
+    """
+    for c1 in graph.nodes():
+        for c2, c3 in itertools.product(
+            graph.successors(c1), graph.successors(c1)):
+            if graph.has_edge(c2, c3):
+                yield (c1, c2, c3)
+
+def find_more_motifs(motifs, all_compounds, reaction_data, fname='results/post_motif_reactions.pkl'):
+    """ Grow fragmented motif network by applying reaction rules to existing ones
+
+        Struture of a motif m:
+            (c1, c2, c3, ints, data)
+    """
+    all_comp_data = dict(pair for d in motifs for pair in d[4].items())
+    all_cdata = {}
+    for c, group, _ in all_compounds:
+        all_cdata[c] = group
+    all_cdata.update(all_comp_data)
+
+    all_comp_ints = dict(pair for d in motifs for pair in d[3].items())
+    all_cints = {}
+    for c, _, ints in all_compounds:
+        all_cints.update(ints)
+    all_cints.update(all_comp_ints)
+
+    # iterate reactions once
+    if not os.path.isfile(fname):
+        comps = process(all_cdata)
+        with open(fname, 'wb') as fd:
+            pickle.dump(comps, fd)
+    else:
+        print('Using cached data ({})'.format(fname))
+        with open(fname, 'rb') as fd:
+            comps = pickle.load(fd)
+
+    # transform result into more usable form
+    tmp = collections.defaultdict(list)
+    for p, data in tqdm(comps.items()):
+        c1, c2 = data['origin'][0], data['origin'][1]
+        tmp[c1].append(p)
+        tmp[c2].append(p)
+
+    # grow motif network
+    new_links = []
+    old_links = []
+    for m in tqdm(motifs):
+        for c in m[:3]:
+            if c in tmp:
+                for t in tmp[c]:
+                    new_links.append((c, t))
+        old_links.extend([
+            (m[0], m[1]), (m[0], m[2]), (m[1], m[2])
+        ])
+
+    # find motifs in graph
+    graph = nx.DiGraph()
+    graph.add_edges_from(old_links)
+    graph.add_edges_from(new_links)
+
+    more_motifs = []
+    for c1,c2,c3 in tqdm(detect_ffl(graph)):
+        res = {'data': {}, 'ints': {}}
+        for c in (c1,c2,c3):
+            assert c in all_cdata or c in comps
+            if c in all_cdata:
+                res['data'][c] = all_cdata[c]
+                res['ints'][c] = all_cints[c]
+            else:
+                res['data'][c] = comps[c]
+                #del res['data'][c]['intensities']
+                res['ints'][c] = comps[c]['intensities']
+
+            assert len(res['ints'][c]) > 0
+
+        more_motifs.append((c1, c2, c3, res['ints'], res['data']))
+
+        # final checks
+        try:
+            assert isinstance(more_motifs[-1][0], str)
+            assert isinstance(more_motifs[-1][1], str)
+            assert isinstance(more_motifs[-1][2], str)
+            assert isinstance(more_motifs[-1][3], dict)
+            assert isinstance(more_motifs[-1][4], dict)
+
+            for e in more_motifs[-1][3].values():
+                assert isinstance(e, list)
+        except AssertionError:
+            import ipdb; ipdb.set_trace()
+
+    return more_motifs
+
 def find_small_motifs(
     compounds_level0, intensities_level0,
     reaction_data,
-    fname='results/small_motif_cache.dat'
+    fname='results/small_motif_cache.dat',
+    fname2='results/more_motifs_cache.dat'
 ):
     """ Look for 3 node motifs
     """
@@ -775,9 +903,24 @@ def find_small_motifs(
     print(' > Total #compounds:', len(data['all_compounds']))
     print(' > #motifs:', len(data['motifs']))
 
+    if not os.path.isfile(fname2):
+        more_motifs = find_more_motifs(
+            data['motifs'], data['all_compounds'],
+            reaction_data)
+
+        with open(fname2, 'wb') as fd:
+            pickle.dump(more_motifs, fd)
+    else:
+        print('Using cached data ({})'.format(fname2))
+        with open(fname2, 'rb') as fd:
+            more_motifs = pickle.load(fd)
+
+    print(' > Found {} additional motifs'.format(
+        len(more_motifs)-len(data['motifs'])))
+
     # find optimal compound assignments
     find_optimal_assignments(
-        data['motifs'], compounds_level0.keys())
+        more_motifs, compounds_level0.keys())
 
     ## plot stuff
     print('Plotting')
