@@ -900,14 +900,15 @@ def find_small_motifs(
     # random compounds for comparison
     unrelated_nodes = []
 
+    es = lambda f, s: len(f.intersection(s)) == 0 # check for empty set intersection
     while len(unrelated_nodes) < len(motifs):
         # *blargh*
         first = np.random.choice(graph.nodes())
         second = np.random.choice(graph.nodes())
-        while get_origin_set(second, comps) == get_origin_set(first, comps):
+        while not es(get_origin_set(second, comps), get_origin_set(first, comps)):
             second = np.random.choice(graph.nodes())
         third = np.random.choice(graph.nodes())
-        while get_origin_set(third, comps) == get_origin_set(first, comps) or get_origin_set(third, comps) == get_origin_set(second, comps):
+        while not es(get_origin_set(third, comps), get_origin_set(first, comps)) or not es(get_origin_set(third, comps), get_origin_set(second, comps)):
             third = np.random.choice(graph.nodes())
 
         th = (first, second, third)
