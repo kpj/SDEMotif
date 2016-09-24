@@ -14,7 +14,7 @@ import networkx as nx
 import scipy.stats as scis
 
 import matplotlib as mpl
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 import seaborn as sns
 
 from tqdm import tqdm
@@ -470,6 +470,9 @@ def plot_correlation_histogram(motifs, data):
             facecolor=next(colors), alpha=0.5,
             label=lbl)
 
+    plt.title('Comparison of intensity correlation distributions')
+    plt.xlabel('intensity vector correlation')
+
     plt.legend(loc='best')
     plt.tight_layout()
     plotter.save_figure('images/rl_corr_hist.pdf', bbox_inches='tight')
@@ -804,6 +807,38 @@ def find_more_motifs(motifs, all_compounds, reaction_data, fname='results/post_m
 
     return more_motifs
 
+def plot_mz_distribution(data, fname='data/peaklist_filtered_assigned.csv'):
+    """ Plot MZ values of data and highlight real-life entries
+    """
+    # aggregate data
+    mzs = []
+    single_matches = []
+    for name, info in data.items():
+        mz = info['mass']
+        mzs.append(mz)
+
+        assert len(info['intensities']) > 0
+        if len(info['intensities']) == 1:
+            single_matches.append(mz)
+
+    peak_data = read_peak_data(fname)
+
+    # plot
+    fig = plt.figure()
+    plt.hist(mzs, 100, alpha=0.7, linewidth=0,)
+
+    for mz, _ in peak_data.items():
+        plt.axvline(mz, color='red', alpha=0.03)
+    #for mz in single_matches:
+    #    plt.axvline(mz, color='green', alpha=0.06)
+
+    plt.xlabel('MZ value')
+    plt.ylabel('count')
+    plt.title('MZ histogram of all generated products')
+
+    plt.tight_layout()
+    plotter.save_figure('images/rl_mz_hist.pdf', bbox_inches='tight')
+
 def get_origin_set(comp, data):
     """ Find basic origins which comp is made out of
     """
@@ -860,6 +895,7 @@ def find_small_motifs(
 
     ## plot stuff
     print('Plotting')
+    plot_mz_distribution(comps)
 
     # random compounds for comparison
     unrelated_nodes = []
