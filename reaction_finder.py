@@ -719,9 +719,11 @@ def detect_ffl(graph):
     """
     for c1 in graph.nodes():
         for c2, c3 in itertools.product(
-            graph.successors(c1), graph.successors(c1)):
-            if graph.has_edge(c2, c3):
-                yield (c1, c2, c3)
+            graph.successors(c1), graph.successors(c1)
+        ):
+            if graph.has_edge(c2, c3) or graph.has_edge(c3, c2):
+                if not None in (c1, c2, c3):
+                    yield (c1, c2, c3)
 
 def find_more_motifs(motifs, all_compounds, reaction_data, fname='results/post_motif_reactions.pkl'):
     """ Grow fragmented motif network by applying reaction rules to existing ones
@@ -851,7 +853,7 @@ def get_origin_set(comp, data):
     return get_origin_set(data[comp]['origin'][0], data) | get_origin_set(data[comp]['origin'][1], data)
 
 def find_small_motifs(
-    compounds_level0, reaction_data,
+    compounds_level0,
     fname='results/rf_raw_reaction_data.pkl'
 ):
     """ Look for feedfoward-loops in (iterated) compound data
@@ -1022,7 +1024,7 @@ def main(compound_fname, reaction_fname):
     #    compounds_level0, intensities_level0,
     #    reaction_data)
 
-    find_small_motifs(compounds_level0, reaction_data)
+    find_small_motifs(compounds_level0)
 
 
 if __name__ == '__main__':
