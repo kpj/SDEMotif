@@ -144,6 +144,7 @@ def single_corr_coeff_hist(reps=5000):
                     label=r'$c_{{{},{}}}$'.format(i,j),
                     facecolor=next(cols), alpha=0.5,
                     bins=100)
+        ax.legend(loc='best')
 
     # data
     syst = generate_basic_system()
@@ -151,12 +152,10 @@ def single_corr_coeff_hist(reps=5000):
     print('#more', len(more))
 
     # plot
-    f, axes = plt.subplots(len(more), 2, figsize=(9,20))
+    f, axes = plt.subplots(1+len(more), 2, figsize=(9,20))
 
-    do(syst, axes[0,0]); print()
-    for i, m in tqdm(enumerate(more), total=len(more)):
-        if i > 0:
-            plot_system(m, axes[i,0])
+    for i, m in tqdm(enumerate([syst]+more), total=1+len(more)):
+        plot_system(m, axes[i,0])
         do(m, axes[i,1])
 
     plt.tight_layout()
