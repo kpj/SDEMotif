@@ -451,21 +451,28 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
             vmin=0, vmax=3)
         plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
+    def find_threshold(data):
+        """ Use std/2 of correlation distribution closest to 0 (most likely) to switch sign as detection threshold
+        """
+        cur = []
+        for raw, enh_res in data:
+            _, rd = raw
+            _, rdm, _ = rd
+            cur.append(extract_sig_entries(rdm))
+            for enh in enh_res:
+                _, ed = enh
+                _, edm, _ = ed
+                if not edm is None:
+                    cur.append(extract_sig_entries(edm[:-1,:-1]))
+
+        idx = np.argmin(abs(np.mean(cur, axis=0)))
+        return np.std(cur, axis=0)[idx] / 2
+
     global THRESHOLD
     threshold_list = np.logspace(-4, 0, resolution)
 
-    # compute stdev of difference between reference and embedded 3 node motif
-    cur_diffs = []
-    for raw, enh_res in inp['data']:
-        _, rd = raw
-        _, rdm, _ = rd
-        for enh in enh_res:
-            _, ed = enh
-            _, edm, _ = ed
-            if not edm is None:
-                diff = abs(rdm - edm[:-1,:-1])
-                cur_diffs.extend(diff.ravel())
-    imp_thres = np.std(cur_diffs) / 2
+    # compute sig. thres.
+    imp_thres = find_threshold(inp['data'])
 
     # produce data
     first_data, last_data, std_data = None, None, None
