@@ -468,10 +468,11 @@ def plot_correlation_histogram(motifs, data):
         plotter.plot_histogram(
             corrs, plt.gca(),
             facecolor=next(colors), alpha=0.5,
-            label=lbl)
+            label=lbl, normed=True)
 
     plt.title('Comparison of intensity correlation distributions')
     plt.xlabel('intensity vector correlation')
+    plt.ylabel('frequency')
 
     plt.legend(loc='best')
     plt.tight_layout()
