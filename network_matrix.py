@@ -465,7 +465,7 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
             if not edm is None:
                 diff = abs(rdm - edm[:-1,:-1])
                 cur_diffs.extend(diff.ravel())
-    stdev = np.std(cur_diffs)
+    imp_thres = np.std(cur_diffs) / 2
 
     # produce data
     first_data, last_data, std_data = None, None, None
@@ -482,7 +482,7 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
             first_data = data
         if thres == threshold_list[-1]:
             last_data = data
-        if thres >= stdev and std_data is None:
+        if thres >= imp_thres and std_data is None:
             std_data = data
 
         mat_res = np.sum(data[data>0])
@@ -503,10 +503,10 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
     plt.plot(*zip(*z_vec), 'o', color='red')
 
     plt.axvspan(
-        xmin=1e-6, xmax=stdev,
+        xmin=1e-6, xmax=imp_thres,
         alpha=0.1, color='blue')
-    plt.annotate('correlation stdev ({:.02})'.format(stdev),
-        xy=(stdev, .03), xycoords='data',
+    plt.annotate('half the correlation stdev ({:.02})'.format(imp_thres),
+        xy=(imp_thres, .025), xycoords='data',
         xytext=(50, 20), textcoords='offset points',
         arrowprops=dict(arrowstyle='->'))
 
