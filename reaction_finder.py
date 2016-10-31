@@ -902,16 +902,30 @@ def find_small_motifs(
     # random compounds for comparison
     unrelated_nodes = []
 
+    # only use MZ values from motifs
+    mzs = []
+    for trip in motifs:
+        for c in trip:
+            mzs.append(comps[c]['mass'])
+    max_mz = max(mzs)
+    min_mz = min(mzs)
+
+    nodes = []
+    for n in graph.nodes():
+        if n is None: continue
+        if comps[n]['mass'] > min_mz and comps[n]['mass'] < max_mz:
+            nodes.append(n)
+
     es = lambda f, s: len(f.intersection(s)) == 0 # check for empty set intersection
     while len(unrelated_nodes) < len(motifs):
         # *blargh*
-        first = np.random.choice(graph.nodes())
-        second = np.random.choice(graph.nodes())
+        first = np.random.choice(nodes)
+        second = np.random.choice(nodes)
         while not es(get_origin_set(second, comps), get_origin_set(first, comps)):
-            second = np.random.choice(graph.nodes())
-        third = np.random.choice(graph.nodes())
+            second = np.random.choice(nodes)
+        third = np.random.choice(nodes)
         while not es(get_origin_set(third, comps), get_origin_set(first, comps)) or not es(get_origin_set(third, comps), get_origin_set(second, comps)):
-            third = np.random.choice(graph.nodes())
+            third = np.random.choice(nodes)
 
         th = (first, second, third)
         if not th in unrelated_nodes:
