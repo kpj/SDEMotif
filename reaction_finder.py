@@ -455,14 +455,16 @@ def plot_correlation_histogram(motifs, data):
         # compute correlations
         corrs = []
         for cs in tqdm(m):
+            cur_corrs = []
             for c1 in cs:
                 for c2 in cs:
                     if c1 == c2: break
-                    # compute correlations
                     for i, int1 in enumerate(data[c1]['intensities']):
                         for j, int2 in enumerate(data[c2]['intensities']):
                             cc, _ = scis.pearsonr(int1, int2)
-                            corrs.append(cc)
+                            cur_corrs.append(cc)
+            #corrs.append(max(cur_corrs, key=abs))
+            corrs.extend(cur_corrs)
 
         # plot
         plotter.plot_histogram(
