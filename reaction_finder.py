@@ -532,7 +532,7 @@ def plot_result(motifs, data, fname_app='', sub_num=10):
     plt.tight_layout()
     plotter.save_figure('images/rl_corr_hist{}.pdf'.format(fname_app), bbox_inches='tight')
 
-def find_optimal_assignments(motifs, initial_compound_names):
+def find_optimal_assignments(motifs, data, initial_compound_names=[]):
     """ Find optimal compound assignments by (weighted) randomly selecting
         motifs of low initial assignment number and choose assignments
         which maximize intensity correlation coefficients.
@@ -553,11 +553,10 @@ def find_optimal_assignments(motifs, initial_compound_names):
     """
     # find assignments
     def get_assignment_number(entry):
-        c1, c2, c3, ints, info = entry
-        return len(ints[c1]) * len(ints[c2]) * len(ints[c3])
+        c1, c2, c3 = entry
+        return len(data[c1]['intensities']) * len(data[c2]['intensities']) * len(data[c2]['intensities'])
 
     def assign(motifs):
-        info_all = {}
         assignments = {}
         single_assignment_names = []
 
@@ -572,7 +571,13 @@ def find_optimal_assignments(motifs, initial_compound_names):
             idx = np.random.choice(range(size), 1, p=probs)
             entry = sorted_motifs[idx[0]]
             sorted_motifs.remove(entry)
-            c1, c2, c3, ints, info = entry
+
+            c1, c2, c3 = entry
+            ints = {
+                c1: data[c1]['intensities'],
+                c2: data[c2]['intensities'],
+                c3: data[c3]['intensities']
+            }
 
             # process motif
             comps = c1, c2, c3
@@ -580,7 +585,6 @@ def find_optimal_assignments(motifs, initial_compound_names):
             #    len(ints[c1]), len(ints[c2]), len(ints[c3]),
             #    len(ints[c1])*len(ints[c2])*len(ints[c3]))
 
-            info_all.update(info)
 
             # single matches
             for c in comps:
@@ -633,7 +637,7 @@ def find_optimal_assignments(motifs, initial_compound_names):
                             continue
                         else:
                             assignments[c] = ints[c][idx]
-        return assignments, info_all, single_assignment_names
+        return assignments, single_assignment_names
 
     def plot_assignments(assignments, ax):
         colors = []
@@ -642,7 +646,7 @@ def find_optimal_assignments(motifs, initial_compound_names):
         values_other = []
 
         for i, (name, ints) in enumerate(assignments.items()):
-            mz = info_all[name]['mass']
+            mz = data[name]['mass']
 
             if name in initial_compound_names:
                 values_initial.append(mz)
@@ -667,11 +671,11 @@ def find_optimal_assignments(motifs, initial_compound_names):
         ax.yaxis.set_major_locator(plt.NullLocator())
 
     # plots
-    N = 10
+    N = 2
     f, axes = plt.subplots(N, 1, figsize=(9,9))
 
     for ax in axes:
-        assignments, info_all, single_assignment_names = assign(motifs)
+        assignments, single_assignment_names = assign(motifs)
 
         for c, ints in assignments.items():
             if c != 'Hexose': continue
@@ -903,6 +907,10 @@ def find_small_motifs(
         motifs.append(cs)
 
     print('Found {} motifs'.format(len(motifs)))
+
+    # conduct predictions
+    print('Predicting')
+    find_optimal_assignments(motifs, comps)
 
     ## plot stuff
     print('Plotting')
