@@ -670,11 +670,27 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
 
         ax.yaxis.set_major_locator(plt.NullLocator())
 
+        ax.set_xlabel('MZ')
+        ax.legend(loc='best')
+
+    def plot_correlations(assignments, ax):
+        corrs = []
+        for cs in motifs:
+            for c1 in cs:
+                for c2 in cs:
+                    if c1 == c2: break
+                    cc, _ = scis.pearsonr(assignments[c1], assignments[c2])
+                    corrs.append(cc)
+
+        plotter.plot_histogram(
+            corrs, ax,
+            facecolor='blue', alpha=0.5)
+
     # plots
     N = 2
-    f, axes = plt.subplots(N, 1, figsize=(9,9))
+    f, axes = plt.subplots(N, 2, figsize=(15,9))
 
-    for ax in axes:
+    for i in range(N):
         assignments, single_assignment_names = assign(motifs)
 
         for c, ints in assignments.items():
@@ -682,10 +698,8 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
 
             print(c, sum(ints))
 
-        plot_assignments(assignments, ax)
-
-    plt.xlabel('MZ')
-    plt.legend(loc='best')
+        plot_assignments(assignments, axes[i,0])
+        plot_correlations(assignments, axes[i,1])
 
     plt.tight_layout()
     plotter.save_figure('images/assignments.pdf', bbox_inches='tight')
