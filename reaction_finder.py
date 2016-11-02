@@ -812,13 +812,19 @@ def find_more_motifs(motifs, all_compounds, reaction_data, fname='results/post_m
 
     return more_motifs
 
-def plot_mz_distribution(data, fname='data/peaklist_filtered_assigned.csv'):
+def plot_mz_distribution(motifs, data, fname='data/peaklist_filtered_assigned.csv'):
     """ Plot MZ values of data and highlight real-life entries
     """
+    # create set of motifs
+    comp_in_motif = set(itertools.chain(*motifs))
+
     # aggregate data
     mzs = []
     single_matches = []
     for name, info in data.items():
+        if not name in comp_in_motif:
+            continue
+
         mz = info['mass']
         mzs.append(mz)
 
@@ -834,12 +840,12 @@ def plot_mz_distribution(data, fname='data/peaklist_filtered_assigned.csv'):
 
     for mz, _ in peak_data.items():
         plt.axvline(mz, color='red', alpha=0.03)
-    #for mz in single_matches:
-    #    plt.axvline(mz, color='green', alpha=0.06)
+    for mz in single_matches:
+        plt.axvline(mz, color='green', alpha=0.02)
 
     plt.xlabel('MZ value')
     plt.ylabel('count')
-    plt.title('MZ histogram of all generated products')
+    plt.title('MZ histogram of motif compounds')
 
     plt.tight_layout()
     plotter.save_figure('images/rl_mz_hist.pdf', bbox_inches='tight')
@@ -900,7 +906,7 @@ def find_small_motifs(
 
     ## plot stuff
     print('Plotting')
-    plot_mz_distribution(comps)
+    plot_mz_distribution(motifs, comps)
 
     # random compounds for comparison
     unrelated_nodes = []
