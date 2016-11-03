@@ -467,10 +467,7 @@ def plot_correlation_histogram(motifs, data):
             corrs.extend(cur_corrs)
 
         # plot
-        plotter.plot_histogram(
-            corrs, plt.gca(),
-            facecolor=next(colors), alpha=0.5,
-            label=lbl, normed=True)
+        sns.kdeplot(np.asarray(corrs), label=lbl)
 
     plt.title('Comparison of intensity correlation distributions')
     plt.xlabel('intensity vector correlation')
