@@ -83,7 +83,7 @@ def generate_data(fname, two_nodes=False, paramter_shift=10):
     if two_nodes:
         gen_func = generate_two_node_system
     else:
-        gun_func = generate_basic_system
+        gen_func = generate_basic_system
 
     # iterate over parameter configurations and simulate system accordingly
     rows = []
@@ -153,7 +153,7 @@ def main():
         print('Usage: %s <data file>' % sys.argv[0])
         exit(-1)
 
-    generate_data(sys.argv[1], two_nodes=True)
+    generate_data(sys.argv[1], two_nodes=False)
     #generate_random_data(sys.argv[1])
 
 if __name__ == '__main__':
