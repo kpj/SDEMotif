@@ -498,6 +498,12 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
     print('Data shape:', data.shape)
     total_num = data[data>=0].size * 3
 
+    # compute AUC of values right of threshold
+    t_vals = [t for t,m in pairs if t >= imp_thres]
+    m_vals = [m/total_num for t,m in pairs if t >= imp_thres]
+    area = np.trapz(m_vals, x=t_vals)
+    print(area, 1/area)
+
     # plot result
     value_func_name = value_func.__name__[4:]
 
