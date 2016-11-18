@@ -7,6 +7,7 @@ import sys
 import copy
 import pickle
 import itertools
+from multiprocessing import Pool, cpu_count
 
 import numpy as np
 import numpy.random as npr
@@ -87,18 +88,22 @@ def generate_data(fname, two_nodes=False, paramter_shift=10):
 
     # iterate over parameter configurations and simulate system accordingly
     rows = []
+    configurations = []
     for k_m in tqdm(param_range):
         for k_23 in tqdm(param_range):
             syst = gen_func(k_m=k_m, k_23=k_23)
             more = add_node_to_system(syst)
 
-            res = handle_systems(syst, more)
-            if not res is None:
-                rows.append(res)
+            configurations.append((syst, more))
 
         # only one parameter to vary in case of two nodes
         if two_nodes:
             break
+
+    resolution = int(cpu_count() * 3/4)
+    with Pool(resolution) as p:
+        rows = p.starmap(handle_systems, configurations)
+    rows = [r for r in rows if not r is None]
 
     # store matrix
     with open(fname, 'wb') as fd:
