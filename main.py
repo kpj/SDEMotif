@@ -68,7 +68,9 @@ def main(fname):
     """
     if os.path.isfile(fname):
         systems = load_systems(fname)
-        print('Integrating %d systems' % systems.size)
+        if systems.ndim == 0:
+            systems = [np.asscalar(systems)]
+        print('Integrating %d systems' % len(systems))
 
         core_num = int(multiprocessing.cpu_count() * 4/5)
         print('Using %d cores' % core_num)
