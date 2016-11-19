@@ -437,20 +437,9 @@ def handle_input_spec(inp, spec):
     data, xticks, yticks = preprocess_data(inp['data'], vfunc, [sfunc])
     print(data[slc_row, slc_col])
 
-def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
-    """ Investigate influence of threshold
+def test_thresholds(data, value_func=get_sign_changes, resolution=500):
+    """ Compute sign-change frequency for range of thresholds
     """
-    def plot_matrix(data):
-        plt.tick_params(
-            axis='both', which='both', labelleft='off',
-            bottom='off', top='off', labelbottom='off', left='off', right='off')
-
-        plt.imshow(
-            data,
-            interpolation='nearest', cmap=get_matrix_cmap(),
-            vmin=0, vmax=3)
-        plt.colorbar(ticks=range(np.max(data)+1), extend='min')
-
     def find_threshold(data):
         """ Use std/2 of correlation distribution closest to 0 (most likely) to switch sign as detection threshold
         """
@@ -468,49 +457,70 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
         idx = np.argmin(abs(np.mean(cur, axis=0)))
         return np.std(cur, axis=0)[idx] / 2
 
-    global THRESHOLD
-    threshold_list = np.logspace(-4, 0, resolution)
 
-    # compute sig. thres.
-    imp_thres = find_threshold(inp['data'])
+    global THRESHOLD
+    threshold_list = np.logspace(-5, 0, resolution)
 
     # produce data
-    first_data, last_data, std_data = None, None, None
+    #first_data, last_data, std_data = None, None, None
     pairs = []
     for thres in tqdm(threshold_list):
         THRESHOLD = thres
 
-        data = []
-        for raw, enh_res in inp['data']: # for each parameter configuration
-            data.append([handle_enh_entry(raw, enh, value_func) for enh in enh_res])
-        data = np.array(data)
+        cur = []
+        for raw, enh_res in data: # for each parameter configuration
+            cur.append([handle_enh_entry(raw, enh, value_func) for enh in enh_res])
+        cur = np.array(cur)
 
-        if thres == threshold_list[0]:
-            first_data = data
-        if thres == threshold_list[-1]:
-            last_data = data
-        if thres >= imp_thres and std_data is None:
-            std_data = data
+        #if thres == threshold_list[0]:
+        #    first_data = cur
+        #if thres == threshold_list[-1]:
+        #    last_data = cur
+        #if thres >= imp_thres and std_data is None:
+        #    std_data = cur
 
-        mat_res = np.sum(data[data>0])
+        mat_res = np.sum(cur[cur>0])
         pairs.append((thres, mat_res))
 
-    print('Data shape:', data.shape)
-    total_num = data[data>=0].size * 3
+    print('Data shape:', cur.shape)
+    total_num = cur[cur>=0].size * 3
+    pairs = [(t,m/total_num) for t,m in pairs]
 
     # compute AUC of values right of threshold
+    imp_thres = find_threshold(data)
+
     t_vals = [t for t,m in pairs if t >= imp_thres]
-    m_vals = [m/total_num for t,m in pairs if t >= imp_thres]
+    m_vals = [m for t,m in pairs if t >= imp_thres]
     area = np.trapz(m_vals, x=t_vals)
-    print(area, 1/area)
+    print('AUC:', area)
+
+    return pairs, area, imp_thres
+
+def threshold_influence(inp, value_func=get_sign_changes, resolution=500):
+    """ Investigate influence of threshold
+    """
+    def plot_matrix(data):
+        plt.tick_params(
+            axis='both', which='both', labelleft='off',
+            bottom='off', top='off', labelbottom='off', left='off', right='off')
+
+        plt.imshow(
+            data,
+            interpolation='nearest', cmap=get_matrix_cmap(),
+            vmin=0, vmax=3)
+        plt.colorbar(ticks=range(np.max(data)+1), extend='min')
+
+    # produce data
+    pairs, area, imp_thres = test_thresholds(
+        np.asarray(inp['data']), value_func=value_func, resolution=resolution)
 
     # plot result
     value_func_name = value_func.__name__[4:]
 
     plt.figure()
 
-    nz_vec = [(t, m/total_num) for t,m in pairs if m>0]
-    z_vec = [(t, m/total_num) for t,m in pairs if m<=0]
+    nz_vec = [(t, m) for t,m in pairs if m>0]
+    z_vec = [(t, m) for t,m in pairs if m<=0]
 
     plt.plot(*zip(*nz_vec), 'o')
     plt.plot(*zip(*z_vec), 'o', color='red')
@@ -531,14 +541,14 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
     # inside plots
     plt.style.use('default')
 
-    ax = plt.axes([0.1, 0.5, .2, .2])
-    plot_matrix(first_data)
+    #ax = plt.axes([0.1, 0.5, .2, .2])
+    #plot_matrix(first_data)
 
-    ax = plt.axes([0.7, 0.4, .2, .2])
-    plot_matrix(last_data)
+    #ax = plt.axes([0.7, 0.4, .2, .2])
+    #plot_matrix(last_data)
 
-    ax = plt.axes([0.4, 0.2, .2, .2])
-    plot_matrix(std_data)
+    #ax = plt.axes([0.4, 0.2, .2, .2])
+    #plot_matrix(std_data)
 
     # save result
     save_figure('images/threshold_influence_{}.pdf'.format(value_func_name), bbox_inches='tight')
