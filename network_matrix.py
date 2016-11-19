@@ -516,7 +516,7 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=100):
     plt.plot(*zip(*z_vec), 'o', color='red')
 
     plt.axvspan(
-        xmin=1e-6, xmax=imp_thres,
+        xmin=min([t for t,m in pairs]), xmax=imp_thres,
         alpha=0.1, color='blue')
     plt.annotate('half the correlation stdev ({:.02})'.format(imp_thres),
         xy=(imp_thres, .025), xycoords='data',
