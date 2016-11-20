@@ -13,7 +13,8 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 
 import seaborn as sns
 import matplotlib as mpl
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 from tqdm import tqdm
 
@@ -482,6 +483,9 @@ def test_thresholds(data, value_func=get_sign_changes, resolution=500):
         mat_res = np.sum(cur[cur>0])
         pairs.append((thres, mat_res))
 
+    if cur.size == 0:
+        return None, None, None
+
     print('Data shape:', cur.shape)
     total_num = cur[cur>=0].size * 3
     pairs = [(t,m/total_num) for t,m in pairs]
@@ -522,7 +526,8 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=500):
     nz_vec = [(t, m) for t,m in pairs if m>0]
     z_vec = [(t, m) for t,m in pairs if m<=0]
 
-    plt.plot(*zip(*nz_vec), 'o')
+    if len(nz_vec) > 0:
+        plt.plot(*zip(*nz_vec), 'o')
     plt.plot(*zip(*z_vec), 'o', color='red')
 
     plt.axvspan(
@@ -553,18 +558,80 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=500):
     # save result
     save_figure('images/threshold_influence_{}.pdf'.format(value_func_name), bbox_inches='tight')
 
+def plot_motif_overview(prefix):
+    # get data
+    data = {}
+    pref_dir = os.path.dirname(prefix)
+    for fn in os.listdir(pref_dir):
+        if fn.startswith(os.path.basename(prefix)):
+            fname = os.path.join(pref_dir, fn)
+            print('>', fname)
+
+            with open(fname, 'rb') as fd:
+                inp = pickle.load(fd)
+
+            motif = inp['data'][0][0][0][0] # *cough*
+            _, area, _ = test_thresholds(inp['data'], resolution=1)
+            if not area is None:
+                data[fn] = {
+                    'idx': int(fn.split('_')[-1]),
+                    'area': area,
+                    'motif': motif
+                }
+
+    # plot data
+    plt.figure()
+    ax = plt.gca()
+
+    motif_idx = []
+    motif_rob = []
+    for k in sorted(data):
+        motif_idx.append(data[k]['idx'])
+        motif_rob.append(data[k]['area'])
+
+    plt.plot(motif_idx, motif_rob, 'o-')
+
+    min_val, max_val = min(motif_idx)-1, max(motif_idx)+1
+    plt.xlim(min_val, max_val)
+
+    # add motif plots
+    # TODO: finish this
+    """axis_to_data = lambda x,y: ax.transData.inverted().transform(ax.transAxes.transform((x,y)))
+    data_to_axis = lambda x,y: ax.transAxes.inverted().transform(ax.transData.transform((x,y)))
+    axis_base, _ = data_to_axis(min_val+1, 0)
+
+    for k in sorted(data):
+        idx = int(k.split('_')[-1])
+        x, _ = data_to_axis(idx, 0)
+        print(idx, x)
+
+        with plt.style.context(('default')):
+            a = plt.axes([axis_base, 0.6, .3, .1])
+            g = nx.from_numpy_matrix(data[k]['motif'].jacobian, create_using=nx.DiGraph())
+            nx.draw(g, ax=a, node_size=60)
+            a.axis('on')
+            a.set_xticks([], [])
+            a.set_yticks([], [])"""
+
+    plt.savefig('images/motifs.pdf')
+
 def main():
     """ Create matrix for various data functions
     """
     if len(sys.argv) == 2:
         fname = sys.argv[1]
-        with open(fname, 'rb') as fd:
-            inp = pickle.load(fd)
 
-        threshold_influence(inp)
-        #threshold_influence(inp, value_func=get_rank_changes)
+        if os.path.exists(fname):
+            with open(fname, 'rb') as fd:
+                inp = pickle.load(fd)
 
-        #handle_plots(inp)
+            threshold_influence(inp)
+            #threshold_influence(inp, value_func=get_rank_changes)
+
+            #handle_plots(inp)
+        else:
+            # assume fname is motif prefix
+            plot_motif_overview(fname)
     elif len(sys.argv) == 3:
         fname = sys.argv[1]
         with open(fname, 'rb') as fd:

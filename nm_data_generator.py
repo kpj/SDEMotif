@@ -7,13 +7,15 @@ import sys
 import copy
 import pickle
 import itertools
+
 from multiprocessing import Pool, cpu_count
+from multiprocessing.pool import ThreadPool
 
 import numpy as np
 import numpy.random as npr
 from tqdm import tqdm, trange
 
-from setup import generate_basic_system, generate_two_node_system
+from setup import generate_basic_system, generate_two_node_system, generate_motifs
 from main import analyze_system
 
 
@@ -70,7 +72,29 @@ def handle_systems(raw, enhanced):
 
     return [(raw_res, raw_res_diff), row]
 
-def generate_data(fname, two_nodes=False, paramter_shift=10):
+def generate_system_data(motif):
+    """ Generate data for a given system
+    """
+    getter = lambda k_m, k_23: motif
+    return generate_data(None, gen_func=getter)
+
+def generate_motif_data(prefix):
+    """ Generate data for all motifs
+    """
+    motifs = generate_motifs()
+    with tqdm(total=len(motifs)) as pbar:
+        resolution = int(cpu_count() * 3/4)
+        with ThreadPool(resolution) as p:
+            for rows in p.map(generate_system_data, motifs):
+                fname = '{}_{}'.format(prefix, pbar.n)
+                with open(fname, 'wb') as fd:
+                    pickle.dump({
+                        'data': rows
+                    }, fd)
+                pbar.update()
+
+
+def generate_data(fname, gen_func=generate_basic_system, paramter_shift=10):
     """ Generate and cache data of the form
         {
             'data': [
@@ -81,11 +105,6 @@ def generate_data(fname, two_nodes=False, paramter_shift=10):
     """
     param_range = np.linspace(0.1, 5, paramter_shift)
 
-    if two_nodes:
-        gen_func = generate_two_node_system
-    else:
-        gen_func = generate_basic_system
-
     # iterate over parameter configurations and simulate system accordingly
     rows = []
     configurations = []
@@ -93,11 +112,10 @@ def generate_data(fname, two_nodes=False, paramter_shift=10):
         for k_23 in param_range:
             syst = gen_func(k_m=k_m, k_23=k_23)
             more = add_node_to_system(syst)
-
             configurations.append((syst, more))
 
         # only one parameter to vary in case of two nodes
-        if two_nodes:
+        if gen_func == generate_two_node_system:
             break
 
     rows = []
@@ -110,12 +128,13 @@ def generate_data(fname, two_nodes=False, paramter_shift=10):
                 pbar.update()
 
     # store matrix
-    with open(fname, 'wb') as fd:
-        pickle.dump({
-            'data': rows,
-            'corr_stdev': np.load('results/corr_stdev.npy')
-        }, fd)
-    os.remove('results/corr_stdev.npy')
+    if not fname is None:
+        with open(fname, 'wb') as fd:
+            pickle.dump({
+                'data': rows
+            }, fd)
+    else:
+        return rows
 
 def generate_random_data(fname, paramter_shift=10):
     """ Generate random data for comparison with experimental one
@@ -162,8 +181,9 @@ def main():
         print('Usage: %s <data file>' % sys.argv[0])
         exit(-1)
 
-    generate_data(sys.argv[1], two_nodes=False)
+    generate_data(sys.argv[1], gen_func=generate_basic_system)
     #generate_random_data(sys.argv[1])
+    #generate_motif_data(sys.argv[1])
 
 if __name__ == '__main__':
     main()
