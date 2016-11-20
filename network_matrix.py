@@ -438,7 +438,7 @@ def handle_input_spec(inp, spec):
     data, xticks, yticks = preprocess_data(inp['data'], vfunc, [sfunc])
     print(data[slc_row, slc_col])
 
-def test_thresholds(data, value_func=get_sign_changes, resolution=500):
+def aggregate_motif_data(data, value_func=get_sign_changes, resolution=500):
     """ Compute sign-change frequency for range of thresholds
     """
     def find_threshold(data):
@@ -515,7 +515,7 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=500):
         plt.colorbar(ticks=range(np.max(data)+1), extend='min')
 
     # produce data
-    pairs, area, imp_thres = test_thresholds(
+    pairs, area, imp_thres = aggregate_motif_data(
         np.asarray(inp['data']), value_func=value_func, resolution=resolution)
 
     # plot result
@@ -571,7 +571,7 @@ def plot_motif_overview(prefix):
                 inp = pickle.load(fd)
 
             motif = inp['data'][0][0][0][0] # *cough*
-            _, area, _ = test_thresholds(inp['data'], resolution=1)
+            _, area, _ = aggregate_motif_data(inp['data'], resolution=1)
             if not area is None:
                 data[fn] = {
                     'idx': int(fn.split('_')[-1]),
