@@ -460,7 +460,10 @@ def aggregate_motif_data(data, value_func=get_sign_changes, resolution=500):
 
 
     global THRESHOLD
-    threshold_list = np.logspace(-5, 0, resolution)
+    threshold_list = np.logspace(-5, 0, resolution-1)
+    imp_thres = find_threshold(data)
+
+    threshold_list = np.array(sorted(np.r_[imp_thres, threshold_list]))
 
     # produce data
     #first_data, last_data, std_data = None, None, None
@@ -491,8 +494,6 @@ def aggregate_motif_data(data, value_func=get_sign_changes, resolution=500):
     pairs = [(t,m/total_num) for t,m in pairs]
 
     # compute AUC of values right of threshold
-    imp_thres = find_threshold(data)
-
     t_vals = [t for t,m in pairs if t >= imp_thres]
     m_vals = [m for t,m in pairs if t >= imp_thres]
     area = np.trapz(m_vals, x=t_vals)
