@@ -590,7 +590,7 @@ def plot_motif_overview(prefix, resolution=500):
 
     # add motif and threshold plots
     for i, k in enumerate(sorted(data)):
-        print('>', fname)
+        print('>', k)
         idx = int(k.split('_')[-1])
 
         # motif
