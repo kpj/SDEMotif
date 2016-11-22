@@ -63,7 +63,7 @@ def cluster_data(data):
     """
     return sorted(data, key=lambda e: np.sum(e[1]))
 
-def main(fname):
+def main(fname, skip_filtered=True):
     """ Main interface
     """
     if os.path.isfile(fname):
@@ -78,13 +78,14 @@ def main(fname):
         data = []
         with tqdm(total=len(systems)) as pbar:
             with multiprocessing.Pool(core_num) as p:
-                for res in p.imap_unordered(analyze_system, systems, chunksize=10):
-                    if not res[1] is None:
+                for res in p.imap(analyze_system, systems, chunksize=10):
+                    if not skip_filtered or not res[1] is None:
                         data.append(res)
                     pbar.update()
         print('Found result for %d systems' % len(data))
 
-        data = cluster_data(data)
+        if not skip_filtered:
+            data = cluster_data(data)
         cache_data(data)
     else:
         syst = system_from_string(fname)
