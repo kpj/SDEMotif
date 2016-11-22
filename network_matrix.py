@@ -501,7 +501,7 @@ def aggregate_motif_data(data, value_func=get_sign_changes, resolution=500):
 
     return pairs, area, imp_thres
 
-def threshold_influence(inp, value_func=get_sign_changes, resolution=500):
+def threshold_influence(inp, ax=None, value_func=get_sign_changes, resolution=500):
     """ Investigate influence of threshold
     """
     def plot_matrix(data):
@@ -523,21 +523,25 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=500):
     value_func_name = value_func.__name__[4:]
 
     plt.figure()
+    if not ax is None:
+        plt.sca(ax)
 
     nz_vec = [(t, m) for t,m in pairs if m>0]
     z_vec = [(t, m) for t,m in pairs if m<=0]
 
     if len(nz_vec) > 0:
         plt.plot(*zip(*nz_vec), 'o')
-    plt.plot(*zip(*z_vec), 'o', color='red')
+    if len(z_vec) > 0:
+        plt.plot(*zip(*z_vec), 'o', color='red')
 
     plt.axvspan(
         xmin=min([t for t,m in pairs]), xmax=imp_thres,
         alpha=0.1, color='blue')
-    plt.annotate('half the correlation stdev ({:.02})'.format(imp_thres),
-        xy=(imp_thres, .025), xycoords='data',
-        xytext=(50, 20), textcoords='offset points',
-        arrowprops=dict(arrowstyle='->'))
+    if ax is None:
+        plt.annotate('half the correlation stdev ({:.02})'.format(imp_thres),
+            xy=(imp_thres, .025), xycoords='data',
+            xytext=(50, 20), textcoords='offset points',
+            arrowprops=dict(arrowstyle='->'))
 
     plt.xscale('log')
     plt.title('Influence of binning threshold on number of {}'.format(value_func_name))
@@ -545,7 +549,7 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=500):
     plt.ylabel('frequency of {}'.format(value_func_name))
 
     # inside plots
-    plt.style.use('default')
+    #plt.style.use('default')
 
     #ax = plt.axes([0.1, 0.5, .2, .2])
     #plot_matrix(first_data)
@@ -557,63 +561,75 @@ def threshold_influence(inp, value_func=get_sign_changes, resolution=500):
     #plot_matrix(std_data)
 
     # save result
-    save_figure('images/threshold_influence_{}.pdf'.format(value_func_name), bbox_inches='tight')
+    if ax is None:
+        save_figure('images/threshold_influence_{}.pdf'.format(value_func_name), bbox_inches='tight')
 
-def plot_motif_overview(prefix):
+    return area
+
+def plot_motif_overview(prefix, resolution=500):
     # get data
     data = {}
     pref_dir = os.path.dirname(prefix)
     for fn in os.listdir(pref_dir):
         if fn.startswith(os.path.basename(prefix)):
             fname = os.path.join(pref_dir, fn)
-            print('>', fname)
 
             with open(fname, 'rb') as fd:
                 inp = pickle.load(fd)
 
             motif = inp['data'][0][0][0][0] # *cough*
-            _, area, _ = aggregate_motif_data(inp['data'], resolution=1)
-            if not area is None:
-                data[fn] = {
-                    'idx': int(fn.split('_')[-1]),
-                    'area': area,
-                    'motif': motif
-                }
+            data[fn] = {
+                'idx': int(fn.split('_')[-1]),
+                'area': None,
+                'motif': motif,
+                'inp': inp
+            }
 
     # plot data
-    plt.figure()
-    ax = plt.gca()
+    gs = mpl.gridspec.GridSpec(3, len(data))
 
+    # add motif and threshold plots
+    for i, k in enumerate(sorted(data)):
+        print('>', fname)
+        idx = int(k.split('_')[-1])
+
+        # motif
+        with plt.style.context(('default')):
+            a = plt.subplot(gs[0,i])
+            g = nx.from_numpy_matrix(data[k]['motif'].jacobian, create_using=nx.DiGraph())
+            nx.draw(
+                g, ax=a, node_size=60,
+                with_labels=True, font_size=4)
+            a.axis('on')
+            a.set_xticks([], [])
+            a.set_yticks([], [])
+
+        # threshold
+        a = plt.subplot(gs[1,i])
+
+        area = threshold_influence(data[k]['inp'], ax=a, resolution=resolution)
+        assert data[k]['area'] is None
+        data[k]['area'] = area
+
+        a.tick_params(labelsize=6)
+        a.xaxis.label.set_size(4)
+        a.yaxis.label.set_size(4)
+        a.title.set_size(4)
+
+    # plot area curve
     motif_idx = []
     motif_rob = []
     for k in sorted(data):
         motif_idx.append(data[k]['idx'])
         motif_rob.append(data[k]['area'])
 
-    plt.plot(motif_idx, motif_rob, 'o-')
+    ax = plt.subplot(gs[2,:])
+    ax.plot(motif_idx, motif_rob, 'o-')
 
     min_val, max_val = min(motif_idx)-1, max(motif_idx)+1
-    plt.xlim(min_val, max_val)
+    ax.set_xlim(min_val, max_val)
 
-    # add motif plots
-    # TODO: finish this
-    """axis_to_data = lambda x,y: ax.transData.inverted().transform(ax.transAxes.transform((x,y)))
-    data_to_axis = lambda x,y: ax.transAxes.inverted().transform(ax.transData.transform((x,y)))
-    axis_base, _ = data_to_axis(min_val+1, 0)
-
-    for k in sorted(data):
-        idx = int(k.split('_')[-1])
-        x, _ = data_to_axis(idx, 0)
-        print(idx, x)
-
-        with plt.style.context(('default')):
-            a = plt.axes([axis_base, 0.6, .3, .1])
-            g = nx.from_numpy_matrix(data[k]['motif'].jacobian, create_using=nx.DiGraph())
-            nx.draw(g, ax=a, node_size=60)
-            a.axis('on')
-            a.set_xticks([], [])
-            a.set_yticks([], [])"""
-
+    plt.tight_layout()
     plt.savefig('images/motifs.pdf')
 
 def main():
