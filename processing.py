@@ -236,9 +236,9 @@ def main(fname, data_step=1):
     data = np.load(fname)[::data_step]
 
     plot_system_overview(data)
-    network_density(data)
-    network_investigations(data)
-    node_degree(data)
+    #network_density(data)
+    #network_investigations(data)
+    #node_degree(data)
 
 
 if __name__ == '__main__':
