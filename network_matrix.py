@@ -586,9 +586,11 @@ def plot_motif_overview(prefix, resolution=500):
             }
 
     # plot data
+    plt.figure(figsize=(20,5))
     gs = mpl.gridspec.GridSpec(3, len(data))
 
     # add motif and threshold plots
+    a_auc = None
     for i, k in enumerate(sorted(data)):
         print('>', k)
         idx = int(k.split('_')[-1])
@@ -603,6 +605,7 @@ def plot_motif_overview(prefix, resolution=500):
             a.axis('on')
             a.set_xticks([], [])
             a.set_yticks([], [])
+            a.set_title(idx)
 
         # threshold
         a = plt.subplot(gs[1,i])
@@ -616,18 +619,10 @@ def plot_motif_overview(prefix, resolution=500):
         a.yaxis.label.set_size(4)
         a.title.set_size(4)
 
-    # plot area curve
-    motif_idx = []
-    motif_rob = []
-    for k in sorted(data):
-        motif_idx.append(data[k]['idx'])
-        motif_rob.append(data[k]['area'])
-
-    ax = plt.subplot(gs[2,:])
-    ax.plot(motif_idx, motif_rob, 'o-')
-
-    min_val, max_val = min(motif_idx)-1, max(motif_idx)+1
-    ax.set_xlim(min_val, max_val)
+        # AUC bar
+        a_auc = plt.subplot(gs[2,i], sharey=a_auc)
+        a_auc.set_xlim((-1,1))
+        a_auc.bar(-.5, data[k]['area'], width=1)
 
     plt.tight_layout()
     plt.savefig('images/motifs.pdf')
