@@ -577,21 +577,20 @@ def plot_motif_overview(prefix, resolution=500):
             with open(fname, 'rb') as fd:
                 inp = pickle.load(fd)
 
-            motif = inp['data'][0][0][0][0] # *cough*
             data[fn] = {
                 'idx': int(fn.split('_')[-1]),
-                'area': None,
-                'motif': motif,
+                'areas': [],
+                'motif': inp['motif'],
                 'inp': inp
             }
 
     # plot data
-    plt.figure(figsize=(20,5))
+    plt.figure(figsize=(25,5))
     gs = mpl.gridspec.GridSpec(3, len(data))
 
     # add motif and threshold plots
     a_auc = None
-    for i, k in enumerate(sorted(data)):
+    for i, k in enumerate(sorted(data, key=lambda x: float(x.split('_')[-1]))):
         print('>', k)
         idx = int(k.split('_')[-1])
 
@@ -610,9 +609,14 @@ def plot_motif_overview(prefix, resolution=500):
         # threshold
         a = plt.subplot(gs[1,i])
 
-        area = threshold_influence(data[k]['inp'], ax=a, resolution=resolution)
-        assert data[k]['area'] is None
-        data[k]['area'] = area
+        for rows in data[k]['inp']['data']:
+            if len(rows) == 0:
+                data[k]['areas'].append(-1)
+                continue
+
+            area = threshold_influence({'data': rows}, ax=a, resolution=resolution)
+            data[k]['areas'].append(area)
+        assert len(data[k]['areas']) == 3, data[k]['areas']
 
         a.tick_params(labelsize=6)
         a.xaxis.label.set_size(4)
@@ -622,7 +626,11 @@ def plot_motif_overview(prefix, resolution=500):
         # AUC bar
         a_auc = plt.subplot(gs[2,i], sharey=a_auc)
         a_auc.set_xlim((-1,1))
-        a_auc.bar(-.5, data[k]['area'], width=1)
+
+        pos, dp = np.linspace(-1, 1, len(data[k]['areas'])+1, retstep=True)
+        for p, a in zip(pos[:-1], data[k]['areas']):
+            if a >= 0:
+                a_auc.bar(p, a, width=dp)
 
     plt.tight_layout()
     plt.savefig('images/motifs.pdf')

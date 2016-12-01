@@ -46,13 +46,19 @@ def generate_motifs():
     k = k_m
 
     def gen(jacobian):
-        external_influence = np.array([v_in, 0, 0])
-        fluctuation_vector = np.array([D, 0, 0])
         initial_state = np.array([1, 1, 1])
 
-        return SDESystem(
-            jacobian, fluctuation_vector,
-            external_influence, initial_state)
+        return [
+            SDESystem(
+                jacobian, [D, 0, 0],
+                [v_in, 0, 0], initial_state),
+            SDESystem(
+                jacobian, [0, D, 0],
+                [0, v_in, 0], initial_state),
+            SDESystem(
+                jacobian, [0, 0, D],
+                [0, 0, v_in], initial_state),
+        ]
 
     jacobians = [
         np.array([

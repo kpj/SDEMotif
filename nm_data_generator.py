@@ -72,11 +72,15 @@ def handle_systems(raw, enhanced):
 
     return [(raw_res, raw_res_diff), row]
 
-def generate_system_data(motif):
+def generate_system_data(motifs_three):
     """ Generate data for a given system
     """
-    getter = lambda k_m, k_23: motif
-    return generate_data(None, gen_func=getter)
+    res = []
+    for motif in motifs_three:
+        getter = lambda k_m, k_23: motif
+        cur = generate_data(None, gen_func=getter)
+        res.append(cur)
+    return (getter(1,1), res)
 
 def generate_motif_data(prefix):
     """ Generate data for all motifs
@@ -85,11 +89,12 @@ def generate_motif_data(prefix):
     with tqdm(total=len(motifs)) as pbar:
         resolution = int(cpu_count() * 3/4)
         with ThreadPool(resolution) as p:
-            for rows in p.map(generate_system_data, motifs):
+            for motif, rows_three in p.map(generate_system_data, motifs):
                 fname = '{}_{}'.format(prefix, pbar.n)
                 with open(fname, 'wb') as fd:
                     pickle.dump({
-                        'data': rows
+                        'data': rows_three,
+                        'motif': motif
                     }, fd)
                 pbar.update()
 
