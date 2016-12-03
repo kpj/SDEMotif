@@ -632,6 +632,11 @@ def plot_motif_overview(prefix, resolution=500):
             if a >= 0:
                 a_auc.bar(p, a, width=dp)
 
+                lbl = '{:0.1e}'.format(a)
+                a_auc.text(
+                    p+dp/2, a, lbl,
+                    ha='center', va='bottom', fontsize=5)
+
     plt.tight_layout()
     plt.savefig('images/motifs.pdf')
 
