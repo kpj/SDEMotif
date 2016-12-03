@@ -11,12 +11,13 @@ import numpy as np
 from tqdm import tqdm
 
 import matplotlib.pylab as plt
+from matplotlib import gridspec
 
 from setup import load_systems, system_from_string
 from solver import solve_system
 from utils import compute_correlation_matrix, cache_data
 from filters import filter_steady_state
-from plotter import plot_system_evolution
+from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evolution
 
 
 def analyze_system(
@@ -89,14 +90,23 @@ def main(fname, skip_filtered=True):
         cache_data(data)
     else:
         syst = system_from_string(fname)
-        syst, mat, sol = analyze_system(syst, plot_hist=True)
+        syst, mat, sol = analyze_system(syst, use_ode_sde_diff=False)
         if mat is None:
             print('No sensible steady-state found')
         else:
             print(mat)
-        plot_system_evolution(sol, plt.gca())
-        plt.show()
 
+        fig = plt.figure(figsize=(20, 6))
+        gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 2])
+        plt.style.use('seaborn-poster')
+
+        plot_system(syst, plt.subplot(gs[0, 0]))
+        plot_corr_mat(mat, plt.subplot(gs[0, 1]))
+        plot_system_evolution(sol, plt.subplot(gs[0, 2]))
+
+        plt.tight_layout()
+        save_figure('images/single_case.pdf', bbox_inches='tight', dpi=300)
+        plt.close()
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
