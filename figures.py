@@ -88,8 +88,8 @@ def configuration_overview(func, fname, draw_all=True):
                 func(m, plt.subplot(gs[i, j+2]))
 
     if draw_all:
-        fig.text(0.5, 0.04, 'varied embedding', ha='center')
-    fig.text(0.085, 0.5, 'varied parameters', va='center', rotation='vertical')
+        fig.text(0.5, 0.04, 'varied embedding', ha='center', fontsize=20)
+    fig.text(0.085, 0.5, 'varied parameters', va='center', rotation='vertical', fontsize=20)
 
     plt.savefig('presentation/images/overview_{}.pdf'.format(fname))
 
