@@ -2,7 +2,9 @@
 Clean pipeline of robustness detection
 """
 
-from typing import Tuple
+import sys
+import pickle
+from typing import Tuple, List
 
 import numpy as np
 import pandas as pd
@@ -31,7 +33,7 @@ def compare_distributions(dis1: np.ndarray, dis2: np.ndarray, thres: float) -> f
 
     return n_1p * n_2m * (n_2m - n_1m) + n_1m * n_2p * (n_2p - n_1p)
 
-def initial_tests(n=1000: int) -> None:
+def initial_tests(n: int = 1000) -> None:
     """ Conduct some initial tests with robustness measure
     """
     dis_3_x = -.08
@@ -61,11 +63,53 @@ def initial_tests(n=1000: int) -> None:
 
     plt.savefig('images/robustness_development.pdf')
 
-def main() -> None:
+def handle_enh_entry(raw, enh, thres: float) -> float:
+    """ Compare distribution from given simulation results
+    """
+    return 1
+
+def threshold_influence(data: List, resolution: int = 5) -> None:
+    """ Plot robustness for varying threshold levels
+    """
+    threshold_list = np.logspace(-5, 0, resolution-1)
+
+    # generate data
+    df = pd.DataFrame()
+    for thres in tqdm(threshold_list):
+        cur = []
+        for raw, enh_res in data:
+            res = [handle_enh_entry(raw, enh, thres) for enh in enh_res]
+            cur.append(res)
+        df = df.append({
+            'threshold': thres,
+            'robustness': np.sum(cur)
+        }, ignore_index=True)
+
+    # plot data
+    plt.figure()
+
+    df.plot(
+        'threshold', 'robustness',
+        kind='scatter', loglog=True,
+        ax=plt.gca())
+
+    plt.savefig('images/threshold_influence.pdf')
+
+def main(fname) -> None:
+    with open(fname, 'rb') as fd:
+        inp = pickle.load(fd)
+
+    threshold_influence(np.asarray(inp['data']))
+
+if __name__ == '__main__':
     sns.set_style('white')
     plt.style.use('seaborn-poster')
 
-    initial_tests()
-
-if __name__ == '__main__':
-    main()
+    if len(sys.argv) == 1:
+        print('No arguments given, running tests')
+        initial_tests()
+    elif len(sys.argv) == 2:
+        main(sys.argv[1])
+    else:
+        print('Usage: {} [data file]'.format(sys.argv[0]))
+        exit(-1)
