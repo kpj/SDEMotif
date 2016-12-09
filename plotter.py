@@ -99,7 +99,7 @@ def plot_corr_mat(corr_mat, ax, show_values=True, labels=None):
             val = round(corr_mat[i, j], 2)
             ax.text(i, j, val, va='center', ha='center')
 
-def plot_system(system, ax):
+def plot_system(system, ax, netx_plot=False):
     """ Plot network specified by Jacobian of system
     """
     J = system.jacobian
@@ -115,25 +115,39 @@ def plot_system(system, ax):
                 graph.add_edge(j, i, label=round(J[i, j], 2))
 
     # mark external input
-    for i, inp in enumerate(system.external_influence):
-        if inp != 0:
-            graph.add_node('ext_inp_%d' % i, style='invis')
-            graph.add_edge(
-                'ext_inp_%d' % i, i,
-                color='"black:white:black"',
-                label=round(inp, 2)) # "" are required
+    if not netx_plot:
+        for i, inp in enumerate(system.external_influence):
+            if inp != 0:
+                graph.add_node('ext_inp_%d' % i, style='invis')
+                graph.add_edge(
+                    'ext_inp_%d' % i, i,
+                    color='"black:white:black"',
+                    label=round(inp, 2)) # "" are required
 
     # mark fluctuating nodes
     for i, fluc in enumerate(system.fluctuation_vector):
         if fluc != 0:
             graph.node[i]['shape'] = 'doublecircle'
 
-    pydot_graph = nx.nx_pydot.to_pydot(graph)
-    png_str = pydot_graph.create_png(prog=['dot', '-Gdpi=300'])
-    img = mpimg.imread(io.BytesIO(png_str))
+    # plot result
+    if netx_plot:
+        pos = nx.shell_layout(graph)
+        nx.draw_networkx_nodes(graph, pos, ax=ax, node_size=140)
+        nx.draw_networkx_edges(graph, pos, ax=ax)
+        nx.draw_networkx_edge_labels(
+            graph, pos, ax=ax,
+            edge_labels={(u,v):data['label'] for u,v,data in graph.edges_iter(data=True)})
 
-    ax.imshow(img, aspect='equal')
-    ax.axis('off')
+        ax.axis('on')
+        ax.set_xticks([], [])
+        ax.set_yticks([], [])
+    else:
+        pydot_graph = nx.nx_pydot.to_pydot(graph)
+        png_str = pydot_graph.create_png(prog=['dot', '-Gdpi=300'])
+        img = mpimg.imread(io.BytesIO(png_str))
+
+        ax.imshow(img, aspect='equal')
+        ax.axis('off')
 
 def plot_histogram(data, ax, bins=200, **kwargs):
     """ Plot histogram of data on given axis
