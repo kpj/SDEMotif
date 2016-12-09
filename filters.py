@@ -6,7 +6,7 @@ An entry is filtered if a filter returns True
 import numpy as np
 
 
-def filter_steady_state(ss, filter_mask, min_thres=1e-10, min_inc=1):
+def filter_steady_state(ss, filter_mask=None, min_thres=1e-10, min_inc=1):
     """ Discard steady states which are trivial (~= `min_thres`) or diverge (differences increase by at least `min_inc`)
     """
     fss = np.copy(ss)
