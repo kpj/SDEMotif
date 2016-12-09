@@ -7,16 +7,18 @@ from itertools import cycle
 
 import numpy as np
 
+import seaborn as sns
 import matplotlib as mpl
 import matplotlib.pylab as plt
 
 from tqdm import tqdm, trange
 
 from utils import extract_sig_entries, compute_correlation_matrix
-from plotter import plot_histogram, plot_system, save_figure
+from plotter import plot_histogram, plot_system, save_figure, plot_system_evolution
 from setup import generate_basic_system
-from solver import solve_system
+from main import analyze_system
 from nm_data_generator import add_node_to_system
+from filters import filter_steady_state
 
 
 def plot_correlation_hist(data):
@@ -115,48 +117,60 @@ def check_ergodicity(reps=500):
     plt.tight_layout()
     plt.savefig('images/ergodicity_check.pdf')
 
-def single_corr_coeff_hist(reps=5000):
-    """ Plot distribution of single correlation coefficients
+def single_corr_coeff_hist(reps=200):
+    """ Plot distribution of single correlation coefficients for various parameters
     """
-    def do(syst, ax):
-        # data
-        single_run_matrices = []
-        for _ in trange(reps):
-            sol = solve_system(syst)
+    def do(gs, res):
+        param_range = np.linspace(.1, 5, res)
+        currow = 0
+        for k_m in tqdm(param_range):
+            for k_23 in tqdm(param_range):
+                syst = generate_basic_system(k_m=k_m, k_23=k_23)
 
-            sol_extract = sol.T[int(len(sol.T)*3/4):]
-            single_run_mat = compute_correlation_matrix(np.array([sol_extract]))
+                single_run_matrices = []
+                for r in trange(reps):
+                    _,mat,sol = analyze_system(syst, repetition_num=1)
+                    if mat is None:
+                        continue
 
-            if single_run_mat.shape == (4, 4):
-                single_run_mat = single_run_mat[:-1,:-1]
-            assert single_run_mat.shape == (3, 3)
+                    sol_extract = sol.T[int(len(sol.T)*3/4):]
 
-            single_run_matrices.append(single_run_mat)
-        single_run_matrices = np.asarray(single_run_matrices)
+                    if r == 0:
+                        plot_system_evolution(
+                            sol_extract.T,
+                            plt.subplot(gs[currow,2]), show_legend=False)
 
-        # plotting
-        cols = cycle(['b', 'r', 'g', 'c', 'm', 'y', 'k'])
-        for i, row in enumerate(single_run_matrices.T):
-            for j, series in enumerate(row):
-                if i == j: break
-                plot_histogram(
-                    series[series!=1], ax,
-                    label=r'$c_{{{},{}}}$'.format(i,j),
-                    facecolor=next(cols), alpha=0.5,
-                    bins=100)
-        ax.legend(loc='best')
+                    single_run_mat = compute_correlation_matrix(np.array([sol_extract]))
 
-    # data
-    syst = generate_basic_system()
-    more = add_node_to_system(syst)[::10]
-    print('#more', len(more))
+                    if single_run_mat.shape == (4, 4):
+                        single_run_mat = single_run_mat[:-1,:-1]
+                    assert single_run_mat.shape == (3, 3)
 
-    # plot
-    f, axes = plt.subplots(1+len(more), 2, figsize=(9,20))
+                    single_run_matrices.append(single_run_mat)
 
-    for i, m in tqdm(enumerate([syst]+more), total=1+len(more)):
-        plot_system(m, axes[i,0])
-        do(m, axes[i,1])
+                plot_system(syst, plt.subplot(gs[currow,0]))
+
+                single_run_matrices = np.asarray(single_run_matrices)
+                for i, row in enumerate(single_run_matrices.T):
+                    for j, series in enumerate(row):
+                        if i == j: break
+
+                        ax = plt.subplot(gs[currow,1])
+                        sns.distplot(series, ax=ax, label=r'$c_{{{},{}}}$'.format(i,j))
+                        ax.set_xlim((-1,1))
+
+                currow += 1
+
+    # generate plots
+    res = 3
+
+    plt.figure(figsize=(20,30))
+    gs = mpl.gridspec.GridSpec(res**2, 3, width_ratios=[1,1,2])
+
+    sns.set_style('white')
+    plt.style.use('seaborn-poster')
+
+    do(gs, res)
 
     plt.tight_layout()
     save_figure('images/correlation_distribution.pdf', bbox_inches='tight')
