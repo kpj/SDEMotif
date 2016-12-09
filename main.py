@@ -21,7 +21,7 @@ from plotter import save_figure, plot_system, plot_corr_mat, plot_system_evoluti
 
 
 def analyze_system(
-    system, repetition_num=100,
+    system, repetition_num=100, tmax=100,
     filter_trivial_ss=True, filter_mask=None,
     plot_hist=False, save_stdev=None,
     use_ode_sde_diff=True
@@ -36,9 +36,9 @@ def analyze_system(
 
     ss_data = []
     for _ in range(repetition_num):
-        sde_sol = solve_system(system, tmax=100)
+        sde_sol = solve_system(system, tmax=tmax)
         if use_ode_sde_diff:
-            ode_sol = solve_system(ode_system, tmax=100)
+            ode_sol = solve_system(ode_system, tmax=tmax)
 
         if use_ode_sde_diff:
             sol = ode_sol - sde_sol
