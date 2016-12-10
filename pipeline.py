@@ -14,6 +14,7 @@ import scipy.stats as scis
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 from tqdm import tqdm, trange
 
@@ -44,31 +45,57 @@ def compare_distributions(dis1: np.ndarray, dis2: np.ndarray, thres: float) -> f
 def initial_tests(n: int = 1000) -> None:
     """ Conduct some initial tests with robustness measure
     """
-    dis_3_x = -.08
-    dis_3 = np.random.normal(dis_3_x, 0.1, size=n)
+    get_dis = lambda x: np.random.normal(x, 0.1, size=n)
 
-    # generate data
-    thresholds = np.logspace(-4, -1, 15)
-    data = {t: [] for t in thresholds}
-    data.update({'x': []})
-    for x in tqdm(np.linspace(-1, 1, 100)):
-        dis_4 = np.random.normal(x, 0.1, size=n)
+    thresholds = np.logspace(-4, -1, 10)
+    x_space = np.linspace(-1, 1, 100)
 
-        data['x'].append(x)
-        for t in thresholds:
-            rob = compare_distributions(dis_3, dis_4, t)
-            data[t].append(rob)
+    plt.figure()
+    gs = gridspec.GridSpec(2, 2)
 
-    df = pd.DataFrame(data)
-    df.set_index('x', inplace=True)
+    for i, dis_3_x in enumerate([-.08, 0.5]):
+        dis_3 = get_dis(dis_3_x)
 
-    # plot data
-    df.plot(legend=False)
+        # generate data
+        data = {t: [] for t in thresholds}
+        data.update({'x': []})
+        for x in tqdm(x_space):
+            dis_4 = get_dis(x)
 
-    plt.title(r'First distribution: $x={}$'.format(dis_3_x))
-    plt.xlabel('x-pos of second distribution')
-    plt.ylabel('magic quantity')
+            data['x'].append(x)
+            for t in thresholds:
+                rob = compare_distributions(dis_3, dis_4, t)
+                data[t].append(rob)
 
+        df = pd.DataFrame(data)
+        df.set_index('x', inplace=True)
+
+        # plot data
+        ax = plt.subplot(gs[i, 1])
+        df.plot(legend=False, ax=ax)
+
+        ax.set_title(r'First distribution: $x={}$'.format(dis_3_x))
+        ax.set_xlabel('x-pos of second distribution')
+        ax.set_ylabel('magic quantity')
+
+        ax.set_xlim((-1,1))
+        ax.set_ylim((0,1))
+
+        # plot shift overview
+        ax = plt.subplot(gs[i, 0])
+
+        sns.distplot(
+            dis_3, hist_kws=dict(alpha=.2),
+            ax=ax)
+        for x in x_space[::24]:
+            dis_4 = get_dis(x)
+            sns.distplot(
+                dis_4, hist_kws=dict(alpha=.2), kde_kws=dict(alpha=.2),
+                ax=ax, color='gray')
+
+        ax.set_xlim((-1,1))
+
+    plt.tight_layout()
     plt.savefig('images/robustness_development.pdf')
 
 def simulate_systems(raw, enhanced, reps=100):
