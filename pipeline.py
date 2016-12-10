@@ -170,7 +170,8 @@ def generate_data(
         }, fd)
 
 def handle_enh_entry(entry, thres: float) -> float:
-    """ Compare distribution from given simulation results
+    """ Compare distribution from given simulation results.
+        This handles an entry which contains all embeddings per parameter config
     """
     raw_corr_mats = entry['raw_corr_mats']
     enh_corr_mat_list = entry['enh_corr_mat_list']
@@ -192,9 +193,9 @@ def handle_enh_entry(entry, thres: float) -> float:
     #if skipped > 0:
     #    print('Skipped {} enhanced correlation matrices'.format(skipped))
 
-    return np.sum(cur)
+    return np.mean(cur)
 
-def threshold_influence(data: List, resolution: int = 500) -> None:
+def threshold_influence(data: List, resolution: int = 100) -> None:
     """ Plot robustness for varying threshold levels
     """
     threshold_list = np.logspace(-5, 0, resolution-1)
@@ -202,22 +203,23 @@ def threshold_influence(data: List, resolution: int = 500) -> None:
     # generate data
     df = pd.DataFrame()
     for thres in tqdm(threshold_list):
-        cur = []
-        for entry in data:
+        for i, entry in enumerate(data): # iterate over parameter configurations
             res = handle_enh_entry(entry, thres)
-            cur.append(res)
-        df = df.append({
-            'threshold': thres,
-            'robustness': np.sum(cur)
-        }, ignore_index=True)
+            df = df.append({
+                'threshold': thres,
+                'robustness': res,
+                'param_config': i
+            }, ignore_index=True)
+
+    print(df.describe())
 
     # plot data
     plt.figure()
 
-    df.plot(
-        'threshold', 'robustness',
-        kind='scatter', logx=True,
-        ax=plt.gca())
+    sns.tsplot(
+        df,
+        time='threshold', unit='param_config', value='robustness')
+    plt.xscale('log')
 
     plt.savefig('images/threshold_influence.pdf')
 
