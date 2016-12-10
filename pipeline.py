@@ -75,7 +75,7 @@ def initial_tests(n: int = 1000) -> None:
         df.plot(legend=False, ax=ax)
 
         ax.set_title(r'First distribution: $x={}$'.format(dis_3_x))
-        ax.set_xlabel('x-pos of second distribution')
+        ax.set_xlabel(r'$\mu$ of second distribution')
         ax.set_ylabel('magic quantity')
 
         ax.set_xlim((-1,1))
