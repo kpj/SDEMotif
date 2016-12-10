@@ -189,7 +189,7 @@ def threshold_influence(data: List, resolution: int = 500) -> None:
 
     df.plot(
         'threshold', 'robustness',
-        kind='scatter', loglog=True,
+        kind='scatter', logx=True,
         ax=plt.gca())
 
     plt.savefig('images/threshold_influence.pdf')
