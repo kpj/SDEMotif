@@ -20,8 +20,8 @@ from tqdm import tqdm, trange
 
 from solver import solve_system
 from filters import filter_steady_state
-from setup import generate_basic_system
 from nm_data_generator import add_node_to_system
+from setup import generate_basic_system, generate_two_node_system
 
 
 def threshold_div(distr: np.ndarray, thres: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -143,13 +143,13 @@ def generate_data(
 ) -> None:
     """ Generate individual correlation realizations for varying parameters and embeddings
     """
-    param_range = np.linspace(0.1, 5, paramter_shift)
+    param_range = np.linspace(1, 8, paramter_shift)
 
     # generate data
     configurations = []
     for k_m in param_range:
         for k_23 in param_range:
-            syst = gen_func(k_m=k_m, k_23=k_23)
+            syst = gen_func(k_m=k_m/2, k_23=k_23/2)
             more = add_node_to_system(syst)
             configurations.append((syst, more))
 
@@ -176,22 +176,19 @@ def handle_enh_entry(entry, thres: float) -> float:
     raw_corr_mats = entry['raw_corr_mats']
     enh_corr_mat_list = entry['enh_corr_mat_list']
 
+    dim = raw_corr_mats.shape[-1]
+    coords = np.tril_indices(dim, k=-1)
+
     cur = []
-    skipped = 0
-    coords = [(0,1), (0,2), (1,2)]
     for enh_corr_mats in enh_corr_mat_list:
         if enh_corr_mats.size == 0:
-            skipped += 1
             continue
 
-        for i,j in coords:
+        for i,j in zip(*coords):
             dis_3 = raw_corr_mats[:,i,j]
             dis_4 = enh_corr_mats[:,i,j]
             rob = compare_distributions(dis_3, dis_4, thres)
             cur.append(rob)
-
-    #if skipped > 0:
-    #    print('Skipped {} enhanced correlation matrices'.format(skipped))
 
     return np.mean(cur)
 
@@ -254,7 +251,11 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         #initial_tests()
-        generate_data('results/new_data.dat')
+
+        generate_data(
+            'results/new_data_ffl.dat', gen_func=generate_basic_system)
+        generate_data(
+            'results/new_data_link.dat', gen_func=generate_two_node_system)
     elif len(sys.argv) == 2:
         main(sys.argv[1])
     else:
