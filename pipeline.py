@@ -223,10 +223,29 @@ def threshold_influence(data: List, resolution: int = 100) -> None:
 
     plt.savefig('images/threshold_influence.pdf')
 
+def fixed_threshold(data: List) -> float:
+    """ Compute robustness with `thres = \sigma / 2`
+    """
+    robs = []
+    for entry in data:
+        raw_corr_mats = entry['raw_corr_mats']
+
+        # find \sigma of distribution with lowest \mu
+        abs_corr_avg = abs(np.mean(raw_corr_mats, axis=0))
+        min_idx = np.unravel_index(abs_corr_avg.argmin(), abs_corr_avg.shape)
+        series = raw_corr_mats[:,min_idx[0],min_idx[1]] # better indexing?
+        sigmah = np.std(series) / 2
+
+        # handle entry
+        res = handle_enh_entry(entry, sigmah)
+        robs.append(res)
+    return np.mean(robs)
+
 def main(fname) -> None:
     with open(fname, 'rb') as fd:
         inp = pickle.load(fd)
 
+    print(fixed_threshold(np.asarray(inp['data'])))
     threshold_influence(np.asarray(inp['data']))
 
 if __name__ == '__main__':
