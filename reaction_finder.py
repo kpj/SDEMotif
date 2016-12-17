@@ -529,6 +529,44 @@ def plot_result(motifs, data, fname_app='', sub_num=10):
     plt.tight_layout()
     plotter.save_figure('images/rl_corr_hist{}.pdf'.format(fname_app), bbox_inches='tight')
 
+def plot_network(graph, motifs):
+    """ Plot motif-network and highlight motifs
+    """
+    # generate graph
+    motif_mem_counter = collections.defaultdict(int)
+    motif_graph = nx.DiGraph()
+    for c1,c2,c3 in motifs:
+        motif_graph.add_edges_from([(c1,c2),(c1,c3),(c2,c3)])
+
+        motif_mem_counter[c1] += 1
+        motif_mem_counter[c2] += 1
+        motif_mem_counter[c3] += 1
+    motif_mem_counter = dict(motif_mem_counter)
+
+    # generate overview
+    overview = sorted(motif_mem_counter.keys(), key=lambda x: motif_mem_counter[x], reverse=True)
+    legend_labels = ['Compound in motif occurence counter']
+    for c in overview[:10]:
+        cur = ' > {} {}'.format(c, motif_mem_counter[c])
+        legend_labels.append(cur)
+
+    # plot graph
+    plt.figure(figsize=(10, 12))
+
+    pos = nx.nx_pydot.graphviz_layout(motif_graph)
+    nx.draw_networkx_nodes(motif_graph, pos, node_size=[motif_mem_counter[n] for n in motif_graph.nodes()])
+    nx.draw_networkx_edges(motif_graph, pos, alpha=.3, arrows=False, width=0.4)
+    #nx.draw_networkx_edge_labels()
+
+    plt.axis('on')
+    plt.xticks([], [])
+    plt.yticks([], [])
+
+    plt.title('\n'.join(legend_labels), loc='left')
+    plt.tight_layout()
+
+    plt.savefig('images/motif_network.pdf')
+
 def find_optimal_assignments(motifs, data, initial_compound_names=[]):
     """ Find optimal compound assignments by (weighted) randomly selecting
         motifs of low initial assignment number and choose assignments
@@ -925,6 +963,7 @@ def find_small_motifs(
 
     ## plot stuff
     print('Plotting')
+    plot_network(graph, motifs)
     plot_mz_distribution(motifs, comps)
 
     # random compounds for comparison
@@ -1070,4 +1109,7 @@ def main(compound_fname, reaction_fname):
 
 
 if __name__ == '__main__':
+    sns.set_style('white')
+    plt.style.use('seaborn-poster')
+
     main('data/Compound_List.csv', 'data/Reaction_List.csv')
