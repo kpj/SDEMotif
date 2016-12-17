@@ -777,9 +777,13 @@ def detect_ffl(graph):
         for c2, c3 in itertools.product(
             graph.successors(c1), graph.successors(c1)
         ):
-            if graph.has_edge(c2, c3) or graph.has_edge(c3, c2):
-                if not None in (c1, c2, c3):
-                    yield (c1, c2, c3)
+            if len(set([c1,c2,c3])) != 3:
+                continue
+            if None in (c1, c2, c3):
+                continue
+
+            if graph.has_edge(c2, c3):
+                yield (c1, c2, c3)
 
 def find_more_motifs(motifs, all_compounds, reaction_data, fname='results/post_motif_reactions.pkl'):
     """ Grow fragmented motif network by applying reaction rules to existing ones
