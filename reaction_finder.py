@@ -570,7 +570,7 @@ def plot_network(motifs, data):
 
     plt.savefig('images/motif_network.pdf')
 
-def find_optimal_assignments(motifs, data, initial_compound_names=[]):
+def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_names=[]):
     """ Find optimal compound assignments by (weighted) randomly selecting
         motifs of low initial assignment number and choose assignments
         which maximize intensity correlation coefficients.
@@ -594,7 +594,7 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
         c1, c2, c3 = entry
         return len(data[c1]['intensities']) \
             * len(data[c2]['intensities']) \
-            * len(data[c3]['intensities'])
+            * (len(data[c3]['intensities']) if not c3 is None else 1)
 
     def assign(motifs):
         assignments = {}
@@ -616,7 +616,7 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
             ints = {
                 c1: data[c1]['intensities'],
                 c2: data[c2]['intensities'],
-                c3: data[c3]['intensities']
+                c3: data[c3]['intensities'] if not c3 is None else []
             }
 
             # process motif
@@ -639,6 +639,8 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
             for c1 in comps:
                 for c2 in comps:
                     if c1 == c2: break
+                    if c1 is None or c2 is None: break
+
                     corrs = {}
 
                     # skip if compounds are already assigned
@@ -646,37 +648,26 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
                         continue
 
                     # compute correlations
-                    if not c1 in assignments and not c2 in assignments:
-                        for i, int1 in enumerate(ints[c1]):
-                            for j, int2 in enumerate(ints[c2]):
-                                cc, _ = scis.pearsonr(int1, int2)
-                                corrs[(i,j)] = cc
+                    c1_done, c2_done = c1 in assignments, c2 in assignments
 
-                        # choose highest correlation
-                        c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k]))
-                    if c1 in assignments and not c2 in assignments:
-                        int1 = assignments[c1]
-                        for j, int2 in enumerate(ints[c2]):
+                    int_list_1 = [assignments[c1]] if c1_done else ints[c1]
+                    int_list_2 = [assignments[c2]] if c2_done else ints[c2]
+
+                    for i, int1 in enumerate(int_list_1):
+                        for j, int2 in enumerate(int_list_2):
                             cc, _ = scis.pearsonr(int1, int2)
-                            corrs[j] = cc
-                        c1_idx, c2_idx = None, max(corrs.keys(), key=lambda k: abs(corrs[k]))
-                    if not c1 in assignments and c2 in assignments:
-                        int2 = assignments[c2]
-                        for i, int1 in enumerate(ints[c1]):
-                            cc, _ = scis.pearsonr(int1, int2)
-                            corrs[i] = cc
-                        c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k])), None
+                            corrs[(i,j)] = cc
 
-                    for c, idx in zip([c1, c2], [c1_idx, c2_idx]):
-                        if c == c1 and c1 in assignments:
-                            assert c1_idx is None
-                        if c == c2 and c2 in assignments:
-                            assert c2_idx is None
+                    # choose highest absolute correlation
+                    c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k]))
 
-                        if c in assignments:
-                            continue
-                        else:
-                            assignments[c] = ints[c][idx]
+                    if not c1_done:
+                        assert not c1 in assignments
+                        assignments[c1] = ints[c1][c1_idx]
+                    if not c2_done:
+                        assert not c2 in assignments
+                        assignments[c2] = ints[c2][c2_idx]
+
         return assignments, single_assignment_names
 
     def plot_assignments(assignments, ax):
@@ -719,6 +710,8 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
             for c1 in cs:
                 for c2 in cs:
                     if c1 == c2: break
+                    if c1 is None or c2 is None: break
+
                     cc, _ = scis.pearsonr(assignments[c1], assignments[c2])
                     corrs.append(cc)
 
@@ -730,6 +723,7 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
             for c1 in cs:
                 for c2 in cs:
                     if c1 == c2: break
+                    if c1 is None or c2 is None: break
 
                     for int1 in data[c1]['intensities']:
                         for int2 in data[c2]['intensities']:
@@ -751,7 +745,7 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
     plt.xlim((-1,1))
 
     plt.tight_layout()
-    plotter.save_figure('images/assignments.pdf', bbox_inches='tight')
+    plotter.save_figure('images/assignments_{}.pdf'.format(fname), bbox_inches='tight')
 
 def process(compound_data):
     """ Simple reaction-combinatorics advancer
@@ -987,6 +981,12 @@ def find_small_motifs(
     # conduct predictions
     print('Predicting')
     find_optimal_assignments(motifs, comps)
+
+    # predict using only links
+    motif_nodes = [c for cs in motifs for c in cs]
+    sub_graph = graph.subgraph(motif_nodes)
+    links = [(c1,c2,None) for c1,c2 in sub_graph.edges()]
+    find_optimal_assignments(links, comps, fname='links')
 
     ## plot stuff
     print('Plotting')
