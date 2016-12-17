@@ -592,7 +592,9 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
     # find assignments
     def get_assignment_number(entry):
         c1, c2, c3 = entry
-        return len(data[c1]['intensities']) * len(data[c2]['intensities']) * len(data[c2]['intensities'])
+        return len(data[c1]['intensities']) \
+            * len(data[c2]['intensities']) \
+            * len(data[c3]['intensities'])
 
     def assign(motifs):
         assignments = {}
