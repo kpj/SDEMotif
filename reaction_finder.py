@@ -586,7 +586,7 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
             * find motifs in all available compounds
                 * assume that compounds in motifs have high intensity correlations
 
-            * for each compound receive all possible annotations from peak file
+            * for each compound receive all intensity annotations from peak file
             * use randomized iterative procedure to find "optimal" MZ assignments
     """
     # find assignments
@@ -720,24 +720,33 @@ def find_optimal_assignments(motifs, data, initial_compound_names=[]):
                     cc, _ = scis.pearsonr(assignments[c1], assignments[c2])
                     corrs.append(cc)
 
-        plotter.plot_histogram(
-            corrs, ax,
-            facecolor='blue', alpha=0.5)
+        sns.distplot(corrs, ax=ax, label='correlations after motif assignment')
+
+    def plot_original_motif_correlations(motifs, ax):
+        corrs = []
+        for cs in motifs:
+            for c1 in cs:
+                for c2 in cs:
+                    if c1 == c2: break
+
+                    for int1 in data[c1]['intensities']:
+                        for int2 in data[c2]['intensities']:
+                            cc, _ = scis.pearsonr(int1, int2)
+                            corrs.append(cc)
+
+        sns.distplot(corrs, ax=ax, label='original correlations')
 
     # plots
-    N = 2
-    f, axes = plt.subplots(N, 2, figsize=(15,9))
+    plt.figure()
 
-    for i in range(N):
-        assignments, single_assignment_names = assign(motifs)
+    assignments, single_assignment_names = assign(motifs)
 
-        for c, ints in assignments.items():
-            if c != 'Hexose': continue
+    #plot_assignments(assignments, axes[i,0])
+    plot_original_motif_correlations(motifs, plt.gca())
+    plot_correlations(assignments, plt.gca())
 
-            print(c, sum(ints))
-
-        plot_assignments(assignments, axes[i,0])
-        plot_correlations(assignments, axes[i,1])
+    plt.legend(loc='best')
+    plt.xlim((-1,1))
 
     plt.tight_layout()
     plotter.save_figure('images/assignments.pdf', bbox_inches='tight')
