@@ -529,14 +529,14 @@ def plot_result(motifs, data, fname_app='', sub_num=10):
     plt.tight_layout()
     plotter.save_figure('images/rl_corr_hist{}.pdf'.format(fname_app), bbox_inches='tight')
 
-def plot_network(graph, motifs):
-    """ Plot motif-network and highlight motifs
+def plot_network(motifs, data):
+    """ Plot motif-network and show #intensity distribution
     """
     # generate graph
     motif_mem_counter = collections.defaultdict(int)
-    motif_graph = nx.DiGraph()
+    graph = nx.DiGraph()
     for c1,c2,c3 in motifs:
-        motif_graph.add_edges_from([(c1,c2),(c1,c3),(c2,c3)])
+        graph.add_edges_from([(c1,c2),(c1,c3),(c2,c3)])
 
         motif_mem_counter[c1] += 1
         motif_mem_counter[c2] += 1
@@ -550,13 +550,16 @@ def plot_network(graph, motifs):
         cur = ' > {} {}'.format(c, motif_mem_counter[c])
         legend_labels.append(cur)
 
+    # assignment counts
+    ia_count = {n: len(data[n]['intensities']) for n in graph.nodes()}
+
     # plot graph
     plt.figure(figsize=(10, 12))
 
-    pos = nx.nx_pydot.graphviz_layout(motif_graph)
-    nx.draw_networkx_nodes(motif_graph, pos, node_size=[motif_mem_counter[n] for n in motif_graph.nodes()])
-    nx.draw_networkx_edges(motif_graph, pos, alpha=.3, arrows=False, width=0.4)
-    #nx.draw_networkx_edge_labels()
+    pos = nx.nx_pydot.graphviz_layout(graph)
+    nx.draw_networkx_nodes(graph, pos, node_size=[ia_count[n] for n in graph.nodes()])
+    nx.draw_networkx_edges(graph, pos, alpha=.3, arrows=False, width=0.4)
+    nx.draw_networkx_labels(graph, pos, labels=ia_count, font_size=1)
 
     plt.axis('on')
     plt.xticks([], [])
@@ -907,6 +910,15 @@ def plot_mz_distribution(motifs, data, fname='data/peaklist_filtered_assigned.cs
     plt.tight_layout()
     plotter.save_figure('images/rl_mz_hist.pdf', bbox_inches='tight')
 
+def plot_intensity_number_distribution(comps):
+    data = [len(v['intensities']) for v in comps.values()]
+
+    plt.figure()
+    plt.hist(data, bins=range(max(data)))
+    plt.title('Intensity number distribution')
+    plt.xlabel('number of intensity assignments per compound')
+    plt.savefig('images/intpcomp_distr.pdf')
+
 def get_origin_set(comp, data):
     """ Find basic origins which comp is made out of
     """
@@ -967,7 +979,8 @@ def find_small_motifs(
 
     ## plot stuff
     print('Plotting')
-    plot_network(graph, motifs)
+    plot_network(motifs, comps)
+    plot_intensity_number_distribution(comps)
     plot_mz_distribution(motifs, comps)
 
     # random compounds for comparison
