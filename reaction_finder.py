@@ -13,9 +13,10 @@ import pandas as pd
 import networkx as nx
 import scipy.stats as scis
 
+import seaborn as sns
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import seaborn as sns
+from mpl_toolkits.axes_grid.inset_locator import inset_axes
 
 from tqdm import tqdm
 
@@ -596,21 +597,26 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
             * len(data[c2]['intensities']) \
             * (len(data[c3]['intensities']) if not c3 is None else 1)
 
-    def assign(motifs):
+    def assign(motifs, prob_fac=.2):
         assignments = {}
         single_assignment_names = []
 
         sorted_motifs = sorted(
             motifs, key=get_assignment_number,
             reverse=True)
+        sorted_motifs_bak = list(sorted_motifs)
+        idx_list = []
         while len(sorted_motifs) > 0:
             # weighted choice of starting motif
             size = len(sorted_motifs)
-            probs = np.exp(range(size))/np.sum(np.exp(range(size)))
+
+            exp_vals = np.exp(prob_fac*np.arange(size))
+            probs = exp_vals/np.sum(exp_vals)
 
             idx = np.random.choice(range(size), 1, p=probs)
             entry = sorted_motifs[idx[0]]
             sorted_motifs.remove(entry)
+            idx_list.append(sorted_motifs_bak.index(entry))
 
             c1, c2, c3 = entry
             ints = {
@@ -668,7 +674,7 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
                         assert not c2 in assignments
                         assignments[c2] = ints[c2][c2_idx]
 
-        return assignments, single_assignment_names
+        return assignments, single_assignment_names, idx_list
 
     def plot_assignments(assignments, ax):
         colors = []
@@ -715,7 +721,9 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
                     cc, _ = scis.pearsonr(assignments[c1], assignments[c2])
                     corrs.append(cc)
 
-        sns.distplot(corrs, ax=ax, label='correlations after motif assignment')
+        sns.distplot(
+            corrs, ax=ax, hist_kws=dict(alpha=.2),
+            label='correlations after motif assignment')
 
     def plot_original_motif_correlations(motifs, ax):
         corrs = []
@@ -732,19 +740,34 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
 
         sns.distplot(corrs, ax=ax, label='original correlations')
 
+    def plot_idx_list(idx_list, prob_fac, ax):
+        ax.plot(idx_list, alpha=.8)
+
+        iax = inset_axes(ax, width='30%', height=1., loc=3)
+        iax.plot(np.exp(prob_fac*np.arange(50)))
+        iax.tick_params(axis='both', which='major', labelsize=5)
+
     # plots
-    plt.figure()
+    prob_fac = .1
+    f, axes = plt.subplots(1, 2, figsize=(21,7))
 
-    assignments, single_assignment_names = assign(motifs)
+    plot_original_motif_correlations(motifs, axes[0])
+    for _ in range(2):
+        assignments, single_assignment_names, idx_list = assign(motifs, prob_fac)
+        plot_correlations(assignments, axes[0])
+        plot_idx_list(idx_list, prob_fac, axes[1])
 
-    #plot_assignments(assignments, axes[i,0])
-    plot_original_motif_correlations(motifs, plt.gca())
-    plot_correlations(assignments, plt.gca())
+    axes[0].legend(loc='best')
+    axes[0].set_xlim((-1,1))
+    axes[0].set_xlabel('correlation')
+    axes[0].set_ylabel('frequency')
 
-    plt.legend(loc='best')
-    plt.xlim((-1,1))
+    axes[1].set_xlabel('iteration step')
+    axes[1].set_ylabel('drawn motif index')
 
-    plt.tight_layout()
+    plt.suptitle(fname)
+
+    #plt.tight_layout()
     plotter.save_figure('images/assignments_{}.pdf'.format(fname), bbox_inches='tight')
 
 def process(compound_data):
