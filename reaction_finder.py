@@ -18,7 +18,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
 
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 import plotter
 import utils
@@ -725,7 +725,7 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
             corrs, ax=ax, hist_kws=dict(alpha=.2),
             label='correlations after motif assignment')
 
-    def plot_original_motif_correlations(motifs, ax):
+    def compute_all_possible_correlations(motifs):
         corrs = []
         for cs in motifs:
             for c1 in cs:
@@ -737,7 +737,10 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
                         for int2 in data[c2]['intensities']:
                             cc, _ = scis.pearsonr(int1, int2)
                             corrs.append(cc)
+        return corrs
 
+    def plot_original_motif_correlations(motifs, ax):
+        corrs = compute_all_possible_correlations(motifs)
         sns.distplot(corrs, ax=ax, label='original correlations')
 
     def plot_idx_list(idx_list, prob_fac, ax):
@@ -747,15 +750,34 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
         iax.plot(np.exp(prob_fac*np.arange(50)))
         iax.tick_params(axis='both', which='major', labelsize=5)
 
+    def get_prediction_null_model(motifs, num=100, group_size=5):
+        """ Compute all possible correlations and draw random groups and extract largest absolute correlation
+        """
+        corrs = compute_all_possible_correlations(motifs)
+
+        res = []
+        for _ in trange(num):
+            sel = np.random.choice(corrs, size=group_size)
+            c = max(sel, key=abs)
+            res.append(c)
+        return res
+
     # plots
     prob_fac = .1
     f, axes = plt.subplots(1, 2, figsize=(21,7))
 
-    plot_original_motif_correlations(motifs, axes[0])
-    for _ in range(2):
+    for _ in range(1):
         assignments, single_assignment_names, idx_list = assign(motifs, prob_fac)
         plot_correlations(assignments, axes[0])
         plot_idx_list(idx_list, prob_fac, axes[1])
+
+    all_pos_corrs = compute_all_possible_correlations(motifs)
+    sns.distplot(
+        all_pos_corrs, ax=axes[0],
+        label='original correlations')
+    #sns.distplot(
+    #    get_prediction_null_model(motifs, num=int(len(all_pos_corrs)/2)), ax=axes[0],
+    #    label='null model')
 
     axes[0].legend(loc='best')
     axes[0].set_xlim((-1,1))
