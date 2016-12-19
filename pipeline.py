@@ -195,7 +195,7 @@ def handle_enh_entry(entry, thres: float) -> float:
 def threshold_influence(data: List, resolution: int = 100) -> None:
     """ Plot robustness for varying threshold levels
     """
-    threshold_list = np.logspace(-5, 0, resolution-1)
+    threshold_list = np.logspace(-5, 0, resolution)
 
     # generate data
     df = pd.DataFrame()
@@ -208,22 +208,48 @@ def threshold_influence(data: List, resolution: int = 100) -> None:
                 'param_config': i
             }, ignore_index=True)
 
+    # normalize robustness values
+    max_rob = df.groupby('threshold').mean()['robustness'].max()
+    df['robustness'] /= max_rob
+
     print(df.describe())
+
+    # data for histograms
+    robust_vals, thres_vals = fixed_threshold(data)
+    robust_vals /= max_rob
 
     # plot data
     plt.figure()
 
+    ax = plt.gca()
+    atx = ax.twinx()
+    aty = ax.twiny()
+
+    sns.distplot(
+        thres_vals, ax=atx,
+        hist=False, kde=True, rug=True,
+        color='k', kde_kws=dict(alpha=.1))
+    sns.distplot(
+        robust_vals, ax=aty, vertical=True,
+        hist=False, kde=True, rug=True,
+        color='k', kde_kws=dict(alpha=.1))
+
     sns.tsplot(
-        df,
+        df, ax=ax,
         time='threshold', unit='param_config', value='robustness')
-    plt.xscale('log')
+
+    ax.set_xscale('log')
+    ax.set_ylim((0, 1))
+
+    atx.set(yticklabels=[])
+    aty.set(xticklabels=[])
 
     plt.savefig('images/threshold_influence.pdf')
 
 def fixed_threshold(data: List) -> float:
-    """ Compute robustness with `thres = \sigma / 2`
+    """ Compute robustness with `thres = \sigma / 2` and return values
     """
-    robs = []
+    robs, thresholds = [], []
     for entry in data:
         raw_corr_mats = entry['raw_corr_mats']
 
@@ -232,17 +258,17 @@ def fixed_threshold(data: List) -> float:
         min_idx = np.unravel_index(abs_corr_avg.argmin(), abs_corr_avg.shape)
         series = raw_corr_mats[:,min_idx[0],min_idx[1]] # better indexing?
         sigmah = np.std(series) / 2
+        thresholds.append(sigmah)
 
         # handle entry
         res = handle_enh_entry(entry, sigmah)
         robs.append(res)
-    return np.mean(robs)
+    return robs, thresholds
 
 def main(fname) -> None:
     with open(fname, 'rb') as fd:
         inp = pickle.load(fd)
 
-    print(fixed_threshold(np.asarray(inp['data'])))
     threshold_influence(np.asarray(inp['data']))
 
 if __name__ == '__main__':
