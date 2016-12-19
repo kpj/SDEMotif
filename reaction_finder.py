@@ -988,6 +988,7 @@ def find_small_motifs(
     graph = nx.DiGraph()
     for p, data in tqdm(comps.items()):
         c1, c2 = data['origin'][0], data['origin'][1]
+        if None in (c1,c2,p): continue
         graph.add_edge(c1, p)
         graph.add_edge(c2, p)
 
@@ -1004,12 +1005,17 @@ def find_small_motifs(
     # conduct predictions
     print('Predicting')
     find_optimal_assignments(motifs, comps)
+    other_size = len(motifs)
 
     # predict using only links
-    motif_nodes = [c for cs in motifs for c in cs]
-    sub_graph = graph.subgraph(motif_nodes)
-    links = [(c1,c2,None) for c1,c2 in sub_graph.edges()]
+    edge_idx = np.random.choice(np.arange(len(graph.edges())), size=other_size)
+    links = [(*graph.edges()[edx],None) for edx in edge_idx]
     find_optimal_assignments(links, comps, fname='links')
+
+    # predict using random nodes
+    motif_nodes = [c for cs in motifs for c in cs]
+    rand_nodes = [(*np.random.choice(graph.nodes(), size=2),None) for _ in range(other_size)]
+    find_optimal_assignments(rand_nodes, comps, fname='random')
 
     ## plot stuff
     print('Plotting')
