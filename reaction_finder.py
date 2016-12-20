@@ -792,6 +792,9 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
     #plt.tight_layout()
     plotter.save_figure('images/assignments_{}.pdf'.format(fname), bbox_inches='tight')
 
+    # return last assignment result
+    return assignments
+
 def process(compound_data):
     """ Simple reaction-combinatorics advancer
     """
@@ -980,6 +983,23 @@ def get_origin_set(comp, data):
 
     return get_origin_set(data[comp]['origin'][0], data) | get_origin_set(data[comp]['origin'][1], data)
 
+def compare_assignment_result(data):
+    """ Compare results of assignment prediction
+    """
+    fig, axes = plt.subplots(len(data), 1)
+
+    for (ass, lbl), ax in zip(data, axes):
+        vals = [sum(ass[k]) for k in sorted(ass.keys())]
+        ax.plot(vals)
+        ax.set_title(lbl)
+
+        ax.set_xlabel('compound idx')
+        ax.set_ylabel('intensity vector sum')
+        ax.set_yscale('symlog', linthreshx=5) # linear around 0
+
+    plt.tight_layout()
+    plt.savefig('images/assignment_comparison.pdf')
+
 def find_small_motifs(
     compounds_level0,
     fname='results/rf_raw_reaction_data.pkl'
@@ -1026,18 +1046,25 @@ def find_small_motifs(
 
     # conduct predictions
     print('Predicting')
-    find_optimal_assignments(motifs, comps)
+    motif_ass = find_optimal_assignments(motifs, comps)
     other_size = len(motifs)
 
     # predict using only links
     edge_idx = np.random.choice(np.arange(len(graph.edges())), size=other_size)
     links = [(*graph.edges()[edx],None) for edx in edge_idx]
-    find_optimal_assignments(links, comps, fname='links')
+    link_ass = find_optimal_assignments(links, comps, fname='links')
 
     # predict using random nodes
     motif_nodes = [c for cs in motifs for c in cs]
     rand_nodes = [(*np.random.choice(graph.nodes(), size=2),None) for _ in range(other_size)]
-    find_optimal_assignments(rand_nodes, comps, fname='random')
+    random_ass = find_optimal_assignments(rand_nodes, comps, fname='random')
+
+    # compare assignment results
+    compare_assignment_result([
+        (motif_ass, 'motifs'),
+        (link_ass, 'links'),
+        (random_ass, 'random')
+    ])
 
     ## plot stuff
     print('Plotting')
