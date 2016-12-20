@@ -228,11 +228,12 @@ def threshold_influence(data: List, resolution: int = 100) -> None:
     sns.distplot(
         thres_vals, ax=atx,
         hist=False, kde=True, rug=True,
-        color='k', kde_kws=dict(alpha=.1))
+        color='k', kde_kws=dict(alpha=.1), rug_kws=dict(alpha=.2))
     sns.distplot(
         robust_vals, ax=aty, vertical=True,
         hist=False, kde=True, rug=True,
-        color='k', kde_kws=dict(alpha=.1))
+        color='k', kde_kws=dict(alpha=.1), rug_kws=dict(alpha=.2))
+    ax.scatter(thres_vals, robust_vals, color='k', alpha=.05)
 
     sns.tsplot(
         df, ax=ax,
