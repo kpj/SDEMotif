@@ -723,7 +723,8 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
 
         sns.distplot(
             corrs, ax=ax, hist_kws=dict(alpha=.2),
-            label='correlations after motif assignment')
+            label='correlations after {} assignment'.format(fname))
+        return corrs
 
     def compute_all_possible_correlations(motifs):
         corrs = []
@@ -750,17 +751,37 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
         iax.plot(np.exp(prob_fac*np.arange(50)))
         iax.tick_params(axis='both', which='major', labelsize=5)
 
-    def get_prediction_null_model(motifs, num=100, group_size=5):
-        """ Compute all possible correlations and draw random groups and extract largest absolute correlation
+    def get_prediction_null_model(motifs, n=3, m=5, num=100):
+        """ Draw random intensity vectors and select largest absolute correlation
         """
-        corrs = compute_all_possible_correlations(motifs)
+        # get all intensity vectors
+        int_vecs = []
+        for cs in motifs:
+            for c in cs:
+                if c is None: continue
+                int_vecs.extend(data[c]['intensities'])
 
-        res = []
+        # compute correlations
+        corrs = []
         for _ in trange(num):
-            sel = np.random.choice(corrs, size=group_size)
-            c = max(sel, key=abs)
-            res.append(c)
-        return res
+            idx_1 = np.random.randint(len(int_vecs), size=n)
+            idx_2 = np.random.randint(len(int_vecs), size=m)
+            while len(set(idx_1).intersection(idx_2)) > 0:
+                idx_2 = np.random.randint(len(int_vecs), size=m)
+
+            int_list_1 = [int_vecs[i] for i in idx_1]
+            int_list_2 = [int_vecs[i] for i in idx_2]
+
+            tmp = []
+            for int1 in int_list_1:
+                for int2 in int_list_2:
+                    cc, _ = scis.pearsonr(int1, int2)
+                    tmp.append(cc)
+
+            c = max(tmp, key=abs)
+            corrs.append(c)
+
+        return corrs
 
     # plots
     prob_fac = .1
@@ -768,16 +789,16 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
 
     for _ in range(1):
         assignments, single_assignment_names, idx_list = assign(motifs, prob_fac)
-        plot_correlations(assignments, axes[0])
+        ass_corrs = plot_correlations(assignments, axes[0])
         plot_idx_list(idx_list, prob_fac, axes[1])
 
     all_pos_corrs = compute_all_possible_correlations(motifs)
     sns.distplot(
         all_pos_corrs, ax=axes[0],
         label='original correlations')
-    #sns.distplot(
-    #    get_prediction_null_model(motifs, num=int(len(all_pos_corrs)/2)), ax=axes[0],
-    #    label='null model')
+    sns.distplot(
+        get_prediction_null_model(motifs, num=len(ass_corrs)), ax=axes[0],
+        label='null model')
 
     axes[0].legend(loc='best')
     axes[0].set_xlim((-1,1))
@@ -1047,7 +1068,7 @@ def find_small_motifs(
     # conduct predictions
     print('Predicting')
     motif_ass = find_optimal_assignments(motifs, comps)
-    other_size = len(motifs)
+    other_size = len(motifs)*3
 
     # predict using only links
     edge_idx = np.random.choice(np.arange(len(graph.edges())), size=other_size)
