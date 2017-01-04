@@ -571,7 +571,7 @@ def plot_network(motifs, data):
 
     plt.savefig('images/motif_network.pdf')
 
-def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_names=[]):
+def find_optimal_assignments(motifs, data, reps=30, fname='motifs', initial_compound_names=[]):
     """ Find optimal compound assignments by (weighted) randomly selecting
         motifs of low initial assignment number and choose assignments
         which maximize intensity correlation coefficients.
@@ -629,7 +629,11 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
             comps = c1, c2, c3
             #print(
             #    len(ints[c1]), len(ints[c2]), len(ints[c3]),
-            #    len(ints[c1])*len(ints[c2])*len(ints[c3]))
+            #    len(ints[c1])*len(ints[c2])*(len(ints[c3]) if not c3 is None else 1))
+            #print(c1)
+            #print(c2)
+            #print(c3)
+            #print()
 
 
             # single matches
@@ -675,40 +679,6 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
                         assignments[c2] = ints[c2][c2_idx]
 
         return assignments, single_assignment_names, idx_list
-
-    def plot_assignments(assignments, ax):
-        colors = []
-        values_initial = []
-        values_single = []
-        values_other = []
-
-        for i, (name, ints) in enumerate(assignments.items()):
-            mz = data[name]['mass']
-
-            if name in initial_compound_names:
-                values_initial.append(mz)
-            elif name in single_assignment_names:
-                values_single.append(mz)
-            else:
-                values_other.append(mz)
-
-        ax.scatter(
-            values_initial, [0]*len(values_initial),
-            color='red', alpha=0.5,
-            label='initial')
-        ax.scatter(
-            values_single, [0]*len(values_single),
-            color='green', alpha=0.5,
-            label='single')
-        ax.scatter(
-            values_other, [0]*len(values_other),
-            color='blue', alpha=0.5,
-            label='other')
-
-        ax.yaxis.set_major_locator(plt.NullLocator())
-
-        ax.set_xlabel('MZ')
-        ax.legend(loc='best')
 
     def plot_correlations(assignments, ax):
         corrs = []
@@ -787,10 +757,15 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
     prob_fac = .1
     f, axes = plt.subplots(1, 2, figsize=(21,7))
 
-    for _ in range(1):
+    all_assignments = []
+    for i in range(reps):
         assignments, single_assignment_names, idx_list = assign(motifs, prob_fac)
-        ass_corrs = plot_correlations(assignments, axes[0])
-        plot_idx_list(idx_list, prob_fac, axes[1])
+
+        if i == 0:
+            ass_corrs = plot_correlations(assignments, axes[0])
+            plot_idx_list(idx_list, prob_fac, axes[1])
+
+        all_assignments.append(assignments)
 
     all_pos_corrs = compute_all_possible_correlations(motifs)
     sns.distplot(
@@ -813,8 +788,8 @@ def find_optimal_assignments(motifs, data, fname='motifs', initial_compound_name
     #plt.tight_layout()
     plotter.save_figure('images/assignments_{}.pdf'.format(fname), bbox_inches='tight')
 
-    # return last assignment result
-    return assignments
+    # return assignment results
+    return all_assignments
 
 def process(compound_data):
     """ Simple reaction-combinatorics advancer
@@ -1004,19 +979,37 @@ def get_origin_set(comp, data):
 
     return get_origin_set(data[comp]['origin'][0], data) | get_origin_set(data[comp]['origin'][1], data)
 
-def compare_assignment_result(data):
-    """ Compare results of assignment prediction
+def compare_assignment_result(ass_data, data):
+    """ Check robustness of comparison by counting how many assignments vary over multiple runs
     """
-    fig, axes = plt.subplots(len(data), 1)
+    fig, axes = plt.subplots(1, len(ass_data))
 
-    for (ass, lbl), ax in zip(data, axes):
-        vals = [sum(ass[k]) for k in sorted(ass.keys())]
-        ax.plot(vals)
-        ax.set_title(lbl)
+    for (all_ass, lbl), ax in zip(ass_data, axes):
+        agg_ass = collections.defaultdict(list)
 
-        ax.set_xlabel('compound idx')
-        ax.set_ylabel('intensity vector sum')
-        ax.set_yscale('symlog', linthreshx=5) # linear around 0
+        # aggregate assignments over various runs
+        for assignments in all_ass:
+            for comp, ints in assignments.items():
+                agg_ass[comp].append(ints)
+
+        # check robustness (filter entries which have only one assignment anyways)
+        rob_dic = {}
+        for comp, ints_vec in agg_ass.items():
+            if len(data[comp]['intensities']) == 1: continue
+
+            only_one = all(ints_vec[0]==iv for iv in ints_vec)
+            rob_dic[comp] = only_one
+
+        val = sum(rob_dic.values()) / len(rob_dic)
+
+        # plot
+        ax.bar(-.5, val, width=1)
+
+        ax.set_xlim((-1, 1))
+        ax.set_ylim((0, 1))
+        ax.set_title(lbl+': '+str(round(val, 2)))
+
+        print(lbl+': '+str(round(val, 2)))
 
     plt.tight_layout()
     plt.savefig('images/assignment_comparison.pdf')
@@ -1085,7 +1078,7 @@ def find_small_motifs(
         (motif_ass, 'motifs'),
         (link_ass, 'links'),
         (random_ass, 'random')
-    ])
+    ], comps)
 
     ## plot stuff
     print('Plotting')
