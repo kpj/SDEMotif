@@ -390,7 +390,7 @@ def match_masses(masses, fname='data/peaklist_filtered_assigned.csv'):
     peak_data = read_peak_data(fname)
 
     data = {}
-    for name, dic in masses.items():
+    for name, dic in tqdm(masses.items()):
         res = match(dic['mass'])
 
         if len(res) > 0:
@@ -571,7 +571,7 @@ def plot_network(motifs, data):
 
     plt.savefig('images/motif_network.pdf')
 
-def find_optimal_assignments(motifs, data, reps=30, fname='motifs', initial_compound_names=[]):
+def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='motifs'):
     """ Find optimal compound assignments by (weighted) randomly selecting
         motifs of low initial assignment number and choose assignments
         which maximize intensity correlation coefficients.
@@ -599,7 +599,6 @@ def find_optimal_assignments(motifs, data, reps=30, fname='motifs', initial_comp
 
     def assign(motifs, prob_fac=.2):
         assignments = {}
-        single_assignment_names = []
 
         sorted_motifs = sorted(
             motifs, key=get_assignment_number,
@@ -678,7 +677,7 @@ def find_optimal_assignments(motifs, data, reps=30, fname='motifs', initial_comp
                         assert not c2 in assignments
                         assignments[c2] = ints[c2][c2_idx]
 
-        return assignments, single_assignment_names, idx_list
+        return assignments, idx_list
 
     def plot_correlations(assignments, ax):
         corrs = []
@@ -759,7 +758,7 @@ def find_optimal_assignments(motifs, data, reps=30, fname='motifs', initial_comp
 
     all_assignments = []
     for i in range(reps):
-        assignments, single_assignment_names, idx_list = assign(motifs, prob_fac)
+        assignments, idx_list = assign(motifs, prob_fac)
 
         if i == 0:
             ass_corrs = plot_correlations(assignments, axes[0])
@@ -771,9 +770,10 @@ def find_optimal_assignments(motifs, data, reps=30, fname='motifs', initial_comp
     sns.distplot(
         all_pos_corrs, ax=axes[0],
         label='original correlations')
-    sns.distplot(
-        get_prediction_null_model(motifs, num=len(ass_corrs)), ax=axes[0],
-        label='null model')
+    if null_model:
+        sns.distplot(
+            get_prediction_null_model(motifs, num=len(ass_corrs)), ax=axes[0],
+            label='null model')
 
     axes[0].legend(loc='best')
     axes[0].set_xlim((-1,1))
@@ -1016,7 +1016,7 @@ def compare_assignment_result(ass_data, data):
 
 def find_small_motifs(
     compounds_level0,
-    fname='results/rf_raw_reaction_data.pkl'
+    fname='cache/rf_raw_reaction_data.pkl'
 ):
     """ Look for feedfoward-loops in (iterated) compound data
     """
