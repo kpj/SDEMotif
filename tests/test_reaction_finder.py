@@ -338,3 +338,40 @@ class TestAtomTransformationParser(TestCase):
             'c2': False,
             'H': 2
         })
+
+class TestAssignmentPrediction(TestCase):
+    def test_simple_case(self):
+        motifs = [
+            ('A', 'B', 'C')
+        ]
+        data = {
+            'A': {'intensities': [[1,2,3]]},
+            'B': {'intensities': [[1,2,1]]},
+            'C': {'intensities': [[2,1,2]]}
+        }
+
+        tmp = find_optimal_assignments(motifs, data, reps=1, null_model=False)
+        self.assertEqual(len(tmp), 1)
+        res = tmp[0]
+
+        self.assertEqual(res['A'], [1,2,3])
+        self.assertEqual(res['B'], [1,2,1])
+        self.assertEqual(res['C'], [2,1,2])
+
+    def test_involved_case(self):
+        motifs = [
+            ('A', 'B', 'C')
+        ]
+        data = {
+            'A': {'intensities': [[1,2,3], [3,3,2]]},
+            'B': {'intensities': [[6,7,8]]},
+            'C': {'intensities': [[20,30,40]]}
+        }
+
+        tmp = find_optimal_assignments(motifs, data, reps=1, null_model=False)
+        self.assertEqual(len(tmp), 1)
+        res = tmp[0]
+
+        self.assertEqual(res['A'], [1,2,3])
+        self.assertEqual(res['B'], [6,7,8])
+        self.assertEqual(res['C'], [20,30,40])

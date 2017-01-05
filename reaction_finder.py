@@ -634,17 +634,9 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
             #print(c3)
             #print()
 
+            # filter out already used intensity vectors
+            fi = lambda l, a: list(filter(lambda e: not e in a.values(), l))
 
-            # single matches
-            for c in comps:
-                if len(ints[c]) == 1:
-                    if c in assignments:
-                        assert ints[c][0] == assignments[c]
-                    else:
-                        assignments[c] = ints[c][0]
-                        single_assignment_names.append(c)
-
-            # multiple matches
             for c1 in comps:
                 for c2 in comps:
                     if c1 == c2: break
@@ -659,23 +651,34 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
                     # compute correlations
                     c1_done, c2_done = c1 in assignments, c2 in assignments
 
-                    int_list_1 = [assignments[c1]] if c1_done else ints[c1]
-                    int_list_2 = [assignments[c2]] if c2_done else ints[c2]
+                    int_list_1 = [assignments[c1]] if c1_done else fi(ints[c1], assignments)
+                    int_list_2 = [assignments[c2]] if c2_done else fi(ints[c2], assignments)
 
                     for i, int1 in enumerate(int_list_1):
                         for j, int2 in enumerate(int_list_2):
+                            if int1 == int2: continue
                             cc, _ = scis.pearsonr(int1, int2)
                             corrs[(i,j)] = cc
+
+                    if len(corrs) == 0:
+                        continue
 
                     # choose highest absolute correlation
                     c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k]))
 
                     if not c1_done:
                         assert not c1 in assignments
-                        assignments[c1] = ints[c1][c1_idx]
+                        assignments[c1] = int_list_1[c1_idx]
+                    else:
+                        assert c1_idx == 0
                     if not c2_done:
                         assert not c2 in assignments
-                        assignments[c2] = ints[c2][c2_idx]
+                        assignments[c2] = int_list_2[c2_idx]
+                    else:
+                        assert c2_idx == 0
+
+        # check that all compounds are assigned to different intensity vectors
+        assert all(i!=j for i,j in itertools.combinations(assignments.values(), 2)), 'Some compounds are assigned to same intensity vector'
 
         return assignments, idx_list
 
@@ -687,8 +690,11 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
                     if c1 == c2: break
                     if c1 is None or c2 is None: break
 
-                    cc, _ = scis.pearsonr(assignments[c1], assignments[c2])
-                    corrs.append(cc)
+                    try:
+                        cc, _ = scis.pearsonr(assignments[c1], assignments[c2])
+                        corrs.append(cc)
+                    except KeyError:
+                        pass
 
         sns.distplot(
             corrs, ax=ax, hist_kws=dict(alpha=.2),
@@ -791,7 +797,7 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
     # return assignment results
     return all_assignments
 
-def process(compound_data):
+def process(compound_data, filter_mz=False):
     """ Simple reaction-combinatorics advancer
     """
     reaction_data = read_reactions_file('data/Reaction_List.csv')
@@ -799,6 +805,19 @@ def process(compound_data):
     ints = match_masses(tmp)
     out = {k: tmp[k] for k in ints.keys()}
     for k in out: out[k]['intensities'] = ints[k]
+
+    # filter out equal MZ values
+    if filter_mz:
+        to_del = []
+        used_mz = set()
+        for c, dat in out.items():
+            if dat['mass'] in used_mz:
+                to_del.append(c)
+            else:
+                used_mz.add(dat['mass'])
+        for c in to_del:
+            del out[c]
+
     return out
 
 def detect_motifs(graph, motif):
