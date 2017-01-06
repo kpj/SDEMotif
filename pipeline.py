@@ -2,14 +2,17 @@
 Clean pipeline of robustness detection
 """
 
+import os
 import sys
 import copy
 import pickle
 from typing import Tuple, List, Callable
 from multiprocessing import Pool, cpu_count
+from multiprocessing.pool import ThreadPool
 
 import numpy as np
 import pandas as pd
+import networkx as nx
 import scipy.stats as scis
 
 import seaborn as sns
@@ -21,7 +24,7 @@ from tqdm import tqdm, trange
 from solver import solve_system
 from filters import filter_steady_state
 from nm_data_generator import add_node_to_system
-from setup import generate_basic_system, generate_two_node_system
+from setup import generate_basic_system, generate_two_node_system, generate_motifs
 
 
 def threshold_div(distr: np.ndarray, thres: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -113,19 +116,28 @@ def simulate_systems(raw, enhanced, reps=100):
             sol = ode_sol - sde_sol
             sol_extract = sol.T[int(len(sol.T)*3/4):] # extract steady-state
 
+            # filter based on ODE solution
             if filter_steady_state(ode_sol.T[int(len(ode_sol.T)*3/4):]):
                 continue
 
             # compute correlations
+            stop = False
             dim = sol_extract.shape[1]
             mat = np.empty((dim,dim))
             for i in range(dim):
                 for j in range(dim):
                     xs, ys = sol_extract[:,i], sol_extract[:,j]
-                    cc, pval = scis.pearsonr(xs, ys)
-                    mat[i,j] = cc
+                    try:
+                        cc, pval = scis.pearsonr(xs, ys)
+                        mat[i,j] = cc
+                    except FloatingPointError:
+                        stop = True
+                        break
+                if stop:
+                    break
 
-            corr_mats.append(mat)
+            if not stop:
+                corr_mats.append(mat)
         return np.asarray(corr_mats)
 
     curs = []
@@ -156,7 +168,7 @@ def generate_data(
     # simulate data
     data = []
     with tqdm(total=len(configurations)) as pbar:
-        resolution = int(cpu_count() * 3/4)
+        resolution = max(1, int(cpu_count() * 1/8))
         with Pool(resolution) as p:
             for res in p.starmap(simulate_systems, configurations):
                 if not res is None:
@@ -164,10 +176,44 @@ def generate_data(
                 pbar.update()
 
     # store data
-    with open(fname, 'wb') as fd:
-        pickle.dump({
-            'data': data
-        }, fd)
+    if not fname is None:
+        with open(fname, 'wb') as fd:
+            pickle.dump({
+                'data': data
+            }, fd)
+    else:
+        return data
+
+def generate_system_data(motif_idx, motifs_three):
+    """ Generate data for a given system
+    """
+    res = []
+    # iterate over three ways of driving given motif
+    for i, motif in enumerate(motifs_three):
+        getter = lambda k_m, k_23: motif
+        cur = generate_data(None, gen_func=getter)
+        res.append(cur)
+    return ({
+        'motif': getter(1,1),
+        'idx': motif_idx
+    }, res)
+
+def generate_motif_data(prefix):
+    """ Generate data for all motifs
+    """
+    motifs = generate_motifs()
+    with tqdm(total=len(motifs)) as pbar:
+        resolution = max(1, int(cpu_count() * 1/8))
+        with ThreadPool(resolution) as p:
+            # iterate over motif topologies
+            for info, result in p.starmap(generate_system_data, zip(range(len(motifs)), motifs)):
+                fname = '{}_{}'.format(prefix, info['idx'])
+                with open(fname, 'wb') as fd:
+                    pickle.dump({
+                        'data': result,
+                        'motif': info['motif']
+                    }, fd)
+                pbar.update()
 
 def handle_enh_entry(entry, thres: float) -> float:
     """ Compare distribution from given simulation results.
@@ -190,9 +236,9 @@ def handle_enh_entry(entry, thres: float) -> float:
             rob = compare_distributions(dis_3, dis_4, thres)
             cur.append(rob)
 
-    return np.mean(cur)
+    return np.mean(cur) if len(cur) > 0 else None
 
-def threshold_influence(data: List, resolution: int = 100) -> None:
+def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
     """ Plot robustness for varying threshold levels
     """
     threshold_list = np.logspace(-5, 0, resolution)
@@ -202,26 +248,36 @@ def threshold_influence(data: List, resolution: int = 100) -> None:
     for thres in tqdm(threshold_list):
         for i, entry in enumerate(data): # iterate over parameter configurations
             res = handle_enh_entry(entry, thres)
+            if res is None:
+                continue
+
             df = df.append({
                 'threshold': thres,
                 'robustness': res,
                 'param_config': i
             }, ignore_index=True)
 
+    if df.empty:
+        return
+
     # normalize robustness values
     max_rob = df.groupby('threshold').mean()['robustness'].max()
-    df['robustness'] /= max_rob
+    assert max_rob >= 0, df.head()
+    if max_rob > 0:
+        df['robustness'] /= max_rob
 
     print(df.describe())
 
     # data for histograms
     robust_vals, thres_vals = fixed_threshold(data)
-    robust_vals /= max_rob
+    if max_rob > 0:
+        robust_vals /= max_rob
 
     # plot data
-    plt.figure()
+    if ax is None:
+        plt.figure()
+        ax = plt.gca()
 
-    ax = plt.gca()
     atx = ax.twinx()
     aty = ax.twiny()
 
@@ -229,10 +285,11 @@ def threshold_influence(data: List, resolution: int = 100) -> None:
         thres_vals, ax=atx,
         hist=False, kde=True, rug=True,
         color='k', kde_kws=dict(alpha=.1), rug_kws=dict(alpha=.2))
-    sns.distplot(
-        robust_vals, ax=aty, vertical=True,
-        hist=False, kde=True, rug=True,
-        color='k', kde_kws=dict(alpha=.1), rug_kws=dict(alpha=.2))
+    if sum(robust_vals) > 0:
+        sns.distplot(
+            robust_vals, ax=aty, vertical=True,
+            hist=False, kde=True, rug=True,
+            color='k', kde_kws=dict(alpha=.1), rug_kws=dict(alpha=.2))
     ax.scatter(thres_vals, robust_vals, color='k', alpha=.05)
 
     sns.tsplot(
@@ -245,7 +302,8 @@ def threshold_influence(data: List, resolution: int = 100) -> None:
     atx.set(yticklabels=[])
     aty.set(xticklabels=[])
 
-    plt.savefig('images/threshold_influence.pdf')
+    if ax is None:
+        plt.savefig('images/threshold_influence.pdf')
 
 def fixed_threshold(data: List) -> float:
     """ Compute robustness with `thres = \sigma / 2` and return values
@@ -266,6 +324,61 @@ def fixed_threshold(data: List) -> float:
         robs.append(res)
     return robs, thresholds
 
+def motif_overview(prefix):
+    """ Conduct analysis over range of motifs
+    """
+    # get data
+    data = {}
+    pref_dir = os.path.dirname(prefix)
+    for fn in tqdm(os.listdir(pref_dir)):
+        if fn.startswith(os.path.basename(prefix)):
+            fname = os.path.join(pref_dir, fn)
+
+            with open(fname, 'rb') as fd:
+                inp = pickle.load(fd)
+
+            data[fn] = {
+                'idx': int(fn.split('_')[-1]),
+                'motif': inp['motif'],
+                'inp': inp
+            }
+
+    # plot data
+    plt.figure(figsize=(35,5))
+    gs = gridspec.GridSpec(3, len(data))
+
+    # add motif and threshold plots
+    for i, k in enumerate(sorted(data, key=lambda k: data[k]['idx'])):
+        print('>', k)
+
+        # motif
+        a = plt.subplot(gs[0,i])
+        g = nx.from_numpy_matrix(data[k]['motif'].jacobian, create_using=nx.DiGraph())
+        nx.draw(
+            g, ax=a, node_size=60,
+            with_labels=True, font_size=4)
+        a.axis('on')
+        a.set_xticks([], [])
+        a.set_yticks([], [])
+        a.set_title(data[k]['idx'])
+
+        # threshold
+        a = plt.subplot(gs[1,i])
+
+        for rows in data[k]['inp']['data']:
+            if len(rows) == 0:
+                continue
+
+            area = threshold_influence(rows, ax=a)
+
+        a.tick_params(labelsize=6)
+        a.xaxis.label.set_size(4)
+        a.yaxis.label.set_size(4)
+        a.title.set_size(4)
+
+    plt.tight_layout()
+    plt.savefig('images/motifs.pdf')
+
 def main(fname) -> None:
     with open(fname, 'rb') as fd:
         inp = pickle.load(fd)
@@ -279,12 +392,18 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         #initial_tests()
 
-        generate_data(
-            'results/new_data_ffl.dat', gen_func=generate_basic_system)
-        generate_data(
-            'results/new_data_link.dat', gen_func=generate_two_node_system)
+        #generate_data(
+        #    'results/new_data_ffl.dat', gen_func=generate_basic_system)
+        #generate_data(
+        #    'results/new_data_link.dat', gen_func=generate_two_node_system)
+
+        generate_motif_data('results/new_data_motifs.dat')
     elif len(sys.argv) == 2:
-        main(sys.argv[1])
+        if os.path.exists(sys.argv[1]):
+            main(sys.argv[1])
+        else:
+            # assume it's a motif prefix
+            motif_overview(sys.argv[1])
     else:
         print('Usage: {} [data file]'.format(sys.argv[0]))
         exit(-1)
