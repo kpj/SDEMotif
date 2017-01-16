@@ -591,11 +591,14 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
             * use randomized iterative procedure to find "optimal" MZ assignments
     """
     # find assignments
-    def get_assignment_number(entry):
+    def get_assignment_number(entry, assignments={}):
         c1, c2, c3 = entry
-        return len(data[c1]['intensities']) \
-            * len(data[c2]['intensities']) \
-            * (len(data[c3]['intensities']) if not c3 is None else 1)
+
+        num1 = len(data[c1]['intensities']) if c1 not in assignments else 1
+        num2 = len(data[c2]['intensities']) if c2 not in assignments else 1
+        num3 = len(data[c3]['intensities']) if c3 not in assignments and c3 is not None else 1
+
+        return num1 * num2 * num3
 
     def assign(motifs, prob_fac=.2):
         assignments = {}
@@ -676,6 +679,12 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
                         assignments[c2] = int_list_2[c2_idx]
                     else:
                         assert c2_idx == 0
+
+            # resort motifs
+            sorted_motifs = sorted(
+                sorted_motifs,
+                key=lambda e: get_assignment_number(e, assignments),
+                reverse=True)
 
         # check that all compounds are assigned to different intensity vectors
         assert all(i!=j for i,j in itertools.combinations(assignments.values(), 2)), 'Some compounds are assigned to same intensity vector'
