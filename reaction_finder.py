@@ -1082,6 +1082,10 @@ def find_small_motifs(
     motif_ass = find_optimal_assignments(motifs, comps)
     other_size = len(motifs)*3
 
+    # predict using links from motif network
+    motiflinks = [edge for c1,c2,c3 in motifs for edge in [(c1,c2,None),(c2,c3,None),(c1,c3,None)]]
+    motiflink_ass = find_optimal_assignments(motiflinks, comps, fname='motiflinks')
+
     # predict using only links
     edge_idx = np.random.choice(np.arange(len(graph.edges())), size=other_size)
     links = [(*graph.edges()[edx],None) for edx in edge_idx]
@@ -1095,6 +1099,7 @@ def find_small_motifs(
     # compare assignment results
     compare_assignment_result([
         (motif_ass, 'motifs'),
+        (motiflink_ass, 'motiflinks'),
         (link_ass, 'links'),
         (random_ass, 'random')
     ], comps)
