@@ -1004,31 +1004,37 @@ def compare_assignment_result(ass_data, data):
     fig, axes = plt.subplots(1, len(ass_data))
 
     for (all_ass, lbl), ax in zip(ass_data, axes):
-        agg_ass = collections.defaultdict(list)
+        agg_ass = collections.defaultdict(set)
 
         # aggregate assignments over various runs
         for assignments in all_ass:
-            for comp, ints in assignments.items():
-                agg_ass[comp].append(ints)
+            # make intensity vectors hashable
+            ass = {k: tuple(v) for k,v in assignments.items()}
+
+            for comp, ints in ass.items():
+                agg_ass[ints].add(comp)
 
         # check robustness (filter entries which have only one assignment anyways)
-        rob_dic = {}
-        for comp, ints_vec in agg_ass.items():
-            if len(data[comp]['intensities']) == 1: continue
+        res = []
+        for ints, comp_vec in agg_ass.items():
+            assert len(comp_vec) >= 1
+            if len(comp_vec) == 1:
+                if len(data[list(comp_vec)[0]]['intensities']) == 1:
+                    continue
 
-            only_one = all(ints_vec[0]==iv for iv in ints_vec)
-            rob_dic[comp] = only_one
+            res.append(len(comp_vec)==1)
 
-        val = sum(rob_dic.values()) / len(rob_dic)
+        val = sum(res) / len(res)
 
         # plot
         ax.bar(-.5, val, width=1)
 
         ax.set_xlim((-1, 1))
         ax.set_ylim((0, 1))
-        ax.set_title(lbl+': '+str(round(val, 2)))
 
-        print(lbl+': '+str(round(val, 2)))
+        title = f'{lbl}: {round(val, 2)} ({sum(res)}/{len(res)})'
+        ax.set_title(title)
+        print(title)
 
     plt.tight_layout()
     plt.savefig('images/assignment_comparison.pdf')
