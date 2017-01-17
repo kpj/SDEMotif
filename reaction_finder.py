@@ -1107,8 +1107,8 @@ def find_small_motifs(
     link_ass = find_optimal_assignments(links, comps, fname='links')
 
     # predict using random nodes
-    motif_nodes = [c for cs in motifs for c in cs]
-    rand_nodes = [(*np.random.choice(graph.nodes(), size=2),None) for _ in range(other_size)]
+    node_sel = [n for n in graph.nodes() if len(comps[n]['intensities']) >= 5]
+    rand_nodes = list(set([(*np.random.choice(node_sel, size=2),None) for _ in range(other_size)]))
     random_ass = find_optimal_assignments(rand_nodes, comps, fname='random')
 
     # compare assignment results
