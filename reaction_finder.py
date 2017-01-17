@@ -5,6 +5,7 @@ Find reactions via combinatoric investigations of data files
 import os
 import csv
 import pickle
+import random
 import itertools
 import collections
 
@@ -1010,7 +1011,7 @@ def get_origin_set(comp, data):
 def compare_assignment_result(ass_data, data):
     """ Check robustness of comparison by counting how many assignments vary over multiple runs
     """
-    fig, axes = plt.subplots(1, len(ass_data))
+    fig, axes = plt.subplots(1, len(ass_data), figsize=(20,5))
 
     for (all_ass, lbl), ax in zip(ass_data, axes):
         agg_ass = collections.defaultdict(set)
@@ -1047,6 +1048,34 @@ def compare_assignment_result(ass_data, data):
 
     plt.tight_layout()
     plt.savefig('images/assignment_comparison.pdf')
+
+def null_model_assignments(data, num, reps=30):
+    """ Choose random assignment per compound
+    """
+    def nm_assign(num):
+        assignments = {}
+        compounds = list(data.keys())
+        for _ in range(num):
+            # choose random node
+            node_sel = random.choice(compounds)
+            while node_sel in assignments:
+                node_sel = random.choice(compounds)
+
+            # select random assignment
+            cur_ints = data[node_sel]['intensities'][:]
+            for i in assignments.values():
+                if i in cur_ints:
+                    cur_ints.remove(i)
+
+            if len(cur_ints) == 0:
+                continue
+            int_sel = random.choice(cur_ints)
+
+            # finalize
+            assignments[node_sel] = int_sel
+        return assignments
+
+    return [nm_assign(num) for _ in range(reps)]
 
 def find_small_motifs(
     compounds_level0,
@@ -1111,12 +1140,16 @@ def find_small_motifs(
     rand_nodes = list(set([(*np.random.choice(node_sel, size=2),None) for _ in range(other_size)]))
     random_ass = find_optimal_assignments(rand_nodes, comps, fname='random')
 
+    # use another null-model
+    null_ass = null_model_assignments(comps, other_size)
+
     # compare assignment results
     compare_assignment_result([
         (motif_ass, 'motifs'),
         (motiflink_ass, 'motiflinks'),
         (link_ass, 'links'),
-        (random_ass, 'random')
+        (random_ass, 'random'),
+        (null_ass, 'nullmodel')
     ], comps)
 
     ## plot stuff
