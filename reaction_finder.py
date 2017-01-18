@@ -1123,22 +1123,70 @@ def find_small_motifs(
 
     # conduct predictions
     print('Predicting')
-    motif_ass = find_optimal_assignments(motifs, comps)
     other_size = len(motifs)*3
 
+    # predictions with motifs
+    motif_fname = 'cache/prediction_motif.dat'
+    if not os.path.exists(motif_fname):
+        motif_ass = find_optimal_assignments(motifs, comps)
+
+        with open(motif_fname, 'wb') as fd:
+            pickle.dump(motif_ass, fd)
+    else:
+        print('Using cached data ({})'.format(motif_fname))
+        with open(motif_fname, 'rb') as fd:
+            motif_ass = pickle.load(fd)
+
+
     # predict using links from motif network
-    motiflinks = [edge for c1,c2,c3 in motifs for edge in [(c1,c2,None),(c2,c3,None),(c1,c3,None)]]
-    motiflink_ass = find_optimal_assignments(motiflinks, comps, fname='motiflinks')
+    motiflinks_fname = 'cache/prediction_motiflinks.dat'
+    if not os.path.exists(motiflinks_fname):
+        motiflinks = [edge
+            for c1,c2,c3 in motifs
+                for edge in [(c1,c2,None),(c2,c3,None),(c1,c3,None)]]
+        motiflink_ass = find_optimal_assignments(
+            motiflinks, comps, fname='motiflinks')
+
+        with open(motiflinks_fname, 'wb') as fd:
+            pickle.dump(motiflink_ass, fd)
+    else:
+        print('Using cached data ({})'.format(motiflinks_fname))
+        with open(motiflinks_fname, 'rb') as fd:
+            motiflink_ass = pickle.load(fd)
 
     # predict using only links
-    edge_idx = np.random.choice(np.arange(len(graph.edges())), size=other_size)
-    links = [(*graph.edges()[edx],None) for edx in edge_idx]
-    link_ass = find_optimal_assignments(links, comps, fname='links')
+    links_fname = 'cache/prediction_links.dat'
+    if not os.path.exists(links_fname):
+        edge_idx = np.random.choice(
+            np.arange(len(graph.edges())), size=other_size)
+        links = [(*graph.edges()[edx],None) for edx in edge_idx]
+        link_ass = find_optimal_assignments(links, comps, fname='links')
+
+        with open(links_fname, 'wb') as fd:
+            pickle.dump(link_ass, fd)
+    else:
+        print('Using cached data ({})'.format(links_fname))
+        with open(links_fname, 'rb') as fd:
+            link_ass = pickle.load(fd)
 
     # predict using random nodes
-    node_sel = [n for n in graph.nodes() if len(comps[n]['intensities']) >= 5]
-    rand_nodes = list(set([(*np.random.choice(node_sel, size=2),None) for _ in range(other_size)]))
-    random_ass = find_optimal_assignments(rand_nodes, comps, fname='random')
+    random_fname = 'cache/prediction_random.dat'
+    if not os.path.exists(random_fname):
+        node_sel = [n
+            for n in graph.nodes()
+                if len(comps[n]['intensities']) >= 5]
+        rand_nodes = list(set(
+            [(*np.random.choice(node_sel, size=2),None)
+                for _ in range(other_size)]
+        ))
+        random_ass = find_optimal_assignments(rand_nodes, comps, fname='random')
+
+        with open(random_fname, 'wb') as fd:
+            pickle.dump(random_ass, fd)
+    else:
+        print('Using cached data ({})'.format(random_fname))
+        with open(random_fname, 'rb') as fd:
+            random_ass = pickle.load(fd)
 
     # use another null-model
     null_ass = null_model_assignments(comps, other_size)
