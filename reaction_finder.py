@@ -1040,13 +1040,33 @@ def compare_assignment_result(ass_data, data):
             int_res.append(len(comp_vec)==1)
         int_val = sum(int_res) / len(int_res)
 
+        comp_res = []
+        for name, group in df.groupby('compound'):
+            int_vec = group['intensity_vec'].unique()
+
+            # filter entries which have only one assignment anyways
+            assert len(int_vec) >= 1
+            if len(data[name]['intensities']) == 1:
+                assert tuple(data[name]['intensities'][0]) == int_vec[0]
+                continue
+            comp_res.append(len(int_vec)==1)
+        comp_val = sum(comp_res) / len(comp_res)
+
         # plot
-        ax.bar(-.5, int_val, width=1)
+        ax.bar(
+            -.5, int_val, width=.5,
+            label='len(comp_vec)==1', color='b')
+        ax.bar(
+            0, comp_val, width=.5,
+            label='len(int_vec)==1', color='g')
+        ax.legend(loc='best')
 
         ax.set_xlim((-1, 1))
         ax.set_ylim((0, 1))
 
-        title = f'{lbl}\n{round(int_val, 2)} ({sum(int_res)}/{len(int_res)}/{len(df.intensity_vec.unique())})'
+        title = f'''{lbl}
+{round(int_val, 2)} ({sum(int_res)}/{len(int_res)}/{len(df.intensity_vec.unique())})
+{round(comp_val, 2)} ({sum(comp_res)}/{len(comp_res)}/{len(df["compound"].unique())})'''
         ax.set_title(title)
         print(title)
 
