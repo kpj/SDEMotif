@@ -608,7 +608,8 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
             motifs, key=get_assignment_number,
             reverse=True)
         sorted_motifs_bak = list(sorted_motifs)
-        idx_list = []
+
+        idx_list, cur_idx_list = [], []
         while len(sorted_motifs) > 0:
             # weighted choice of starting motif
             size = len(sorted_motifs)
@@ -616,16 +617,18 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
             exp_vals = np.exp(prob_fac*np.arange(size))
             probs = exp_vals/np.sum(exp_vals)
 
-            idx = np.random.choice(range(size), 1, p=probs)
-            entry = sorted_motifs[idx[0]]
+            idx = np.random.choice(range(size), 1, p=probs)[0]
+            entry = sorted_motifs[idx]
             sorted_motifs.remove(entry)
+
             idx_list.append(sorted_motifs_bak.index(entry))
+            cur_idx_list.append(idx)
 
             c1, c2, c3 = entry
             ints = {
                 c1: data[c1]['intensities'],
                 c2: data[c2]['intensities'],
-                c3: data[c3]['intensities'] if not c3 is None else []
+                c3: data[c3]['intensities'] if c3 is not None else []
             }
 
             # process motif
@@ -690,7 +693,12 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
         # check that all compounds are assigned to different intensity vectors
         assert all(i!=j for i,j in itertools.combinations(assignments.values(), 2)), 'Some compounds are assigned to same intensity vector'
 
-        return assignments, idx_list
+        extra = {
+            'idx_list': idx_list,
+            'cur_idx_list': cur_idx_list
+        }
+
+        return assignments, extra
 
     def plot_correlations(assignments, ax):
         corrs = []
@@ -730,7 +738,7 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
         sns.distplot(corrs, ax=ax, label='original correlations')
 
     def plot_idx_list(idx_list, prob_fac, ax):
-        ax.plot(idx_list, alpha=.8)
+        ax.plot(idx_list, alpha=.8, label='original index')
 
         iax = inset_axes(ax, width='30%', height=1., loc=3)
         iax.plot(np.exp(prob_fac*np.arange(50)))
@@ -774,11 +782,13 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
 
     all_assignments = []
     for i in range(reps):
-        assignments, idx_list = assign(motifs, prob_fac)
+        assignments, extra = assign(motifs, prob_fac)
 
         if i == 0:
             ass_corrs = plot_correlations(assignments, axes[0])
-            plot_idx_list(idx_list, prob_fac, axes[1])
+            plot_idx_list(extra['idx_list'], prob_fac, axes[1])
+            axes[1].plot(extra['cur_idx_list'], alpha=.8, label='actual index')
+            axes[1].legend(loc='best')
 
         all_assignments.append(assignments)
 
