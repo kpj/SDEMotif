@@ -1014,35 +1014,39 @@ def compare_assignment_result(ass_data, data):
     fig, axes = plt.subplots(1, len(ass_data), figsize=(20,5))
 
     for (all_ass, lbl), ax in zip(ass_data, axes):
-        agg_ass = collections.defaultdict(set)
-
         # aggregate assignments over various runs
-        for assignments in all_ass:
+        tmp = {'run': [], 'intensity_vec': [], 'compound': []}
+        for i, assignments in enumerate(all_ass):
             # make intensity vectors hashable
             ass = {k: tuple(v) for k,v in assignments.items()}
 
             for comp, ints in ass.items():
-                agg_ass[ints].add(comp)
+                tmp['run'].append(i)
+                tmp['intensity_vec'].append(ints)
+                tmp['compound'].append(comp)
+        df = pd.DataFrame(tmp)
 
-        # check robustness (filter entries which have only one assignment anyways)
-        res = []
-        for ints, comp_vec in agg_ass.items():
+        # check robustness
+        int_res = []
+        for name, group in df.groupby('intensity_vec'):
+            comp_vec = group['compound'].unique()
+
+            # filter entries which have only one assignment anyways
             assert len(comp_vec) >= 1
             if len(comp_vec) == 1:
                 if len(data[list(comp_vec)[0]]['intensities']) == 1:
+                    assert tuple(data[list(comp_vec)[0]]['intensities'][0]) == name
                     continue
-
-            res.append(len(comp_vec)==1)
-
-        val = sum(res) / len(res)
+            int_res.append(len(comp_vec)==1)
+        int_val = sum(int_res) / len(int_res)
 
         # plot
-        ax.bar(-.5, val, width=1)
+        ax.bar(-.5, int_val, width=1)
 
         ax.set_xlim((-1, 1))
         ax.set_ylim((0, 1))
 
-        title = f'{lbl}: {round(val, 2)} ({sum(res)}/{len(res)})'
+        title = f'{lbl}\n{round(int_val, 2)} ({sum(int_res)}/{len(int_res)}/{len(df.intensity_vec.unique())})'
         ax.set_title(title)
         print(title)
 
