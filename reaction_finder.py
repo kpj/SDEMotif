@@ -1076,15 +1076,9 @@ def compare_assignment_result(ass_data, data):
 def null_model_assignments(data, num, reps=30):
     """ Choose random assignment per compound
     """
-    def nm_assign(num):
+    def nm_assign(num, compounds):
         assignments = {}
-        compounds = list(data.keys())
-        for _ in range(num):
-            # choose random node
-            node_sel = random.choice(compounds)
-            while node_sel in assignments:
-                node_sel = random.choice(compounds)
-
+        for node_sel in compounds:
             # select random assignment
             cur_ints = data[node_sel]['intensities'][:]
             for i in assignments.values():
@@ -1099,7 +1093,17 @@ def null_model_assignments(data, num, reps=30):
             assignments[node_sel] = int_sel
         return assignments
 
-    return [nm_assign(num) for _ in range(reps)]
+    # choose random compounds
+    compounds = []
+    all_compounds = list(data.keys())
+    for _ in trange(num):
+        node_sel = random.choice(all_compounds)
+        while node_sel in compounds:
+            node_sel = random.choice(all_compounds)
+        compounds.append(node_sel)
+    assert len(set(compounds)) == len(compounds) # unique compounds
+
+    return [nm_assign(num, compounds) for _ in range(reps)]
 
 def find_small_motifs(
     compounds_level0,
@@ -1213,7 +1217,7 @@ def find_small_motifs(
             random_ass = pickle.load(fd)
 
     # use another null-model
-    null_ass = null_model_assignments(comps, other_size)
+    null_ass = null_model_assignments(comps, other_size*2)
 
     # compare assignment results
     compare_assignment_result([
