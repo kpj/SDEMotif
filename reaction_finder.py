@@ -1036,6 +1036,15 @@ def compare_assignment_result(ass_data, data):
                 tmp['compound'].append(comp)
         df = pd.DataFrame(tmp)
 
+        # pre-filter (only consider compounds which got always mapped)
+        tmp = []
+        for name, group in list(df.groupby('run')):
+            cs = group['compound'].tolist()
+            tmp += cs
+        counts = pd.Series(tmp).value_counts()
+        needed_comps = counts[counts==(df['run'].max()+1)].index
+        df = df[df['compound'].isin(needed_comps)]
+
         # check robustness
         int_res = []
         for name, group in df.groupby('intensity_vec'):
@@ -1048,7 +1057,7 @@ def compare_assignment_result(ass_data, data):
                     assert tuple(data[list(comp_vec)[0]]['intensities'][0]) == name
                     continue
             int_res.append(len(comp_vec)==1)
-        int_val = sum(int_res) / len(int_res)
+        int_val = sum(int_res) / len(int_res) if len(int_res) > 0 else 0
 
         comp_res = []
         for name, group in df.groupby('compound'):
@@ -1060,7 +1069,7 @@ def compare_assignment_result(ass_data, data):
                 assert tuple(data[name]['intensities'][0]) == int_vec[0]
                 continue
             comp_res.append(len(int_vec)==1)
-        comp_val = sum(comp_res) / len(comp_res)
+        comp_val = sum(comp_res) / len(comp_res) if len(comp_res) > 0 else 0
 
         # plot
         ax.bar(
@@ -1087,6 +1096,7 @@ def null_model_assignments(data, num, reps=30):
     """ Choose random assignment per compound
     """
     def nm_assign(num, compounds):
+        np.random.shuffle(compounds)
         assignments = {}
         for node_sel in compounds:
             # select random assignment
