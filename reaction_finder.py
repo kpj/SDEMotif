@@ -572,7 +572,7 @@ def plot_network(motifs, data):
 
     plt.savefig('images/motif_network.pdf')
 
-def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='motifs'):
+def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='motifs'):
     """ Find optimal compound assignments by (weighted) randomly selecting
         motifs of low initial assignment number and choose assignments
         which maximize intensity correlation coefficients.
@@ -781,7 +781,7 @@ def find_optimal_assignments(motifs, data, reps=30, null_model=True, fname='moti
     f, axes = plt.subplots(1, 2, figsize=(21,7))
 
     all_assignments = []
-    for i in range(reps):
+    for i in trange(reps):
         assignments, extra = assign(motifs, prob_fac)
 
         if i == 0:
@@ -1092,7 +1092,61 @@ def compare_assignment_result(ass_data, data):
     plt.tight_layout()
     plt.savefig('images/assignment_comparison.pdf')
 
-def null_model_assignments(data, num, reps=30):
+def investigate_prediction_chaos(ass_data, data):
+    """ Check how inter-connectedness influences variability of prediction result
+
+        * Count how often each node pair is assigned to particular intensity-vector pair
+    """
+    fig, axes = plt.subplots(len(ass_data), 1, figsize=(5,20))
+
+    for (all_ass, lbl), ax in zip(ass_data, axes):
+        # aggregate assignments over various runs
+        tmp = {'run': [], 'intensity_vec': [], 'compound': []}
+        for i, assignments in enumerate(all_ass):
+            # make intensity vectors hashable
+            ass = {k: tuple(v) for k,v in assignments.items()}
+
+            for comp, ints in ass.items():
+                tmp['run'].append(i)
+                tmp['intensity_vec'].append(ints)
+                tmp['compound'].append(comp)
+        df = pd.DataFrame(tmp)
+
+        # pre-filter (only consider compounds which got always mapped)
+        tmp = []
+        for name, group in list(df.groupby('run')):
+            cs = group['compound'].tolist()
+            tmp += cs
+        counts = pd.Series(tmp).value_counts()
+        needed_comps = counts[counts==(df['run'].max()+1)].index
+        df = df[df['compound'].isin(needed_comps)]
+
+        # conduct chaos investigation
+        tmp = collections.defaultdict(list)
+        for assignments in all_ass:
+            sub_keys = df['compound'].unique()
+            for i,j in itertools.combinations(sub_keys, 2):
+                tmp[(i,j)].append((tuple(assignments[i]), tuple(assignments[j])))
+
+        total_count = collections.Counter()
+        for (i,j), pairs in tqdm(tmp.items()):
+            count = collections.Counter(pairs)
+            total_count += count
+
+        final_counts = np.asarray([v for k,v in total_count.most_common()], dtype=float)
+        if len(final_counts) == 0:
+            continue
+        final_counts /= df['run'].max()+1
+
+        sns.distplot(final_counts, ax=ax)
+        ax.set_title(lbl)
+        ax.set_xlabel('relative assigned intensity pair count')
+        ax.set_ylabel('frequency')
+
+    plt.tight_layout()
+    plt.savefig('images/assignment_chaos.pdf')
+
+def null_model_assignments(data, num, reps=1000):
     """ Choose random assignment per compound
     """
     def nm_assign(num, compounds):
@@ -1240,6 +1294,13 @@ def find_small_motifs(
     null_ass = null_model_assignments(comps, other_size*2)
 
     # compare assignment results
+    investigate_prediction_chaos([
+        (motif_ass, 'motifs'),
+        (motiflink_ass, 'motiflinks'),
+        (link_ass, 'links'),
+        (random_ass, 'random'),
+        (null_ass, 'nullmodel')
+    ], comps)
     compare_assignment_result([
         (motif_ass, 'motifs'),
         (motiflink_ass, 'motiflinks'),
