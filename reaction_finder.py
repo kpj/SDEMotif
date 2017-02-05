@@ -609,7 +609,7 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
             reverse=True)
         sorted_motifs_bak = list(sorted_motifs)
 
-        idx_list, cur_idx_list = [], []
+        idx_list, cur_idx_list, assignment_order = [], [], []
         while len(sorted_motifs) > 0:
             # weighted choice of starting motif
             size = len(sorted_motifs)
@@ -676,11 +676,13 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
                     if not c1_done:
                         assert not c1 in assignments
                         assignments[c1] = int_list_1[c1_idx]
+                        assignment_order.append(c1)
                     else:
                         assert c1_idx == 0
                     if not c2_done:
                         assert not c2 in assignments
                         assignments[c2] = int_list_2[c2_idx]
+                        assignment_order.append(c2)
                     else:
                         assert c2_idx == 0
 
@@ -695,7 +697,8 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
 
         extra = {
             'idx_list': idx_list,
-            'cur_idx_list': cur_idx_list
+            'cur_idx_list': cur_idx_list,
+            'assignment_order': assignment_order
         }
 
         return assignments, extra
@@ -780,17 +783,17 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
     prob_fac = .1
     f, axes = plt.subplots(1, 2, figsize=(21,7))
 
-    all_assignments = []
+    all_assignments, all_extra = [], []
     for i in trange(reps):
         assignments, extra = assign(motifs, prob_fac)
 
-        if i == 0:
-            ass_corrs = plot_correlations(assignments, axes[0])
-            plot_idx_list(extra['idx_list'], prob_fac, axes[1])
-            axes[1].plot(extra['cur_idx_list'], alpha=.8, label='actual index')
-            axes[1].legend(loc='best')
-
         all_assignments.append(assignments)
+        all_extra.append(extra)
+
+    ass_corrs = plot_correlations(all_assignments[0], axes[0])
+    plot_idx_list(all_extra[0]['idx_list'], prob_fac, axes[1])
+    axes[1].plot(all_extra[0]['cur_idx_list'], alpha=.8, label='actual index')
+    axes[1].legend(loc='best')
 
     all_pos_corrs = compute_all_possible_correlations(motifs)
     sns.distplot(
@@ -815,7 +818,7 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
     plotter.save_figure('images/assignments_{}.pdf'.format(fname), bbox_inches='tight')
 
     # return assignment results
-    return all_assignments
+    return all_assignments, all_extra
 
 def process(compound_data, filter_mz=False):
     """ Simple reaction-combinatorics advancer
@@ -1097,53 +1100,72 @@ def investigate_prediction_chaos(ass_data, data):
 
         * Count how often each node pair is assigned to particular intensity-vector pair
     """
-    fig, axes = plt.subplots(len(ass_data), 1, figsize=(5,20))
+    print('Chaos plots')
+    fig, axes = plt.subplots(len(ass_data), 3)
 
-    for (all_ass, lbl), ax in zip(ass_data, axes):
+    for (all_ass, all_info, lbl), ax_row in zip(ass_data, axes):
         # aggregate assignments over various runs
-        tmp = {'run': [], 'intensity_vec': [], 'compound': []}
-        for i, assignments in enumerate(all_ass):
-            # make intensity vectors hashable
-            ass = {k: tuple(v) for k,v in assignments.items()}
+        df = pd.DataFrame()
+        assert len(all_ass) == len(all_info)
+        tmp = {lbl: [] for lbl in ['run', 'intensity_vec', 'compound', 'compound_assignment_idx']}
 
-            for comp, ints in ass.items():
+        for i, (assignments, info) in enumerate(zip(all_ass, all_info)):
+            for comp, ints in assignments.items():
+                assert comp in info['assignment_order']
                 tmp['run'].append(i)
-                tmp['intensity_vec'].append(ints)
+                tmp['intensity_vec'].append(tuple(ints))
                 tmp['compound'].append(comp)
+                tmp['compound_assignment_idx'].append(info['assignment_order'].index(comp))
         df = pd.DataFrame(tmp)
 
-        # pre-filter (only consider compounds which got always mapped)
-        tmp = []
-        for name, group in list(df.groupby('run')):
-            cs = group['compound'].tolist()
-            tmp += cs
-        counts = pd.Series(tmp).value_counts()
-        needed_comps = counts[counts==(df['run'].max()+1)].index
-        df = df[df['compound'].isin(needed_comps)]
+        # precompute some statistic
+        comp_frac = {}
+        for name, group in df.groupby('compound'):
+            int_vec = group['intensity_vec'].unique()
 
-        # conduct chaos investigation
-        tmp = collections.defaultdict(list)
-        for assignments in all_ass:
-            sub_keys = df['compound'].unique()
-            for i,j in itertools.combinations(sub_keys, 2):
-                tmp[(i,j)].append((tuple(assignments[i]), tuple(assignments[j])))
+            # filter entries which have only one assignment anyways
+            assert len(int_vec) >= 1
+            if len(data[name]['intensities']) == 1:
+                assert tuple(data[name]['intensities'][0]) == int_vec[0]
+                comp_frac[name] = -1
+                continue
 
-        total_count = collections.Counter()
-        for (i,j), pairs in tqdm(tmp.items()):
-            count = collections.Counter(pairs)
-            total_count += count
+            assert not name in comp_frac
+            comp_frac[name] = len(int_vec)
 
-        final_counts = np.asarray([v for k,v in total_count.most_common()], dtype=float)
-        if len(final_counts) == 0:
-            continue
-        final_counts /= df['run'].max()+1
+        # make scatter plots
+        for compound, group in tqdm(df.groupby('compound')):
+            int_val = comp_frac[compound]
+            mean_idx = group['compound_assignment_idx'].mean()
+            std_idx = group['compound_assignment_idx'].std()
+            avg_intvec_len = len(group['intensity_vec'].unique())
 
-        sns.distplot(final_counts, ax=ax)
-        ax.set_title(lbl)
-        ax.set_xlabel('relative assigned intensity pair count')
-        ax.set_ylabel('frequency')
+            ax_row[0].scatter(
+                int_val, mean_idx,
+                alpha=.3, rasterized=True)
+            ax_row[1].scatter(
+                mean_idx, std_idx,
+                alpha=.3, rasterized=True)
+            ax_row[2].scatter(
+                mean_idx, avg_intvec_len,
+                alpha=.3, rasterized=True)
+
+        ax_row[0].set_title(lbl)
+        ax_row[0].set_xlabel('int_val')
+        ax_row[0].set_ylabel('mean_idx')
+
+        ax_row[1].set_title(lbl)
+        ax_row[1].set_xlabel('mean_idx')
+        ax_row[1].set_ylabel('std_idx')
+
+        ax_row[2].set_title(lbl)
+        ax_row[2].set_xlabel('mean_idx')
+        ax_row[2].set_ylabel('avg_intvec_len')
 
     plt.tight_layout()
+    zoom = 1.5
+    w, h = fig.get_size_inches()
+    fig.set_size_inches(w * zoom, h * zoom)
     plt.savefig('images/assignment_chaos.pdf')
 
 def null_model_assignments(data, num, reps=1000):
@@ -1165,19 +1187,19 @@ def null_model_assignments(data, num, reps=1000):
 
             # finalize
             assignments[node_sel] = int_sel
-        return assignments
+        return assignments, {'assignment_order': compounds}
 
     # choose random compounds
     compounds = []
     all_compounds = list(data.keys())
-    for _ in trange(num):
+    for _ in range(num):
         node_sel = random.choice(all_compounds)
         while node_sel in compounds:
             node_sel = random.choice(all_compounds)
         compounds.append(node_sel)
     assert len(set(compounds)) == len(compounds) # unique compounds
 
-    return [nm_assign(num, compounds) for _ in range(reps)]
+    return zip(*[nm_assign(num, compounds) for _ in range(reps)])
 
 def find_small_motifs(
     compounds_level0,
@@ -1230,15 +1252,19 @@ def find_small_motifs(
     # predictions with motifs
     motif_fname = 'cache/prediction_motif.dat'
     if not os.path.exists(motif_fname):
-        motif_ass = find_optimal_assignments(motifs, comps)
+        motif_ass, motif_info = find_optimal_assignments(motifs, comps)
 
         with open(motif_fname, 'wb') as fd:
-            pickle.dump(motif_ass, fd)
+            pickle.dump({
+                'ass': motif_ass,
+                'info': motif_info
+            }, fd)
     else:
         print('Using cached data ({})'.format(motif_fname))
         with open(motif_fname, 'rb') as fd:
-            motif_ass = pickle.load(fd)
-
+            tmp = pickle.load(fd)
+            motif_ass = tmp['ass']
+            motif_info = tmp['info']
 
     # predict using links from motif network
     motiflinks_fname = 'cache/prediction_motiflinks.dat'
@@ -1246,15 +1272,20 @@ def find_small_motifs(
         motiflinks = [edge
             for c1,c2,c3 in motifs
                 for edge in [(c1,c2,None),(c2,c3,None),(c1,c3,None)]]
-        motiflink_ass = find_optimal_assignments(
+        motiflink_ass, motiflink_info = find_optimal_assignments(
             motiflinks, comps, fname='motiflinks')
 
         with open(motiflinks_fname, 'wb') as fd:
-            pickle.dump(motiflink_ass, fd)
+            pickle.dump({
+                'ass': motiflink_ass,
+                'info': motiflink_info
+            }, fd)
     else:
         print('Using cached data ({})'.format(motiflinks_fname))
         with open(motiflinks_fname, 'rb') as fd:
-            motiflink_ass = pickle.load(fd)
+            tmp = pickle.load(fd)
+            motiflink_ass = tmp['ass']
+            motiflink_info = tmp['info']
 
     # predict using only links
     links_fname = 'cache/prediction_links.dat'
@@ -1262,14 +1293,19 @@ def find_small_motifs(
         edge_idx = np.random.choice(
             np.arange(len(graph.edges())), size=other_size)
         links = [(*graph.edges()[edx],None) for edx in edge_idx]
-        link_ass = find_optimal_assignments(links, comps, fname='links')
+        link_ass, link_info = find_optimal_assignments(links, comps, fname='links')
 
         with open(links_fname, 'wb') as fd:
-            pickle.dump(link_ass, fd)
+            pickle.dump({
+                'ass': link_ass,
+                'info': link_info
+            }, fd)
     else:
         print('Using cached data ({})'.format(links_fname))
         with open(links_fname, 'rb') as fd:
-            link_ass = pickle.load(fd)
+            tmp = pickle.load(fd)
+            link_ass = tmp['ass']
+            link_info = tmp['info']
 
     # predict using random nodes
     random_fname = 'cache/prediction_random.dat'
@@ -1281,25 +1317,30 @@ def find_small_motifs(
             [(*np.random.choice(node_sel, size=2),None)
                 for _ in range(other_size)]
         ))
-        random_ass = find_optimal_assignments(rand_nodes, comps, fname='random')
+        random_ass, random_info = find_optimal_assignments(rand_nodes, comps, fname='random')
 
         with open(random_fname, 'wb') as fd:
-            pickle.dump(random_ass, fd)
+            pickle.dump({
+                'ass': random_ass,
+                'info': random_info
+            }, fd)
     else:
         print('Using cached data ({})'.format(random_fname))
         with open(random_fname, 'rb') as fd:
-            random_ass = pickle.load(fd)
+            tmp = pickle.load(fd)
+            random_ass = tmp['ass']
+            random_info = tmp['info']
 
     # use another null-model
-    null_ass = null_model_assignments(comps, other_size*2)
+    null_ass, null_info = null_model_assignments(comps, other_size*2)
 
     # compare assignment results
     investigate_prediction_chaos([
-        (motif_ass, 'motifs'),
-        (motiflink_ass, 'motiflinks'),
-        (link_ass, 'links'),
-        (random_ass, 'random'),
-        (null_ass, 'nullmodel')
+        (motif_ass, motif_info, 'motifs'),
+        (motiflink_ass, motiflink_info, 'motiflinks'),
+        (link_ass, link_info, 'links'),
+        (random_ass, random_info, 'random'),
+        (null_ass, null_info, 'nullmodel')
     ], comps)
     compare_assignment_result([
         (motif_ass, 'motifs'),
