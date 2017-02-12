@@ -238,7 +238,7 @@ def handle_enh_entry(entry, thres: float) -> float:
 
     return np.mean(cur) if len(cur) > 0 else None
 
-def threshold_influence(data: List, ax_orig=None, resolution: int = 100) -> None:
+def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
     """ Plot robustness for varying threshold levels
     """
     threshold_list = np.logspace(-5, 0, resolution)
@@ -274,14 +274,14 @@ def threshold_influence(data: List, ax_orig=None, resolution: int = 100) -> None
         robust_vals /= max_rob
 
     # plot data
-    if ax_orig is None:
+    if ax is None:
         plt.figure()
-        ax = plt.gca()
+        ax_new = plt.gca()
     else:
-        ax = ax_orig
+        ax_new = ax
 
-    atx = ax.twinx()
-    aty = ax.twiny()
+    atx = ax_new.twinx()
+    aty = ax_new.twiny()
 
     sns.distplot(
         thres_vals, ax=atx,
@@ -292,19 +292,19 @@ def threshold_influence(data: List, ax_orig=None, resolution: int = 100) -> None
             robust_vals, ax=aty, vertical=True,
             hist=False, kde=True, rug=True,
             color='k', kde_kws=dict(alpha=.1), rug_kws=dict(alpha=.2))
-    ax.scatter(thres_vals, robust_vals, color='k', alpha=.05)
+    ax_new.scatter(thres_vals, robust_vals, color='k', alpha=.05)
 
     sns.tsplot(
-        df, ax=ax,
+        df, ax=ax_new,
         time='threshold', unit='param_config', value='robustness')
 
-    ax.set_xscale('log')
-    ax.set_ylim((0, 1))
+    ax_new.set_xscale('log')
+    ax_new.set_ylim((0, 1))
 
     atx.set(yticklabels=[])
     aty.set(xticklabels=[])
 
-    if ax_orig is None:
+    if ax is None:
         plt.savefig('images/threshold_influence.pdf')
 
 def fixed_threshold(data: List) -> float:
