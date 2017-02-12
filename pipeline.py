@@ -346,7 +346,7 @@ def motif_overview(prefix):
             }
 
     # plot data
-    plt.figure(figsize=(35,5))
+    plt.figure(figsize=(3*len(data),5))
     gs = gridspec.GridSpec(3, len(data))
 
     # add motif and threshold plots
