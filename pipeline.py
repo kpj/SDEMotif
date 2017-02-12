@@ -238,7 +238,7 @@ def handle_enh_entry(entry, thres: float) -> float:
 
     return np.mean(cur) if len(cur) > 0 else None
 
-def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
+def threshold_influence(data: List, ax_orig=None, resolution: int = 100) -> None:
     """ Plot robustness for varying threshold levels
     """
     threshold_list = np.logspace(-5, 0, resolution)
@@ -274,9 +274,11 @@ def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
         robust_vals /= max_rob
 
     # plot data
-    if ax is None:
+    if ax_orig is None:
         plt.figure()
         ax = plt.gca()
+    else:
+        ax = ax_orig
 
     atx = ax.twinx()
     aty = ax.twiny()
@@ -302,7 +304,7 @@ def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
     atx.set(yticklabels=[])
     aty.set(xticklabels=[])
 
-    if ax is None:
+    if ax_orig is None:
         plt.savefig('images/threshold_influence.pdf')
 
 def fixed_threshold(data: List) -> float:
