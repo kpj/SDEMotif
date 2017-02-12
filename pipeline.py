@@ -394,10 +394,10 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         #initial_tests()
 
-        #generate_data(
-        #    'results/new_data_ffl.dat', gen_func=generate_basic_system)
-        #generate_data(
-        #    'results/new_data_link.dat', gen_func=generate_two_node_system)
+        generate_data(
+            'results/new_data_ffl.dat', gen_func=generate_basic_system)
+        generate_data(
+            'results/new_data_link.dat', gen_func=generate_two_node_system)
 
         generate_motif_data('results/new_data_motifs.dat')
     elif len(sys.argv) == 2:
