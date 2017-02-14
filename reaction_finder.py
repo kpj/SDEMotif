@@ -1187,7 +1187,7 @@ def null_model_assignments(data, num, reps=1000):
 
             # finalize
             assignments[node_sel] = int_sel
-        return assignments, {'assignment_order': compounds}
+        return assignments, {'assignment_order': compounds[:]}
 
     # choose random compounds
     compounds = []
