@@ -36,95 +36,95 @@ def generate_basic_system(v_in=5, k_m=1, k_23=2, D=1):
     return system
 
 def generate_motifs():
-    """ Generate all motifs from
+    """ Generate all motifs from some paper.
+        However return function to generate motif with given parameters
     """
     v_in = 5
-    k_m = 1
-    k_23 = 2
     D = 1
-    k_12 = k_13 = k_out = k_m
-    k = k_m
 
     def gen(jacobian):
         initial_state = np.array([1, 1, 1])
 
         return [
-            SDESystem(
-                jacobian, [D, 0, 0],
-                [v_in, 0, 0], initial_state),
-            SDESystem(
-                jacobian, [0, D, 0],
-                [0, v_in, 0], initial_state),
-            SDESystem(
-                jacobian, [0, 0, D],
-                [0, 0, v_in], initial_state),
+            lambda v_in=5, k_m=1, k_23=2, D=1:
+                SDESystem(
+                    jacobian(k_m, k_23), [D, 0, 0],
+                    [v_in, 0, 0], initial_state),
+            lambda v_in=5, k_m=1, k_23=2, D=1:
+                SDESystem(
+                    jacobian(k_m, k_23), [0, D, 0],
+                    [0, v_in, 0], initial_state),
+            lambda v_in=5, k_m=1, k_23=2, D=1:
+                SDESystem(
+                    jacobian(k_m, k_23), [0, 0, D],
+                    [0, 0, v_in], initial_state)
         ]
 
     jacobians = [
-        np.array([
-            [-(k_12 + k_12), 0,      0     ],
-            [k,              -k_23,  0     ],
-            [k,              0,      -k_out]
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m), 0,      0     ],
+            [k_m,              -k_23,  0     ],
+            [k_m,              0,      -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12),    0,      0     ],
-            [k,                 -k_23,  k     ],
-            [0,                 0,      -k_out]
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m),    0,      0     ],
+            [k_m,                 -k_23,  k     ],
+            [0,                 0,      -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12),    0,      0     ],
-            [k,                -k_23,   0     ],
-            [0,                 k,      -k_out]
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m),    0,      0     ],
+            [k_m,                -k_23,   0     ],
+            [0,                 k_23,      -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12), 0,      0    ],
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m), 0,      0    ],
             [0,              -k_23,  k    ],
-            [k,              k,     -k_out]
+            [k_m,              k_23,     -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12), 0,      k    ],
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m), 0,      k    ],
             [0,              -k_23,  k    ],
-            [0,              k,     -k_out]
+            [0,              k_23,     -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12), 0,      k    ],
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m), 0,      k    ],
             [0,              -k_23,  k    ],
-            [k,              k,     -k_out]
+            [k_m,              k_23,     -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12), 0,      0     ],
-            [k,              -k_23,  0     ],
-            [k,              k,      -k_out]
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m), 0,      0     ],
+            [k_m,              -k_23,  0     ],
+            [k_m,              k_23,      -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12), 0,      k     ],
-            [k,              -k_23,  0     ],
-            [0,              k,      -k_out]
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m), 0,      k     ],
+            [k_m,              -k_23,  0     ],
+            [0,              k_23,      -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12), 0,      0     ],
-            [k,              -k_23,  k     ],
-            [k,              k,      -k_out]
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m), 0,      0     ],
+            [k_m,              -k_23,  k     ],
+            [k_m,              k_23,      -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12),    0,      k     ],
-            [k,                 -k_23,  k     ],
-            [k,                 0,      -k_out]
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m),    0,      k     ],
+            [k_m,                 -k_23,  k     ],
+            [k_m,                 0,      -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12),    0,      k     ],
-            [k,                 -k_23,  0     ],
-            [k,                 k,      -k_out]
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m),    0,      k     ],
+            [k_m,                 -k_23,  0     ],
+            [k_m,                 k_23,      -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12),    0,      k     ],
-            [k,                 -k_23,  k     ],
-            [k,                 k,      -k_out]
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m),    0,      k     ],
+            [k_m,                 -k_23,  k     ],
+            [k_m,                 k_23,      -k_m]
         ]),
-        np.array([
-            [-(k_12 + k_12),    k,      k     ],
-            [k,                 -k_23,  k     ],
-            [k,                 k,      -k_out]
+        lambda k_m, k_23: np.array([
+            [-(k_m + k_m),    k_m,      k_m     ],
+            [k_m,                 -k_23,  k_m     ],
+            [k_m,                 k_23,      -k_m]
         ]),
     ]
 

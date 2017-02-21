@@ -190,12 +190,11 @@ def generate_system_data(motif_idx, motifs_three):
     """
     res = []
     # iterate over three ways of driving given motif
-    for i, motif in enumerate(motifs_three):
-        getter = lambda k_m=1, k_23=1: motif
-        cur = generate_data(None, gen_func=getter)
+    for i, motif_func in enumerate(motifs_three):
+        cur = generate_data(None, gen_func=motif_func)
         res.append(cur)
     return ({
-        'motif': getter(),
+        'motif': motif_func(),
         'idx': motif_idx
     }, res)
 
