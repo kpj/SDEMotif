@@ -146,6 +146,25 @@ def generate_two_node_system(v_in=5, D=1, k_m=.5, k_23=.5):
         external_influence, initial_state)
     return system
 
+def generate_v_out(v_in=5, k_m=1, k_23=2, D=1):
+    """ Generate V-motif
+    """
+    k_12 = k_13 = k_out = k_m
+
+    jacobian = np.array([
+        [-(k_12 + k_12),    0,       0],
+        [k_12,              -k_out,  0],
+        [k_13,              0,       -k_out]
+    ])
+    external_influence = np.array([v_in, 0, 0])
+    fluctuation_vector = np.array([D, 0, 0])
+    initial_state = np.array([1, 1, 1])
+
+    system = SDESystem(
+        jacobian, fluctuation_vector,
+        external_influence, initial_state)
+    return system
+
 def generate_random_plus(num=5):
     """ Generate randomized versions of initial system plus one node
     """

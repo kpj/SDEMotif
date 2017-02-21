@@ -24,7 +24,7 @@ from tqdm import tqdm, trange
 from solver import solve_system
 from filters import filter_steady_state
 from nm_data_generator import add_node_to_system
-from setup import generate_basic_system, generate_two_node_system, generate_motifs
+from setup import generate_basic_system, generate_two_node_system, generate_v_out, generate_motifs
 
 
 def threshold_div(distr: np.ndarray, thres: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -179,7 +179,8 @@ def generate_data(
     if not fname is None:
         with open(fname, 'wb') as fd:
             pickle.dump({
-                'data': data
+                'data': data,
+                'motif': gen_func()
             }, fd)
     else:
         return data
@@ -190,11 +191,11 @@ def generate_system_data(motif_idx, motifs_three):
     res = []
     # iterate over three ways of driving given motif
     for i, motif in enumerate(motifs_three):
-        getter = lambda k_m, k_23: motif
+        getter = lambda k_m=1, k_23=1: motif
         cur = generate_data(None, gen_func=getter)
         res.append(cur)
     return ({
-        'motif': getter(1,1),
+        'motif': getter(),
         'idx': motif_idx
     }, res)
 
@@ -396,6 +397,8 @@ if __name__ == '__main__':
 
         generate_data(
             'results/new_data_ffl.dat', gen_func=generate_basic_system)
+        generate_data(
+            'results/new_data_vout.dat', gen_func=generate_v_out)
         generate_data(
             'results/new_data_link.dat', gen_func=generate_two_node_system)
 
