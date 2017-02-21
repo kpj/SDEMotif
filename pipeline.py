@@ -254,7 +254,7 @@ def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
 
             df = df.append({
                 'threshold': thres,
-                'robustness': res,
+                'correlation_transfer': res,
                 'param_config': i
             }, ignore_index=True)
 
@@ -262,10 +262,10 @@ def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
         return
 
     # normalize robustness values
-    max_rob = df.groupby('threshold').mean()['robustness'].max()
+    max_rob = df.groupby('threshold').mean()['correlation_transfer'].max()
     assert max_rob >= 0, df.head()
     if max_rob > 0:
-        df['robustness'] /= max_rob
+        df['correlation_transfer'] /= max_rob
 
     print(df.describe())
 
@@ -297,7 +297,7 @@ def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
 
     sns.tsplot(
         df, ax=ax_new,
-        time='threshold', unit='param_config', value='robustness')
+        time='threshold', unit='param_config', value='correlation_transfer')
 
     ax_new.set_xscale('log')
     ax_new.set_ylim((0, 1))
