@@ -356,7 +356,7 @@ def motif_overview(prefix):
 
         # motif
         a = plt.subplot(gs[0,i])
-        g = nx.from_numpy_matrix(data[k]['motif'].jacobian, create_using=nx.DiGraph())
+        g = nx.from_numpy_matrix(data[k]['motif'].jacobian.T, create_using=nx.DiGraph())
         nx.draw(
             g, ax=a, node_size=60,
             with_labels=True, font_size=4)
