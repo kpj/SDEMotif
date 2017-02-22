@@ -2,6 +2,8 @@
 General system class
 """
 
+import pickle
+
 import numpy as np
 
 
@@ -13,3 +15,12 @@ class SDESystem(object):
         self.fluctuation_vector = np.asarray(D)
         self.external_influence = np.asarray(E)
         self.initial_state = np.asarray(I)
+
+    def save(self, fname):
+        with open(fname, 'wb') as fd:
+            pickle.dump(self, fd)
+
+    @classmethod
+    def load(cls, fname):
+        with open(fname, 'rb') as fd:
+            return pickle.load(fd)
