@@ -67,7 +67,7 @@ def visualize_node_influence():
     systems = {
         'basic': basic_system,
         'similar': similar_system,
-        'different_system': different_system
+        'different': different_system
     }
 
     # simulations
