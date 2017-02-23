@@ -2,7 +2,10 @@
  Create nice looking publication figures
 """
 
+import os
+
 import numpy as np
+import pandas as pd
 import networkx as nx
 
 import seaborn as sns
@@ -82,8 +85,60 @@ def visualize_node_influence():
         plot_system(syst, plt.axes([.3,.5,.3,.3]))
         plt.savefig(f'images/node_influence_{name}.pdf')
 
+def real_data_example():
+    """ Show example with cocoa/rhodo MS data
+    """
+    def read_peaks(fname):
+        df_fname = fname + '.df'
+
+        if not os.path.exists(df_fname):
+            df = pd.read_csv(fname)
+            dat = {'sample_name': [], 'mz': [], 'intensity': []}
+
+            for i, row in tqdm(df.iterrows(), total=df.shape[0]):
+                for ind in row.index:
+                    if ind.startswith('LC.MS'):
+                        dat['sample_name'].append(ind)
+                        dat['mz'].append(row['mz'])
+                        dat['intensity'].append(row[ind])
+
+            out_df = pd.DataFrame(dat)
+            out_df.to_csv(df_fname)
+        else:
+            print(f'Using cached data for "{fname}"')
+            out_df = pd.read_csv(df_fname, index_col=0)
+
+        return out_df
+
+    df = read_peaks('data/rl_data.csv')
+    df.set_index('mz', inplace=True)
+
+    # plot overview
+    plt.figure(figsize=(20,6))
+
+    subset = np.random.choice(df['sample_name'].unique(), size=3)
+    df = df[df['sample_name'].isin(subset)]
+
+    series_list = []
+    ax = plt.subplot(121)
+    for sample, group in df.groupby('sample_name'):
+        ax.plot(group.index, group['intensity'], label=sample)
+        series_list.append(group['intensity'])
+    ax.set_xlabel('mz')
+    ax.set_ylabel('intensity')
+    ax.set_yscale('log')
+    ax.legend(loc='best')
+
+    cur = pd.concat(series_list, axis=1)
+    corrs = cur.corr()
+    sns.heatmap(corrs, ax=plt.subplot(122))
+
+    plt.tight_layout()
+    plt.savefig('images/rl_example.pdf')
+
 def main():
-    visualize_node_influence()
+    #visualize_node_influence()
+    real_data_example()
 
 
 if __name__ == '__main__':
