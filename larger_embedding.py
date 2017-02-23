@@ -59,14 +59,15 @@ def plot_solution(sol, ax):
         ax.plot(series, label=i, alpha=1 if i in range(3) else .3)
     ax.legend(loc='best')
 
-def plot_correlation_hist(matrices, label, color, ax):
+def plot_correlation_hist(matrices, ax):
     for i, row in enumerate(matrices.T):
         for j, series in enumerate(row):
             if i == j: break
             sns.distplot(
                 series, ax=ax, hist=False,
-                label=label if i == 1 else None, color=color)
+                label=rf'$c_{{{i},{j}}}$')
     ax.legend(loc='best')
+    ax.set_xlim((-1,1))
 
 def simulate(syst, reps=1000):
     matrices = []
@@ -86,13 +87,33 @@ def simulate(syst, reps=1000):
             matrices.append(mat)
     return np.asarray(matrices), (syst, sol)
 
+def add_fourth_node(bas_syst, emb_syst):
+    """ Add fourth node according to embedding
+    """
+    J = bas_syst.jacobian
+    eJ = emb_syst.jacobian
+
+    fnode_out = eJ[:3,3:].sum(axis=1)
+    fnode_in = eJ[3:,:3].T.sum(axis=1)
+
+    J = np.vstack((J, fnode_in))
+    J = np.hstack((J, np.r_[fnode_out, -1].reshape(-1,1)))
+
+    bas_syst.jacobian = J
+    bas_syst.fluctuation_vector = np.r_[bas_syst.fluctuation_vector, 1]
+    bas_syst.external_influence = np.r_[bas_syst.external_influence, 5]
+    bas_syst.initial_state = np.r_[bas_syst.initial_state, 1]
+
+    return bas_syst
+
 def main():
     # compute data
-    bas_syst = generate_basic_system()
     emb_syst = SDESystem.load('cache/embedded_system.pkl') #get_system(10)
+    bas_syst = add_fourth_node(generate_basic_system(), emb_syst)
+    assert (emb_syst.jacobian[:3,:3] == bas_syst.jacobian[:3,:3]).all()
 
-    bas_mats, bas_extra = simulate(bas_syst, 30)
-    emb_mats, emb_extra = simulate(emb_syst, 30)
+    bas_mats, bas_extra = simulate(bas_syst)
+    emb_mats, emb_extra = simulate(emb_syst)
 
     # generate plot
     plt.figure(figsize=(20, 6))
@@ -104,8 +125,8 @@ def main():
     plot_solution(bas_extra[1], plt.subplot(gs[0,1]))
     plot_solution(emb_extra[1], plt.subplot(gs[1,1]))
 
-    plot_correlation_hist(bas_mats, 'only motif', 'blue', plt.subplot(gs[0,2]))
-    plot_correlation_hist(emb_mats, 'embedded motif', 'red', plt.subplot(gs[1,2]))
+    plot_correlation_hist(bas_mats, plt.subplot(gs[0,2]))
+    plot_correlation_hist(emb_mats, plt.subplot(gs[1,2]))
 
     plt.tight_layout()
     plt.savefig('images/embedded_motif.pdf')
