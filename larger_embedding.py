@@ -41,6 +41,10 @@ def get_system(N, v_in=5, D=1):
     external_influence[[1,2]] = 0
     fluctuation_vector[[1,2]] = 0
 
+    jacobian[0,0] = -2
+    jacobian[1,1] = -2
+    jacobian[2,1] = 2
+
     # generate final system
     system = SDESystem(
         jacobian, fluctuation_vector,
@@ -50,9 +54,15 @@ def get_system(N, v_in=5, D=1):
 
 def plot_system(syst, ax):
     graph = nx.from_numpy_matrix(syst.jacobian.T, create_using=nx.DiGraph())
+    pos = nx.circular_layout(graph)
+
     nx.draw(
-        graph, ax=ax, with_labels=True,
+        graph, pos,
+        ax=ax, with_labels=True,
         node_color=['y' if n in range(3) else 'red' for n in graph.nodes()])
+    nx.draw_networkx_edge_labels(
+        graph, pos,
+        edge_labels={(u,v): d['weight'] for u,v,d in graph.edges_iter(data=True)})
 
 def plot_solution(sol, ax):
     for i, series in enumerate(sol):
@@ -93,8 +103,9 @@ def add_fourth_node(bas_syst, emb_syst):
     J = bas_syst.jacobian
     eJ = emb_syst.jacobian
 
-    fnode_out = eJ[:3,3:].sum(axis=1)
-    fnode_in = eJ[3:,:3].T.sum(axis=1)
+    driver_infl = (emb_syst.fluctuation_vector!=0)[3:] | True
+    fnode_out = (driver_infl * eJ[:3,3:]).sum(axis=1)
+    fnode_in = (driver_infl * eJ[3:,:3].T).sum(axis=1)
 
     J = np.vstack((J, fnode_in))
     J = np.hstack((J, np.r_[fnode_out, -1].reshape(-1,1)))
