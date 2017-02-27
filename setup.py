@@ -62,69 +62,69 @@ def generate_motifs():
 
     jacobians = [
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m), 0,      0     ],
-            [k_m,              -k_23,  0     ],
-            [k_m,              0,      -k_m]
+            [-(k_m + k_m),   0,      0],
+            [k_m,            -k_23,  0],
+            [k_m,            0,      -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m),    0,      0     ],
-            [k_m,                 -k_23,  k     ],
-            [0,                 0,      -k_m]
+            [-(k_m + k_m),   0,      0],
+            [k_m,            -k_23,  k_23],
+            [0,              0,      -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m),    0,      0     ],
-            [k_m,                -k_23,   0     ],
-            [0,                 k_23,      -k_m]
+            [-(k_m + k_m),   0,      0],
+            [k_m,            -k_23,  0],
+            [0,              k_23,   -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m), 0,      0    ],
-            [0,              -k_23,  k    ],
-            [k_m,              k_23,     -k_m]
+            [-(k_m + k_m),   0,      0],
+            [0,              -k_23,  k_23],
+            [k_m,            k_23,   -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m), 0,      k    ],
-            [0,              -k_23,  k    ],
-            [0,              k_23,     -k_m]
+            [-(k_m + k_m),   0,      k_m],
+            [0,              -k_23,  k_23],
+            [0,              k_23,   -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m), 0,      k    ],
-            [0,              -k_23,  k    ],
-            [k_m,              k_23,     -k_m]
+            [-(k_m + k_m),   0,      k_m],
+            [0,              -k_23,  k_23],
+            [k_m,            k_23,   -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m), 0,      0     ],
-            [k_m,              -k_23,  0     ],
-            [k_m,              k_23,      -k_m]
+            [-(k_m + k_m),   0,      0],
+            [k_m,            -k_23,  0],
+            [k_m,            k_23,   -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m), 0,      k     ],
-            [k_m,              -k_23,  0     ],
-            [0,              k_23,      -k_m]
+            [-(k_m + k_m),   0,      k_m],
+            [k_m,            -k_23,  0],
+            [0,              k_23,   -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m), 0,      0     ],
-            [k_m,              -k_23,  k     ],
-            [k_m,              k_23,      -k_m]
+            [-(k_m + k_m),   0,      0],
+            [k_m,            -k_23,  k_23],
+            [k_m,            k_23,   -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m),    0,      k     ],
-            [k_m,                 -k_23,  k     ],
-            [k_m,                 0,      -k_m]
+            [-(k_m + k_m),   0,      k_m],
+            [k_m,            -k_23,  k_23],
+            [k_m,            0,      -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m),    0,      k     ],
-            [k_m,                 -k_23,  0     ],
-            [k_m,                 k_23,      -k_m]
+            [-(k_m + k_m),   0,      k_m],
+            [k_m,            -k_23,  0],
+            [k_m,            k_23,   -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m),    0,      k     ],
-            [k_m,                 -k_23,  k     ],
-            [k_m,                 k_23,      -k_m]
+            [-(k_m + k_m),   0,      k_m],
+            [k_m,            -k_23,  k_23],
+            [k_m,            k_23,   -k_m]
         ]),
         lambda k_m, k_23: np.array([
-            [-(k_m + k_m),    k_m,      k_m     ],
-            [k_m,                 -k_23,  k_m     ],
-            [k_m,                 k_23,      -k_m]
+            [-(k_m + k_m),   k_m,    k_m],
+            [k_m,            -k_23,  k_23],
+            [k_m,            k_23,   -k_m]
         ]),
     ]
 
