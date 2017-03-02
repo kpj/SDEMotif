@@ -67,7 +67,11 @@ def plot_system(syst, ax):
 def plot_solution(sol, ax):
     for i, series in enumerate(sol):
         ax.plot(series, label=i, alpha=1 if i in range(3) else .3)
-    ax.legend(loc='best')
+
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(
+        handles[:3], labels[:3],
+        loc='upper left', prop={'size':8})
 
 def plot_correlation_hist(matrices, ax):
     for i, row in enumerate(matrices.T):
