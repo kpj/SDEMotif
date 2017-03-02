@@ -73,15 +73,24 @@ def plot_solution(sol, ax):
         handles[:3], labels[:3],
         loc='upper left', prop={'size':8})
 
-def plot_correlation_hist(matrices, ax):
+def plot_correlation_hist(matrices, ax, shade=False, color_dict={}):
     for i, row in enumerate(matrices.T):
         for j, series in enumerate(row):
             if i == j: break
-            sns.distplot(
+            g = sns.distplot(
                 series, ax=ax, hist=False,
+                kde_kws={'shade':shade, 'linewidth':0 if shade else None},
+                color=color_dict[(i,j)] if (i,j) in color_dict else None,
                 label=rf'$c_{{{i},{j}}}$')
-    ax.legend(loc='best')
+
+            if (i,j) not in color_dict:
+                cur_col = g.get_lines()[-1].get_color()
+                color_dict[(i,j)] = cur_col
+
     ax.set_xlim((-1,1))
+
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles[:3], labels[:3], loc='upper left')
 
 def simulate(syst, reps=1000):
     matrices = []
@@ -104,6 +113,8 @@ def simulate(syst, reps=1000):
 def add_fourth_node(bas_syst, emb_syst):
     """ Add fourth node according to embedding
     """
+    bas_syst = copy.copy(bas_syst)
+
     J = bas_syst.jacobian
     eJ = emb_syst.jacobian
 
@@ -123,25 +134,29 @@ def add_fourth_node(bas_syst, emb_syst):
 
 def main():
     # compute data
-    emb_syst = SDESystem.load('cache/embedded_system.pkl') #get_system(10)
-    bas_syst = add_fourth_node(generate_basic_system(), emb_syst)
-    assert (emb_syst.jacobian[:3,:3] == bas_syst.jacobian[:3,:3]).all()
+    bas_syst = generate_basic_system()
+    fno_syst = add_fourth_node(bas_syst, emb_syst)
+    assert (emb_syst.jacobian[:3,:3] == fno_syst.jacobian[:3,:3]).all()
 
-    bas_mats, bas_extra = simulate(bas_syst)
-    emb_mats, emb_extra = simulate(emb_syst)
+    bas_mats, bas_extra = simulate(bas_syst, 100)
+    fno_mats, fno_extra = simulate(fno_syst, 100)
+    emb_mats, emb_extra = simulate(emb_syst, 100)
 
     # generate plot
     plt.figure(figsize=(20, 6))
     gs = gridspec.GridSpec(2, 3, width_ratios=[2,4,2])
 
-    plot_system(bas_extra[0], plt.subplot(gs[0,0]))
+    plot_system(fno_extra[0], plt.subplot(gs[0,0]))
     plot_system(emb_extra[0], plt.subplot(gs[1,0]))
 
-    plot_solution(bas_extra[1], plt.subplot(gs[0,1]))
+    plot_solution(fno_extra[1], plt.subplot(gs[0,1]))
     plot_solution(emb_extra[1], plt.subplot(gs[1,1]))
 
-    plot_correlation_hist(bas_mats, plt.subplot(gs[0,2]))
+    plot_correlation_hist(fno_mats, plt.subplot(gs[0,2]))
     plot_correlation_hist(emb_mats, plt.subplot(gs[1,2]))
+
+    plot_correlation_hist(bas_mats, plt.subplot(gs[0,2]), shade=True)
+    plot_correlation_hist(bas_mats, plt.subplot(gs[1,2]), shade=True)
 
     plt.tight_layout()
     plt.savefig('images/embedded_motif.pdf')
