@@ -270,6 +270,9 @@ def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
 
     # data for histograms
     robust_vals, thres_vals = fixed_threshold(data)
+    if len(robust_vals) == 0:
+        return
+
     if max_rob > 0:
         robust_vals /= max_rob
 
@@ -313,6 +316,10 @@ def fixed_threshold(data: List) -> float:
     robs, thresholds = [], []
     for entry in data:
         raw_corr_mats = entry['raw_corr_mats']
+        if len(raw_corr_mats) == 0:
+            continue
+        if np.isnan(raw_corr_mats).any():
+            continue
 
         # find \sigma of distribution with lowest \mu
         abs_corr_avg = abs(np.mean(raw_corr_mats, axis=0))
@@ -347,7 +354,7 @@ def motif_overview(prefix):
 
     # plot data
     plt.figure(figsize=(3*len(data),5))
-    gs = gridspec.GridSpec(3, len(data))
+    gs = gridspec.GridSpec(2, len(data))
 
     # add motif and threshold plots
     for i, k in enumerate(sorted(data, key=lambda k: data[k]['idx'])):
@@ -355,9 +362,11 @@ def motif_overview(prefix):
 
         # motif
         a = plt.subplot(gs[0,i])
-        g = nx.from_numpy_matrix(data[k]['motif'].jacobian.T, create_using=nx.DiGraph())
+        graph = nx.from_numpy_matrix(
+            data[k]['motif'].jacobian.T, create_using=nx.DiGraph())
+        pos = nx.circular_layout(graph)
         nx.draw(
-            g, ax=a, node_size=60,
+            graph, pos, ax=a, node_size=60,
             with_labels=True, font_size=4)
         a.axis('on')
         a.set_xticks([], [])
