@@ -353,8 +353,8 @@ def motif_overview(prefix):
             }
 
     # plot data
-    plt.figure(figsize=(3*len(data),5))
-    gs = gridspec.GridSpec(2, len(data))
+    plt.figure(figsize=(6*len(data),5))
+    gs = gridspec.GridSpec(4, len(data))
 
     # add motif and threshold plots
     for i, k in enumerate(sorted(data, key=lambda k: data[k]['idx'])):
@@ -386,6 +386,24 @@ def motif_overview(prefix):
         a.xaxis.label.set_size(4)
         a.yaxis.label.set_size(4)
         a.title.set_size(4)
+
+        # exemplary trajectory
+        ax = plt.subplot(gs[2,i])
+        syst = copy.copy(data[k]['motif'])
+        assert syst.jacobian.shape == (3,3), syst
+
+        colors = ['blue', 'red', 'green']
+        for i in range(3):
+            syst.fluctuation_vector = np.array([0, 0, 0])
+            syst.fluctuation_vector[i] = 1
+            syst.external_influence = np.array([0, 0, 0])
+            syst.external_influence[i] = 5
+
+            sol = solve_system(syst)
+            ax.plot(sol.T, color=colors[i])
+
+        # robustness quantification
+        # TODO
 
     plt.tight_layout()
     plt.savefig('images/motifs.pdf')
