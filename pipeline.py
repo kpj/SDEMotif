@@ -424,11 +424,17 @@ def motif_overview(prefix):
             for gid, group in df_all.groupby('run_id'):
                 cur = group.sort_values('threshold')
 
-                mean_thres = np.mean(extra_info[gid]['thresholds'])
-                cur = cur[cur['threshold']>mean_thres]
+                # mean correlation transfer
+                values['run_id'].append(gid)
+                values['data'].append(np.mean(extra_info[gid]['corr_trans']))
+                values['type'].append('corr_trans')
 
-                t_vals = cur['threshold'].tolist()
-                m_vals = cur['correlation_transfer'].tolist()
+                # AUC
+                mean_thres = np.mean(extra_info[gid]['thresholds'])
+                cur_sub = cur[cur['threshold']>mean_thres]
+
+                t_vals = cur_sub['threshold'].tolist()
+                m_vals = cur_sub['correlation_transfer'].tolist()
                 area = np.trapz(m_vals, x=t_vals)
 
                 values['run_id'].append(gid)
