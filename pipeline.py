@@ -310,6 +310,8 @@ def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
     if ax is None:
         plt.savefig('images/threshold_influence.pdf')
 
+    return df, {'thresholds': thres_vals, 'corr_trans': robust_vals}
+
 def fixed_threshold(data: List) -> float:
     """ Compute robustness with `thres = \sigma / 2` and return values
     """
@@ -353,7 +355,7 @@ def motif_overview(prefix):
             }
 
     # plot data
-    plt.figure(figsize=(6*len(data),5))
+    plt.figure(figsize=(6*len(data),13))
     gs = gridspec.GridSpec(4, len(data))
 
     # add motif and threshold plots
@@ -376,11 +378,25 @@ def motif_overview(prefix):
         # threshold
         a = plt.subplot(gs[1,i])
 
-        for rows in data[k]['inp']['data']:
+        df_list = []
+        extra_info = {}
+        for j, rows in enumerate(data[k]['inp']['data']):
             if len(rows) == 0:
                 continue
 
-            area = threshold_influence(rows, ax=a)
+            df, extra = threshold_influence(rows, ax=a)
+            if df is None:
+                continue
+            df['run_id'] = j
+            df_list.append(df)
+
+            assert j not in extra_info
+            extra_info[j] = extra
+
+        if len(df_list) > 0:
+            df_all = pd.concat(df_list)
+        else:
+            df_all = None
 
         a.tick_params(labelsize=6)
         a.xaxis.label.set_size(4)
@@ -393,17 +409,37 @@ def motif_overview(prefix):
         assert syst.jacobian.shape == (3,3), syst
 
         colors = ['blue', 'red', 'green']
-        for i in range(3):
+        for j in range(3):
             syst.fluctuation_vector = np.array([0, 0, 0])
-            syst.fluctuation_vector[i] = 1
+            syst.fluctuation_vector[j] = 1
             syst.external_influence = np.array([0, 0, 0])
-            syst.external_influence[i] = 5
+            syst.external_influence[j] = 5
 
             sol = solve_system(syst)
-            ax.plot(sol.T, color=colors[i])
+            ax.plot(sol.T, color=colors[j])
 
         # robustness quantification
-        # TODO
+        values = {'data': [], 'run_id': [], 'type': []}
+        if df_all is not None:
+            for gid, group in df_all.groupby('run_id'):
+                cur = group.sort_values('threshold')
+
+                mean_thres = np.mean(extra_info[gid]['thresholds'])
+                cur = cur[cur['threshold']>mean_thres]
+
+                t_vals = cur['threshold'].tolist()
+                m_vals = cur['correlation_transfer'].tolist()
+                area = np.trapz(m_vals, x=t_vals)
+
+                values['run_id'].append(gid)
+                values['data'].append(area)
+                values['type'].append('area')
+        df_stats = pd.DataFrame(values)
+
+        if not df_stats.empty:
+            sns.barplot(
+                x='run_id', y='data', hue='type',
+                data=df_stats, ax=plt.subplot(gs[3,i]))
 
     plt.tight_layout()
     plt.savefig('images/motifs.pdf')
