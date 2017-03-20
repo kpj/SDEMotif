@@ -445,9 +445,11 @@ def motif_overview(prefix):
         df_stats = pd.DataFrame(values)
 
         if not df_stats.empty:
+            ax = plt.subplot(gs[3,i])
             sns.barplot(
                 x='run_id', y='data', hue='type',
-                data=df_stats, ax=plt.subplot(gs[3,i]))
+                data=df_stats, ax=ax)
+            ax.set_ylim((0,1))
 
     plt.tight_layout()
     plt.savefig('images/motifs.pdf')
