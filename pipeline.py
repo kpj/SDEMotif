@@ -384,9 +384,11 @@ def motif_overview(prefix):
             if len(rows) == 0:
                 continue
 
-            df, extra = threshold_influence(rows, ax=a)
-            if df is None:
+            res = threshold_influence(rows, ax=a)
+            if res is None:
                 continue
+
+            df, extra = res
             df['run_id'] = j
             df_list.append(df)
 
