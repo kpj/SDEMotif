@@ -644,47 +644,92 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
             # filter out already used intensity vectors
             fi = lambda l, a: list(filter(lambda e: not e in a.values(), l))
 
-            for c1 in comps:
-                for c2 in comps:
-                    if c1 == c2: break
-                    if c1 is None or c2 is None: break
+            if c3 is None: # dealing with link-like structure
+                for c1 in comps:
+                    for c2 in comps:
+                        if c1 == c2: break
+                        if c1 is None or c2 is None: break
 
-                    corrs = {}
+                        corrs = {}
 
-                    # skip if compounds are already assigned
-                    if c1 in assignments and c2 in assignments:
-                        continue
+                        # skip if compounds are already assigned
+                        if c1 in assignments and c2 in assignments:
+                            continue
 
-                    # compute correlations
-                    c1_done, c2_done = c1 in assignments, c2 in assignments
+                        # compute correlations
+                        c1_done, c2_done = c1 in assignments, c2 in assignments
 
-                    int_list_1 = [assignments[c1]] if c1_done else fi(ints[c1], assignments)
-                    int_list_2 = [assignments[c2]] if c2_done else fi(ints[c2], assignments)
+                        int_list_1 = [assignments[c1]] if c1_done else fi(ints[c1], assignments)
+                        int_list_2 = [assignments[c2]] if c2_done else fi(ints[c2], assignments)
 
-                    for i, int1 in enumerate(int_list_1):
-                        for j, int2 in enumerate(int_list_2):
-                            if int1 == int2: continue
-                            cc, _ = scis.pearsonr(int1, int2)
-                            corrs[(i,j)] = cc
+                        for i, int1 in enumerate(int_list_1):
+                            for j, int2 in enumerate(int_list_2):
+                                if int1 == int2: continue
+                                cc, _ = scis.pearsonr(int1, int2)
+                                corrs[(i,j)] = cc
 
-                    if len(corrs) == 0:
-                        continue
+                        if len(corrs) == 0:
+                            continue
 
-                    # choose highest absolute correlation
-                    c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k]))
+                        # choose highest absolute correlation
+                        c1_idx, c2_idx = max(corrs.keys(), key=lambda k: abs(corrs[k]))
 
-                    if not c1_done:
-                        assert not c1 in assignments
-                        assignments[c1] = int_list_1[c1_idx]
-                        assignment_order.append(c1)
-                    else:
-                        assert c1_idx == 0
-                    if not c2_done:
-                        assert not c2 in assignments
-                        assignments[c2] = int_list_2[c2_idx]
-                        assignment_order.append(c2)
-                    else:
-                        assert c2_idx == 0
+                        if not c1_done:
+                            assert not c1 in assignments
+                            assignments[c1] = int_list_1[c1_idx]
+                            assignment_order.append(c1)
+                        else:
+                            assert c1_idx == 0
+                        if not c2_done:
+                            assert not c2 in assignments
+                            assignments[c2] = int_list_2[c2_idx]
+                            assignment_order.append(c2)
+                        else:
+                            assert c2_idx == 0
+            else: # dealing with 3-node motif
+                if c1 in assignments and c2 in assignments and c3 in assignments:
+                    continue
+
+                # compute correlations
+                c1_done, c2_done, c3_done = c1 in assignments, c2 in assignments, c3 in assignments
+
+                int_list_1 = [assignments[c1]] if c1_done else fi(ints[c1], assignments)
+                int_list_2 = [assignments[c2]] if c2_done else fi(ints[c2], assignments)
+                int_list_3 = [assignments[c3]] if c3_done else fi(ints[c3], assignments)
+
+                corrs = {}
+                for i, int1 in enumerate(int_list_1):
+                    for j, int2 in enumerate(int_list_2):
+                        for k, int3 in enumerate(int_list_3):
+                            cc1, _ = scis.pearsonr(int1, int2)
+                            cc2, _ = scis.pearsonr(int2, int3)
+                            cc3, _ = scis.pearsonr(int3, int1)
+                            corrs[(i,j,k)] = abs(cc1) + abs(cc2) + abs(cc3)
+
+                if len(corrs) == 0:
+                    continue
+
+                # choose highest absolute correlation
+                c1_idx, c2_idx, c3_idx = max(corrs.keys(), key=lambda k: abs(corrs[k]))
+
+                if not c1_done:
+                    assert not c1 in assignments
+                    assignments[c1] = int_list_1[c1_idx]
+                    assignment_order.append(c1)
+                else:
+                    assert c1_idx == 0
+                if not c2_done:
+                    assert not c2 in assignments
+                    assignments[c2] = int_list_2[c2_idx]
+                    assignment_order.append(c2)
+                else:
+                    assert c2_idx == 0
+                if not c3_done:
+                    assert not c3 in assignments
+                    assignments[c3] = int_list_3[c3_idx]
+                    assignment_order.append(c3)
+                else:
+                    assert c3_idx == 0
 
             # resort motifs
             sorted_motifs = sorted(
