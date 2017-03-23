@@ -3,6 +3,7 @@ Investigate data in various ways
 """
 
 import sys
+import copy
 from itertools import cycle
 
 import numpy as np
@@ -13,6 +14,7 @@ import matplotlib.pylab as plt
 
 from tqdm import tqdm, trange
 
+from solver import solve_system
 from utils import extract_sig_entries, compute_correlation_matrix
 from plotter import plot_histogram, plot_system, save_figure, plot_system_evolution
 from setup import generate_basic_system
@@ -175,6 +177,43 @@ def single_corr_coeff_hist(reps=200):
     plt.tight_layout()
     save_figure('images/correlation_distribution.pdf', bbox_inches='tight')
 
+def lyapunov_equation():
+    """ Check if our experiments satisfy the lyapunov equation
+    """
+    # create systems
+    sde_system = generate_basic_system()
+    sde_system.fluctuation_vector[-1] = 2
+
+    ode_system = copy.deepcopy(sde_system)
+    ode_system.fluctuation_vector = np.zeros(sde_system.fluctuation_vector.shape)
+
+    # generate data
+    sde_sol = solve_system(sde_system)
+    ode_sol = solve_system(ode_system)
+
+    sol = ode_sol - sde_sol
+    sol_extract = sol.T[int(len(sol.T)*3/4):] # extract steady-state
+
+    # investigate result
+    J = sde_system.jacobian
+    C = np.cov(sol_extract.T)
+    D = np.diag(sde_system.fluctuation_vector)
+
+    term1 = J @ C + C @ J.T
+    term2 = -2 * D
+
+    print(term1, '\n',term2)
+
+    # plot stuff
+    #plt.plot(sol_extract)
+    plt.scatter(term1.ravel(), term2.ravel())
+
+    plt.title(f'Fluctuation vector: {sde_system.fluctuation_vector}')
+    plt.xlabel('J @ C + C @ J.T')
+    plt.ylabel('-2 * D')
+
+    plt.savefig('images/lyapunov_equation.pdf')
+
 def main(data):
     """ Analyse data
     """
@@ -182,7 +221,8 @@ def main(data):
     #    check_ergodicity()
     #else:
     #    plot_correlation_hist(data)
-    single_corr_coeff_hist()
+    #single_corr_coeff_hist()
+    lyapunov_equation()
 
 if __name__ == '__main__':
     main(np.load(sys.argv[1])['data'] if len(sys.argv) == 2 else None)
