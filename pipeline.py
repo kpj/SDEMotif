@@ -105,7 +105,7 @@ def simulate_systems(raw, enhanced, reps=100):
     """ Simulate given systems and return raw vs enhanced versions
     """
     def sim(sde_system):
-        ode_system = copy.copy(sde_system)
+        ode_system = copy.deepcopy(sde_system)
         ode_system.fluctuation_vector = np.zeros(sde_system.fluctuation_vector.shape)
 
         corr_mats = []
@@ -407,7 +407,7 @@ def motif_overview(prefix):
 
         # exemplary trajectory
         ax = plt.subplot(gs[2,i])
-        syst = copy.copy(data[k]['motif'])
+        syst = copy.deepcopy(data[k]['motif'])
         assert syst.jacobian.shape == (3,3), syst
 
         colors = ['blue', 'red', 'green']
