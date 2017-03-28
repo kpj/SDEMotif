@@ -356,9 +356,10 @@ def motif_overview(prefix):
 
     # plot data
     plt.figure(figsize=(6*len(data),13))
-    gs = gridspec.GridSpec(4, len(data))
+    gs = gridspec.GridSpec(3, len(data))
 
     # add motif and threshold plots
+    df_stats_list = []
     for i, k in enumerate(sorted(data, key=lambda k: data[k]['idx'])):
         print('>', k)
 
@@ -453,17 +454,33 @@ def motif_overview(prefix):
                 values['run_id'].append(gid)
                 values['data'].append(area)
                 values['type'].append('area')
-        df_stats = pd.DataFrame(values)
 
-        if not df_stats.empty:
-            ax = plt.subplot(gs[3,i])
-            sns.barplot(
-                x='run_id', y='data', hue='type',
-                data=df_stats, ax=ax)
-            ax.set_ylim((0,1))
+        df_stats = pd.DataFrame(values)
+        df_stats['motif_idx'] = i
+        df_stats_list.append(df_stats)
 
     plt.tight_layout()
     plt.savefig('images/motifs.pdf')
+
+    return pd.concat(df_stats_list)
+
+def plot_motif_statistics(df):
+    """ Plot statistics over all motifs
+    """
+    plt.figure()
+
+    plt.subplot(121)
+    df_area = df[df['type']=='area']
+    sns.barplot(x='motif_idx', y='data', hue='run_id', data=df_area)
+    plt.title('area')
+
+    plt.subplot(122)
+    df_ct = df[df['type']=='corr_trans']
+    sns.barplot(x='motif_idx', y='data', hue='run_id', data=df_ct)
+    plt.title('corr_trans')
+
+    plt.savefig('images/motif_statistics.pdf')
+
 
 def main(fname) -> None:
     with open(fname, 'rb') as fd:
@@ -491,7 +508,10 @@ if __name__ == '__main__':
             main(sys.argv[1])
         else:
             # assume it's a motif prefix
-            motif_overview(sys.argv[1])
+            df = motif_overview(sys.argv[1])
+
+            df.to_csv('results/motif_statistics.csv')
+            plot_motif_statistics(df)
     else:
         print('Usage: {} [data file]'.format(sys.argv[0]))
         exit(-1)
