@@ -418,7 +418,18 @@ def motif_overview(prefix):
             syst.external_influence[j] = 5
 
             sol = solve_system(syst)
-            ax.plot(sol.T, color=colors[j])
+            ax.plot(sol[0],
+                color=colors[j], ls='solid',
+                marker='$0$', markevery=100,
+                label=rf'{j} driven')
+            ax.plot(sol[1],
+                color=colors[j], ls='dashed',
+                marker='$1$', markevery=100)
+            ax.plot(sol[2],
+                color=colors[j], ls='dotted',
+                marker='$2$', markevery=100)
+
+            ax.legend(loc='best', prop={'size':8})
 
         # robustness quantification
         values = {'data': [], 'run_id': [], 'type': []}
