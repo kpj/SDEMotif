@@ -471,13 +471,13 @@ def plot_motif_statistics(df):
     plt.figure()
 
     plt.subplot(121)
-    df_area = df[df['type']=='area']
-    sns.barplot(x='motif_idx', y='data', hue='run_id', data=df_area)
+    df_area = df[df['type']=='area'].groupby('motif_idx').max().reset_index()
+    sns.barplot(x='motif_idx', y='data', data=df_area)
     plt.title('area')
 
     plt.subplot(122)
-    df_ct = df[df['type']=='corr_trans']
-    sns.barplot(x='motif_idx', y='data', hue='run_id', data=df_ct)
+    df_ct = df[df['type']=='corr_trans'].groupby('motif_idx').max().reset_index()
+    sns.barplot(x='motif_idx', y='data', data=df_ct)
     plt.title('corr_trans')
 
     plt.savefig('images/motif_statistics.pdf')
