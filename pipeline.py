@@ -270,6 +270,7 @@ def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
 
     # data for histograms
     robust_vals, thres_vals = fixed_threshold(data)
+    assert robust_vals.shape == thres_vals.shape
     if len(robust_vals) == 0:
         return
 
@@ -288,12 +289,12 @@ def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
 
     sns.distplot(
         thres_vals, ax=atx,
-        hist=False, kde=True, rug=True,
+        hist=False, kde=len(thres_vals)>1, rug=len(thres_vals)>1,
         color='k', kde_kws=dict(alpha=.1), rug_kws=dict(alpha=.2))
     if sum(robust_vals) > 0:
         sns.distplot(
             robust_vals, ax=aty, vertical=True,
-            hist=False, kde=True, rug=True,
+            hist=False, kde=len(robust_vals)>1, rug=len(robust_vals)>1,
             color='k', kde_kws=dict(alpha=.1), rug_kws=dict(alpha=.2))
     ax_new.scatter(thres_vals, robust_vals, color='k', alpha=.05)
 
@@ -333,7 +334,7 @@ def fixed_threshold(data: List) -> float:
         # handle entry
         res = handle_enh_entry(entry, sigmah)
         robs.append(res)
-    return robs, thresholds
+    return np.asarray(robs), np.asarray(thresholds)
 
 def motif_overview(prefix):
     """ Conduct analysis over range of motifs
