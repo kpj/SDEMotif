@@ -357,7 +357,7 @@ def motif_overview(prefix):
 
     # plot data
     plt.figure(figsize=(6*len(data),13))
-    gs = gridspec.GridSpec(3, len(data))
+    gs = gridspec.GridSpec(9, len(data))
 
     # add motif and threshold plots
     df_stats_list = []
@@ -365,7 +365,7 @@ def motif_overview(prefix):
         print('>', k)
 
         # motif
-        a = plt.subplot(gs[0,i])
+        a = plt.subplot(gs[:3,i])
         graph = nx.from_numpy_matrix(
             data[k]['motif'].jacobian.T, create_using=nx.DiGraph())
         pos = nx.circular_layout(graph)
@@ -378,7 +378,7 @@ def motif_overview(prefix):
         a.set_title(data[k]['idx'])
 
         # threshold
-        a = plt.subplot(gs[1,i])
+        a = plt.subplot(gs[3:6,i])
 
         df_list = []
         extra_info = {}
@@ -408,27 +408,62 @@ def motif_overview(prefix):
         a.title.set_size(4)
 
         # exemplary trajectory
-        ax = plt.subplot(gs[2,i])
         syst = copy.deepcopy(data[k]['motif'])
         assert syst.jacobian.shape == (3,3), syst
 
-        colors = ['blue', 'red', 'green']
+        def find_solution(sde_syst):
+            # find fitting Jacobian
+            cur_m = generate_motifs()[data[k]['idx']][0]
+            param_range = np.linspace(1, 8, 10)
+
+            # generate data
+            configurations = []
+            for k_m in param_range:
+                for k_23 in param_range:
+                    tmp = cur_m(k_m=k_m/2, k_23=k_23/2)
+                    sde_syst.jacobian = tmp.jacobian
+
+                    sde_sol = solve_system(sde_syst)
+
+                    ode_syst = copy.deepcopy(sde_syst)
+                    ode_syst.fluctuation_vector = np.array([0, 0, 0])
+                    ode_syst.external_influence = np.array([0, 0, 0])
+                    ode_sol = solve_system(ode_syst)
+
+                    sol = ode_sol - sde_sol
+                    sol_extract = ode_sol.T[int(len(ode_sol.T)*3/4):]
+
+                    if not filter_steady_state(sol_extract):
+                        return sol
+
+            return None
+
         for j in range(3):
+            # do simulation
             syst.fluctuation_vector = np.array([0, 0, 0])
             syst.fluctuation_vector[j] = 1
             syst.external_influence = np.array([0, 0, 0])
             syst.external_influence[j] = 5
 
-            sol = solve_system(syst)
+            sol = find_solution(syst)
+            if sol is None:
+                continue
+
+            # plot result
+            ax = plt.subplot(gs[6+j,i])
+            ax.tick_params(
+                axis='both', which='both', labelleft='off',
+                bottom='off', top='off', labelbottom='off', left='off', right='off')
+
             ax.plot(sol[0],
-                color=colors[j], ls='solid',
+                ls='solid',
                 marker='$0$', markevery=100,
                 label=rf'{j} driven')
             ax.plot(sol[1],
-                color=colors[j], ls='dashed',
+                ls='dashed',
                 marker='$1$', markevery=100)
             ax.plot(sol[2],
-                color=colors[j], ls='dotted',
+                ls='dotted',
                 marker='$2$', markevery=100)
 
             ax.legend(loc='best', prop={'size':8})
