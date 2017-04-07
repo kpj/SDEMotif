@@ -56,12 +56,48 @@ def merge_sources(df1, df2, thres=.01):
 
     return pd.DataFrame(tmp)
 
+def form2dict(form):
+    """ Convert single formula to a dict describing its composition
+    """
+    result = {}
+
+    cur_atom = None
+    cur_num = ''
+    for c in form:
+        if c.isdigit():
+            assert cur_atom is not None
+            cur_num += c
+        else:
+            if cur_atom is None:
+                cur_atom = c
+            else: # atoms have single-char names in our case
+                result[cur_atom] = int(cur_num) if len(cur_num) > 0 else 1
+                cur_atom = c
+                cur_num = ''
+    result[cur_atom] = int(cur_num) if len(cur_num) > 0 else 1
+
+    return result
+
+def compute_formula_distance(form1, form2):
+    """ Approximate way of comparing two formulas
+    """
+    res1 = form2dict(form1)
+    res2 = form2dict(form2)
+    all_atoms = set.union(set(res1.keys()), set(res2.keys()))
+
+    diff = sum([abs(res1.get(a,0)-res2.get(a,0)) for a in all_atoms])
+    return diff
+
 def main():
     com_data = read_combinatorial_compounds()
     act_data = read_actual_compounds()
 
     df = merge_sources(com_data, act_data)
+    df['dist'] = df.apply(
+        lambda row: compute_formula_distance(row.aform, row.cform),
+        axis=1)
 
+    print(df.sort_values('dist')[['aname', 'cname', 'dist']].head(20))
     import ipdb; ipdb.set_trace()
 
 if __name__ == '__main__':
