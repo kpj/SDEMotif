@@ -4,6 +4,7 @@ Find reactions via combinatoric investigations of data files
 
 import os
 import csv
+import copy
 import pickle
 import random
 import itertools
@@ -23,6 +24,7 @@ from tqdm import tqdm, trange
 
 import plotter
 import utils
+import formula_investigator
 
 
 ATOM_LIST = 'CHONS'
@@ -601,6 +603,28 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
 
         return num1 * num2 * num3
 
+    def filter_existing_intensities(entry, assignments):
+        """ Remove intensity vectors from `cur['intensities']` which appear somewhere in `assignments`
+        """
+        entry = copy.deepcopy(entry)
+
+        ints = entry['intensities']
+        ass_ints = [d['intensities'][0] for c,d in assignments.items()]
+
+        entry['intensities'] = [i for i in ints if i not in ass_ints]
+
+        return entry
+
+    def choose(entry, idx):
+        """ Return entry with only `idx` intensity vector
+        """
+        entry = copy.deepcopy(entry)
+
+        sel = entry['intensities'][idx]
+        entry['intensities'] = [sel]
+
+        return entry
+
     def assign(motifs, prob_fac=.2):
         assignments = {}
 
@@ -625,24 +649,17 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
             cur_idx_list.append(idx)
 
             c1, c2, c3 = entry
-            ints = {
-                c1: data[c1]['intensities'],
-                c2: data[c2]['intensities'],
-                c3: data[c3]['intensities'] if c3 is not None else []
+            cur = {
+                c1: data[c1],
+                c2: data[c2],
+                c3: data[c3] if c3 is not None else {'intensities': []}
             }
 
             # process motif
             comps = c1, c2, c3
-            #print(
-            #    len(ints[c1]), len(ints[c2]), len(ints[c3]),
-            #    len(ints[c1])*len(ints[c2])*(len(ints[c3]) if not c3 is None else 1))
-            #print(c1)
-            #print(c2)
-            #print(c3)
-            #print()
 
             # filter out already used intensity vectors
-            fi = lambda l, a: list(filter(lambda e: not e in a.values(), l))
+            fi = filter_existing_intensities
 
             if c3 is None: # dealing with link-like structure
                 for c1 in comps:
@@ -659,11 +676,16 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
                         # compute correlations
                         c1_done, c2_done = c1 in assignments, c2 in assignments
 
-                        int_list_1 = [assignments[c1]] if c1_done else fi(ints[c1], assignments)
-                        int_list_2 = [assignments[c2]] if c2_done else fi(ints[c2], assignments)
+                        data_1 = assignments[c1] if c1_done else fi(cur[c1], assignments)
+                        data_2 = assignments[c2] if c2_done else fi(cur[c2], assignments)
 
-                        for i, int1 in enumerate(int_list_1):
-                            for j, int2 in enumerate(int_list_2):
+                        if c1_done:
+                            assert len(data_1['intensities']) == 1
+                        if c2_done:
+                            assert len(data_2['intensities']) == 1
+
+                        for i, int1 in enumerate(data_1['intensities']):
+                            for j, int2 in enumerate(data_2['intensities']):
                                 if int1 == int2: continue
                                 cc, _ = scis.pearsonr(int1, int2)
                                 corrs[(i,j)] = cc
@@ -676,13 +698,13 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
 
                         if not c1_done:
                             assert not c1 in assignments
-                            assignments[c1] = int_list_1[c1_idx]
+                            assignments[c1] = choose(data_1, c1_idx)
                             assignment_order.append(c1)
                         else:
                             assert c1_idx == 0
                         if not c2_done:
                             assert not c2 in assignments
-                            assignments[c2] = int_list_2[c2_idx]
+                            assignments[c2] = choose(data_2, c2_idx)
                             assignment_order.append(c2)
                         else:
                             assert c2_idx == 0
@@ -693,14 +715,24 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
                 # compute correlations
                 c1_done, c2_done, c3_done = c1 in assignments, c2 in assignments, c3 in assignments
 
-                int_list_1 = [assignments[c1]] if c1_done else fi(ints[c1], assignments)
-                int_list_2 = [assignments[c2]] if c2_done else fi(ints[c2], assignments)
-                int_list_3 = [assignments[c3]] if c3_done else fi(ints[c3], assignments)
+                data_1 = assignments[c1] if c1_done else fi(cur[c1], assignments)
+                data_2 = assignments[c2] if c2_done else fi(cur[c2], assignments)
+                data_3 = assignments[c3] if c3_done else fi(cur[c3], assignments)
+
+                if c1_done:
+                    assert len(data_1['intensities']) == 1
+                if c2_done:
+                    assert len(data_2['intensities']) == 1
+                if c3_done:
+                    assert len(data_3['intensities']) == 1
 
                 corrs = {}
-                for i, int1 in enumerate(int_list_1):
-                    for j, int2 in enumerate(int_list_2):
-                        for k, int3 in enumerate(int_list_3):
+                for i, int1 in enumerate(data_1['intensities']):
+                    for j, int2 in enumerate(data_2['intensities']):
+                        for k, int3 in enumerate(data_3['intensities']):
+                            if int1 == int2 or int2 == int3 or int3 == int1:
+                                continue
+
                             cc1, _ = scis.pearsonr(int1, int2)
                             cc2, _ = scis.pearsonr(int2, int3)
                             cc3, _ = scis.pearsonr(int3, int1)
@@ -714,19 +746,19 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
 
                 if not c1_done:
                     assert not c1 in assignments
-                    assignments[c1] = int_list_1[c1_idx]
+                    assignments[c1] = choose(data_1, c1_idx)
                     assignment_order.append(c1)
                 else:
                     assert c1_idx == 0
                 if not c2_done:
                     assert not c2 in assignments
-                    assignments[c2] = int_list_2[c2_idx]
+                    assignments[c2] = choose(data_2, c2_idx)
                     assignment_order.append(c2)
                 else:
                     assert c2_idx == 0
                 if not c3_done:
                     assert not c3 in assignments
-                    assignments[c3] = int_list_3[c3_idx]
+                    assignments[c3] = choose(data_3, c3_idx)
                     assignment_order.append(c3)
                 else:
                     assert c3_idx == 0
@@ -737,8 +769,12 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
                 key=lambda e: get_assignment_number(e, assignments),
                 reverse=True)
 
-        # check that all compounds are assigned to different intensity vectors
-        assert all(i!=j for i,j in itertools.combinations(assignments.values(), 2)), 'Some compounds are assigned to same intensity vector'
+        # check that all compounds are assigned to single, different intensity vectors
+        all_ints = set()
+        for c, cdata in assignments.items():
+            assert len(cdata['intensities']) == 1, f'{c} got multiple assignments'
+            all_ints.add(tuple(cdata['intensities'][0]))
+        assert len(all_ints) == len(assignments), 'Some compounds are assigned to same intensity vector'
 
         extra = {
             'idx_list': idx_list,
@@ -757,7 +793,9 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
                     if c1 is None or c2 is None: break
 
                     try:
-                        cc, _ = scis.pearsonr(assignments[c1], assignments[c2])
+                        cc, _ = scis.pearsonr(
+                            assignments[c1]['intensities'][0],
+                            assignments[c2]['intensities'][0])
                         corrs.append(cc)
                     except KeyError:
                         pass
@@ -1140,6 +1178,42 @@ def compare_assignment_result(ass_data, data):
     plt.tight_layout()
     plt.savefig('images/assignment_comparison.pdf')
 
+def compare_to_realdata(ass_data, data):
+    """ Check assignments via comparison to real-life data
+    """
+    def find_true_mz(ints, pdata):
+        for p,i in pdata.items():
+            if i == ints:
+                return p
+        return None
+
+    def convert_assignments(ass, pdata):
+        tmp = {'name': [], 'formula': [], 'mz': []}
+        for c,data in ass.items():
+            assert len(data['intensities']) == 1
+            tmz = find_true_mz(data['intensities'][0], pdata)
+
+            tmp['name'].append(c)
+            tmp['formula'].append(gen_atom_string(data['atoms']))
+            tmp['mz'].append(tmz)
+
+        return pd.DataFrame(tmp)
+
+    comp_df = formula_investigator.get_rl_comparison_frame()
+    pdata = read_peak_data('data/peaklist_filtered_assigned.csv')
+
+    plt.figure()
+    for all_ass, all_info, lbl in tqdm(ass_data):
+        cur_dists = []
+        for assignments, info in tqdm(zip(all_ass, all_info), total=len(all_ass)):
+            new_ass = convert_assignments(assignments, pdata)
+            match = new_ass.merge(comp_df, left_on='name', right_on='cname')
+            cur_dists.extend(match['dist'].tolist())
+        sns.distplot(match['dist'], label=lbl)
+
+    plt.legend(loc='best')
+    plt.savefig('images/formdist_distr.pdf')
+
 def investigate_prediction_chaos(ass_data, data):
     """ Check how inter-connectedness influences variability of prediction result
 
@@ -1213,7 +1287,7 @@ def investigate_prediction_chaos(ass_data, data):
     fig.set_size_inches(w * zoom, h * zoom)
     plt.savefig('images/assignment_chaos.pdf')
 
-def null_model_assignments(data, num, reps=1000):
+def null_model_assignments(data, num, reps=100):
     """ Choose random assignment per compound
     """
     def nm_assign(num, compounds):
@@ -1231,7 +1305,10 @@ def null_model_assignments(data, num, reps=1000):
             int_sel = random.choice(cur_ints)
 
             # finalize
-            assignments[node_sel] = int_sel
+            assignments[node_sel] = {
+                'intensities': [int_sel],
+                'atoms': data[node_sel]['atoms']
+            }
         return assignments, {'assignment_order': compounds[:]}
 
     # choose random compounds
@@ -1244,7 +1321,7 @@ def null_model_assignments(data, num, reps=1000):
         compounds.append(node_sel)
     assert len(set(compounds)) == len(compounds) # unique compounds
 
-    return zip(*[nm_assign(num, compounds) for _ in range(reps)])
+    return zip(*[nm_assign(num, compounds) for _ in trange(reps)])
 
 def find_small_motifs(
     compounds_level0,
@@ -1380,6 +1457,13 @@ def find_small_motifs(
     null_ass, null_info = null_model_assignments(comps, other_size*2)
 
     # compare assignment results
+    compare_to_realdata([
+        (motif_ass, motif_info, 'motifs'),
+        (motiflink_ass, motiflink_info, 'motiflinks'),
+        (link_ass, link_info, 'links'),
+        (random_ass, random_info, 'random'),
+        (null_ass, null_info, 'nullmodel')
+    ], comps)
     investigate_prediction_chaos([
         (motif_ass, motif_info, 'motifs'),
         (motiflink_ass, motiflink_info, 'motiflinks'),
