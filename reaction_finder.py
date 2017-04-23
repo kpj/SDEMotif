@@ -1209,7 +1209,7 @@ def compare_to_realdata(ass_data, data):
             new_ass = convert_assignments(assignments, pdata)
             match = new_ass.merge(comp_df, left_on='name', right_on='cname')
             cur_dists.extend(match['dist'].tolist())
-        sns.distplot(match['dist'], label=lbl)
+        sns.distplot(cur_dists, label=lbl)
 
     plt.legend(loc='best')
     plt.savefig('images/formdist_distr.pdf')
