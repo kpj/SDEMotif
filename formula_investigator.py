@@ -5,6 +5,10 @@ Investigate chemical formulas
 import pickle
 
 import pandas as pd
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 from tqdm import tqdm
 
 import reaction_finder
@@ -30,10 +34,10 @@ def read_actual_compounds(fname='data/Res_Polphen_List_Neg.csv'):
     df.rename(columns={'M_selected': 'MZ'}, inplace=True)
     return df
 
-def merge_sources(df1, df2, thres=.01):
+def merge_sources(df_comb, df_roy, thres=.01):
     tmp = {'aname': [], 'cname': [], 'aform': [], 'cform': [], 'amass': [], 'cmass': []}
-    for row in tqdm(df1.itertuples(), total=df1.shape[0]):
-        match = df2[abs(row.MZ-df2['MZ']) < thres]
+    for row in tqdm(df_comb.itertuples(), total=df_comb.shape[0]):
+        match = df_roy[abs(row.MZ-df_roy['MZ']) < thres]
 
         if match.empty:
             continue
@@ -89,6 +93,8 @@ def compute_formula_distance(form1, form2):
     return diff
 
 def get_rl_comparison_frame():
+    """ Return merged DataFrame of actual and combinatorial data
+    """
     com_data = read_combinatorial_compounds()
     act_data = read_actual_compounds()
 
@@ -98,7 +104,24 @@ def get_rl_comparison_frame():
         axis=1)
     return df
 
+def mz_range_comparison():
+    """ Visualize MZ-value ranges
+    """
+    com_data = read_combinatorial_compounds()
+    act_data = read_actual_compounds()
+
+    plt.figure()
+
+    sns.distplot(com_data['MZ'], label='combinatorial data')
+    sns.distplot(act_data['MZ'], label='roy data')
+
+    plt.xlabel('mz value')
+
+    plt.legend(loc='best')
+    plt.savefig('images/mz_ranges.pdf')
+
 def main():
+    mz_range_comparison()
     df = get_rl_comparison_frame()
 
     print(df.sort_values('dist')[['aname', 'cname', 'dist']].head(20))
