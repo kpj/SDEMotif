@@ -1202,16 +1202,22 @@ def compare_to_realdata(ass_data, data):
     comp_df = formula_investigator.get_rl_comparison_frame()
     pdata = read_peak_data('data/peaklist_filtered_assigned.csv')
 
-    plt.figure()
-    for all_ass, all_info, lbl in tqdm(ass_data):
+    plt.figure(figsize=(3*4, 6*4))
+    for i, (all_ass, all_info, lbl) in enumerate(tqdm(ass_data)):
         cur_dists = []
         for assignments, info in tqdm(zip(all_ass, all_info), total=len(all_ass)):
             new_ass = convert_assignments(assignments, pdata)
             match = new_ass.merge(comp_df, left_on='name', right_on='cname')
             cur_dists.extend(match['dist'].tolist())
-        sns.distplot(cur_dists, label=lbl)
 
-    plt.legend(loc='best')
+        plt.subplot(len(ass_data), 1, i+1)
+        sns.distplot(cur_dists, bins=30, kde=False)
+
+        plt.title(lbl)
+        plt.xlabel('formula distance')
+        plt.ylabel('count')
+
+    plt.tight_layout()
     plt.savefig('images/formdist_distr.pdf')
 
 def investigate_prediction_chaos(ass_data, data):
