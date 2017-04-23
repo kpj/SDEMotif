@@ -7,7 +7,7 @@ import pickle
 import pandas as pd
 from tqdm import tqdm
 
-from reaction_finder import gen_atom_string
+import reaction_finder
 
 
 def read_combinatorial_compounds(fname='cache/rf_raw_reaction_data.pkl'):
@@ -18,7 +18,7 @@ def read_combinatorial_compounds(fname='cache/rf_raw_reaction_data.pkl'):
 
     for name, data in comps.items():
         tmp['Name'].append(name)
-        tmp['Formula'].append(gen_atom_string(data['atoms']))
+        tmp['Formula'].append(reaction_finder.gen_atom_string(data['atoms']))
         tmp['MZ'].append(data['mass'])
 
     return pd.DataFrame(tmp)
@@ -88,7 +88,7 @@ def compute_formula_distance(form1, form2):
     diff = sum([abs(res1.get(a,0)-res2.get(a,0)) for a in all_atoms])
     return diff
 
-def main():
+def get_rl_comparison_frame():
     com_data = read_combinatorial_compounds()
     act_data = read_actual_compounds()
 
@@ -96,6 +96,10 @@ def main():
     df['dist'] = df.apply(
         lambda row: compute_formula_distance(row.aform, row.cform),
         axis=1)
+    return df
+
+def main():
+    df = get_rl_comparison_frame()
 
     print(df.sort_values('dist')[['aname', 'cname', 'dist']].head(20))
     import ipdb; ipdb.set_trace()
