@@ -950,13 +950,19 @@ def detect_ffl(graph):
          |       v
          -----> c3
     """
-    for c1 in graph.nodes():
+    edges = set(graph.edges())
+    for c1 in tqdm(graph.nodes()):
         for c2, c3 in itertools.product(
             graph.successors(c1), graph.successors(c1)
         ):
             if len(set([c1,c2,c3])) != 3:
                 continue
             if None in (c1, c2, c3):
+                continue
+
+            if (c2,c1) in edges or (c3,c1) in edges:
+                continue
+            if graph.has_edge(c3, c2):
                 continue
 
             if graph.has_edge(c2, c3):
@@ -1015,7 +1021,7 @@ def find_more_motifs(motifs, all_compounds, reaction_data, fname='results/post_m
     graph.add_edges_from(new_links)
 
     more_motifs = []
-    for c1,c2,c3 in tqdm(detect_ffl(graph)):
+    for c1,c2,c3 in detect_ffl(graph):
         res = {'data': {}, 'ints': {}}
         for c in (c1,c2,c3):
             assert c in all_cdata or c in comps
@@ -1366,7 +1372,7 @@ def find_small_motifs(
     # find motifs
     # Note: maybe weight them according to occurences of same compound configuration with different reactions
     motifs = []
-    for cs in tqdm(detect_ffl(graph)):
+    for cs in detect_ffl(graph):
         if None in cs: continue
         if cs in motifs: continue
         motifs.append(cs)
