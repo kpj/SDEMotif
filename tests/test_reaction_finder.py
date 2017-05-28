@@ -359,6 +359,7 @@ class TestAssignmentPrediction(TestCase):
         self.assertEqual(res['B']['intensities'], [[1,2,1]])
         self.assertEqual(res['C']['intensities'], [[2,1,2]])
 
+    @skipIf('TRAVIS' in os.environ and os.environ['TRAVIS'] == 'true', 'Skip on Travis CI.')
     def test_involved_case(self):
         motifs = [
             ('A', 'B', 'C')
