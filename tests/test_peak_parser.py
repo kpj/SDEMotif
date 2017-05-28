@@ -62,7 +62,7 @@ class TestStatistics(TestCase):
         data = read_file('./tests/data/peak_data.csv')
         self.motifs = find_3_node_networks(data)
 
-    @skipIf(os.environ['DISPLAY'] == 'travis', 'incompatible with travis-ci')
+    @skipIf('TRAVIS' in os.environ and os.environ['TRAVIS'] == 'true', 'Skip on Travis CI.')
     def test_compute_correlation_pairs(self):
         res = compute_correlation_pairs(self.motifs)
         corr1 = scits.pearsonr([300,20,1], [1,2,3])[0]

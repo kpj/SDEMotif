@@ -1,6 +1,4 @@
 language: python
-env:
-  - DISPLAY="travis"
 python:
   - "3.6"
 install:
