@@ -801,7 +801,7 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
                         pass
 
         sns.distplot(
-            corrs, ax=ax, hist_kws=dict(alpha=.2),
+            corrs, ax=ax, hist_kws=dict(alpha=.2), kde=False,
             label='correlations after {} assignment'.format(fname))
         return corrs
 
@@ -880,7 +880,7 @@ def find_optimal_assignments(motifs, data, reps=1000, null_model=True, fname='mo
 
     all_pos_corrs = compute_all_possible_correlations(motifs)
     sns.distplot(
-        all_pos_corrs, ax=axes[0],
+        all_pos_corrs, ax=axes[0], kde=False,
         label='original correlations')
     if null_model:
         sns.distplot(

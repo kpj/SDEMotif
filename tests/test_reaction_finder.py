@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 import io
 
@@ -340,6 +340,7 @@ class TestAtomTransformationParser(TestCase):
         })
 
 class TestAssignmentPrediction(TestCase):
+    @skipIf('TRAVIS' in os.environ and os.environ['TRAVIS'] == 'true', 'Skip on Travis CI.')
     def test_simple_case(self):
         motifs = [
             ('A', 'B', 'C')
@@ -350,13 +351,13 @@ class TestAssignmentPrediction(TestCase):
             'C': {'intensities': [[2,1,2]]}
         }
 
-        tmp = find_optimal_assignments(motifs, data, reps=1, null_model=False)
+        tmp, _ = find_optimal_assignments(motifs, data, reps=1, null_model=False)
         self.assertEqual(len(tmp), 1)
         res = tmp[0]
 
-        self.assertEqual(res['A'], [1,2,3])
-        self.assertEqual(res['B'], [1,2,1])
-        self.assertEqual(res['C'], [2,1,2])
+        self.assertEqual(res['A']['intensities'], [[1,2,3]])
+        self.assertEqual(res['B']['intensities'], [[1,2,1]])
+        self.assertEqual(res['C']['intensities'], [[2,1,2]])
 
     def test_involved_case(self):
         motifs = [
@@ -368,10 +369,10 @@ class TestAssignmentPrediction(TestCase):
             'C': {'intensities': [[20,30,40]]}
         }
 
-        tmp = find_optimal_assignments(motifs, data, reps=1, null_model=False)
+        tmp, _ = find_optimal_assignments(motifs, data, reps=1, null_model=False)
         self.assertEqual(len(tmp), 1)
         res = tmp[0]
 
-        self.assertEqual(res['A'], [1,2,3])
-        self.assertEqual(res['B'], [6,7,8])
-        self.assertEqual(res['C'], [20,30,40])
+        self.assertEqual(res['A']['intensities'], [[1,2,3]])
+        self.assertEqual(res['B']['intensities'], [[6,7,8]])
+        self.assertEqual(res['C']['intensities'], [[20,30,40]])

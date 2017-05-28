@@ -22,7 +22,7 @@ class TestSteadyStateFilter(TestCase):
         ])
 
         res = filter_steady_state(ss, [1])
-        self.assertFalse(res)
+        self.assertTrue(res)
 
     def test_divergence(self):
         ss = np.array([

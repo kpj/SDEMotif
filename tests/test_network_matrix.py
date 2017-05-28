@@ -222,18 +222,3 @@ class TestSorterFunctions(TestCase):
         print([f.jacobian for f in res])
         self.assertEqual(res,
             [self.systs[1], self.systs[0], self.systs[2], self.systs[3]])
-
-class TestClustering(TestCase):
-    def test_hamming(self):
-        mat = np.array([
-            [8,1,1,3,3],
-            [3,1,1,3,3],
-            [5,1,2,3,5]
-        ])
-
-        res, _ = cluster_data(mat, 'hamming')
-        npt.assert_array_equal(res, np.array([
-            [1, 1, 3, 8, 3],
-            [1, 1, 3, 3, 3],
-            [1, 2, 3, 5, 5]
-        ]))
