@@ -1,3 +1,8 @@
+"""
+Find motifs in real-life networks
+"""
+
+
 import itertools
 
 import cobra
@@ -29,6 +34,7 @@ def main():
 
     # extract motifs
     motifs = []
+    edge_data = []
     for cs in detect_ffl(graph):
         if None in cs or cs in motifs:
             continue
@@ -36,6 +42,10 @@ def main():
             continue
 
         motifs.append(cs)
+        edge_data.append((
+            graph.get_edge_data(cs[0], cs[1]),
+            graph.get_edge_data(cs[1], cs[2]),
+            graph.get_edge_data(cs[2], cs[0])))
     motifs_n = [tuple(map(lambda x: x.name, mot)) for mot in motifs]
 
     # output sensible ones
