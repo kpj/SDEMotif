@@ -29,7 +29,7 @@ def reaction_ids_unique(cs, graph):
 
 def main():
     # load model
-    model = cobra.io.read_sbml_model('data/HMRdatabase2_00_Cobra.xml')
+    model = cobra.io.read_sbml_model('resources/ReconMap-2.01.xml')
     graph = model_to_network(model)
 
     # extract motifs
