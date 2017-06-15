@@ -1184,7 +1184,7 @@ def compare_assignment_result(ass_data, data):
     plt.tight_layout()
     plt.savefig('images/assignment_comparison.pdf')
 
-def compare_to_realdata(ass_data, data):
+def compare_to_realdata(ass_data, input_data):
     """ Check assignments via comparison to real-life data
     """
     def find_true_mz(ints, pdata):
@@ -1205,6 +1205,21 @@ def compare_to_realdata(ass_data, data):
 
         return pd.DataFrame(tmp)
 
+    def remove_trivial_assignments(ass, pdata):
+        """ Remove cases which initially only have one assignment possibility
+        """
+        tmp = dict(ass)
+        current_compounds = list(ass.keys())
+        for comp in current_compounds:
+            cur = input_data[comp]
+
+            assert len(cur['intensities']) > 0
+            if len(cur['intensities']) == 1:
+                tmp.pop(comp)
+
+        #print(f'Trivial assignment removal: {len(ass)}->{len(tmp)}')
+        return tmp
+
     comp_df = formula_investigator.get_rl_comparison_frame()
     pdata = read_peak_data('data/peaklist_filtered_assigned.csv')
 
@@ -1212,7 +1227,8 @@ def compare_to_realdata(ass_data, data):
     for i, (all_ass, all_info, lbl) in enumerate(tqdm(ass_data)):
         cur_dists = []
         for assignments, info in tqdm(zip(all_ass, all_info), total=len(all_ass)):
-            new_ass = convert_assignments(assignments, pdata)
+            ass_tmp = remove_trivial_assignments(assignments, pdata)
+            new_ass = convert_assignments(ass_tmp, pdata)
             match = new_ass.merge(comp_df, left_on='name', right_on='cname')
             cur_dists.extend(match['dist'].tolist())
 
