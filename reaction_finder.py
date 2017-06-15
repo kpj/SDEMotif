@@ -1236,6 +1236,10 @@ def compare_to_realdata(ass_data, input_data):
         sns.distplot(cur_dists, bins=30, kde=False)
 
         plt.title(lbl)
+        # plot distance distribution
+        ax = plt.subplot(len(ass_data), 1, i+1, sharex=ax, sharey=ax)
+        sns.distplot(cur_dists, bins=30, kde=False, norm_hist=True)
+
         plt.xlabel('formula distance')
         plt.ylabel('count')
 
