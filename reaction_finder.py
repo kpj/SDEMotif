@@ -1223,7 +1223,8 @@ def compare_to_realdata(ass_data, input_data):
     comp_df = formula_investigator.get_rl_comparison_frame()
     pdata = read_peak_data('data/peaklist_filtered_assigned.csv')
 
-    plt.figure(figsize=(3*4, 6*4))
+    plt.figure(figsize=(6, 4*len(ass_data)))
+    ax = None
     for i, (all_ass, all_info, lbl) in enumerate(tqdm(ass_data)):
         cur_dists = []
         for assignments, info in tqdm(zip(all_ass, all_info), total=len(all_ass)):
@@ -1231,15 +1232,16 @@ def compare_to_realdata(ass_data, input_data):
             new_ass = convert_assignments(ass_tmp, pdata)
             match = new_ass.merge(comp_df, left_on='name', right_on='cname')
             cur_dists.extend(match['dist'].tolist())
+        cur_dists = np.asarray(cur_dists)
 
-        plt.subplot(len(ass_data), 1, i+1)
-        sns.distplot(cur_dists, bins=30, kde=False)
+        # compute quality
+        qual_vals = {x: (cur_dists<=x).sum()/(cur_dists>x).sum() for x in [5,10,50]}
 
-        plt.title(lbl)
         # plot distance distribution
         ax = plt.subplot(len(ass_data), 1, i+1, sharex=ax, sharey=ax)
         sns.distplot(cur_dists, bins=30, kde=False, norm_hist=True)
 
+        plt.title(f'{lbl} (quality: {qual_vals[5]:.2},{qual_vals[10]:.2},{qual_vals[50]:.2})')
         plt.xlabel('formula distance')
         plt.ylabel('count')
 
