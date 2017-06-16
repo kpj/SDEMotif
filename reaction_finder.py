@@ -1235,7 +1235,7 @@ def compare_to_realdata(ass_data, input_data):
         cur_dists = np.asarray(cur_dists)
 
         # compute quality
-        qual_vals = {x: (cur_dists<=x).sum()/(cur_dists>x).sum() for x in [5,10,50]}
+        qual_vals = {x: (cur_dists<=x).sum()/cur_dists.size for x in [5,10,50]}
 
         # plot distance distribution
         ax = plt.subplot(len(ass_data), 1, i+1, sharex=ax, sharey=ax)
