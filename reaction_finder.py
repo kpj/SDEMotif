@@ -1235,13 +1235,14 @@ def compare_to_realdata(ass_data, input_data):
         cur_dists = np.asarray(cur_dists)
 
         # compute quality
-        qual_vals = {x: (cur_dists<=x).sum()/cur_dists.size for x in [5,10,50]}
+        qual_vals = {x: (cur_dists<=x).sum()/cur_dists.size for x in [0,5,10,50]}
 
         # plot distance distribution
         ax = plt.subplot(len(ass_data), 1, i+1, sharex=ax, sharey=ax)
         sns.distplot(cur_dists, bins=30, kde=False, norm_hist=True)
 
-        plt.title(f'{lbl} (quality: {qual_vals[5]:.2},{qual_vals[10]:.2},{qual_vals[50]:.2})')
+        qual_str = ','.join(f'{round(q,2)}' for t,q in qual_vals.items())
+        plt.title(f'{lbl} ({qual_str})')
         plt.xlabel('formula distance')
         plt.ylabel('count')
 
