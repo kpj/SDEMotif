@@ -1405,6 +1405,10 @@ def find_small_motifs(
     # conduct predictions
     print('Predicting')
     other_size = len(motifs)*3
+    sub_graph = nx.subgraph(graph, [c for cs in motifs for c in cs])
+
+    print('Original graph', nx.info(graph))
+    print('Motif sub-graph', nx.info(sub_graph))
 
     # predictions with motifs
     motif_fname = 'cache/prediction_motif.dat'
@@ -1448,8 +1452,8 @@ def find_small_motifs(
     links_fname = 'cache/prediction_links.dat'
     if not os.path.exists(links_fname):
         edge_idx = np.random.choice(
-            np.arange(len(graph.edges())), size=other_size)
-        links = [(*graph.edges()[edx],None) for edx in edge_idx]
+            np.arange(len(sub_graph.edges())), size=other_size)
+        links = [(*sub_graph.edges()[edx],None) for edx in edge_idx]
         link_ass, link_info = find_optimal_assignments(links, comps, fname='links')
 
         with open(links_fname, 'wb') as fd:
@@ -1468,7 +1472,7 @@ def find_small_motifs(
     random_fname = 'cache/prediction_random.dat'
     if not os.path.exists(random_fname):
         node_sel = [n
-            for n in graph.nodes()
+            for n in sub_graph.nodes()
                 if len(comps[n]['intensities']) >= 5]
         rand_nodes = list(set(
             [(*np.random.choice(node_sel, size=2),None)
