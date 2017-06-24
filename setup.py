@@ -16,7 +16,7 @@ from system import SDESystem
 from utils import cache_data
 
 
-def generate_basic_system(v_in=5, k_m=1, k_23=2, D=.1):
+def generate_basic_system(v_in=5, k_m=1, k_23=2, D=1):
     """ Generate system according to paper
     """
     k_12 = k_13 = k_out = k_m
@@ -40,21 +40,21 @@ def generate_motifs():
         However return function to generate motif with given parameters
     """
     v_in = 5
-    D = .1
+    D = 1
 
     def gen(jacobian):
         initial_state = np.array([1, 1, 1])
 
         return [
-            lambda v_in=5, k_m=1, k_23=2, D=.1:
+            lambda v_in=5, k_m=1, k_23=2, D=1:
                 SDESystem(
                     jacobian(k_m, k_23), [D, 0, 0],
                     [v_in, 0, 0], initial_state),
-            lambda v_in=5, k_m=1, k_23=2, D=.1:
+            lambda v_in=5, k_m=1, k_23=2, D=1:
                 SDESystem(
                     jacobian(k_m, k_23), [0, D, 0],
                     [0, v_in, 0], initial_state),
-            lambda v_in=5, k_m=1, k_23=2, D=.1:
+            lambda v_in=5, k_m=1, k_23=2, D=1:
                 SDESystem(
                     jacobian(k_m, k_23), [0, 0, D],
                     [0, 0, v_in], initial_state)
@@ -130,7 +130,7 @@ def generate_motifs():
 
     return [gen(jac) for jac in jacobians]
 
-def generate_two_node_system(v_in=5, D=.1, k_m=.5, k_23=.5):
+def generate_two_node_system(v_in=5, D=1, k_m=.5, k_23=.5):
     """ Generate system with only two nodes
     """
     jacobian = np.array([
@@ -146,7 +146,7 @@ def generate_two_node_system(v_in=5, D=.1, k_m=.5, k_23=.5):
         external_influence, initial_state)
     return system
 
-def generate_v_out(v_in=5, k_m=1, k_23=2, D=.1):
+def generate_v_out(v_in=5, k_m=1, k_23=2, D=1):
     """ Generate V-motif
     """
     k_12 = k_13 = k_out = k_m
