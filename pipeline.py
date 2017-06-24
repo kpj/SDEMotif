@@ -109,7 +109,7 @@ def simulate_systems(raw, enhanced, reps=100):
         ode_system.fluctuation_vector = np.zeros(sde_system.fluctuation_vector.shape)
 
         corr_mats = []
-        for _ in range(reps):
+        for _ in trange(reps):
             sde_sol = solve_system(sde_system)
             ode_sol = solve_system(ode_system)
 
@@ -141,7 +141,7 @@ def simulate_systems(raw, enhanced, reps=100):
         return np.asarray(corr_mats)
 
     curs = []
-    for enh in enhanced:
+    for enh in tqdm(enhanced):
         curs.append(sim(enh))
 
     return {
