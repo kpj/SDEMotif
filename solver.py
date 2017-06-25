@@ -6,7 +6,7 @@ import numpy as np
 import numpy.random as npr
 
 
-def solve_system(system, tmax=100, dt=0.1, seed=None):
+def solve_system(system, tmax=100, dt=0.01, seed=None):
     """ Solve stochastic differential equation (SDE)
     """
     J = system.jacobian
