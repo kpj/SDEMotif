@@ -238,7 +238,11 @@ def handle_enh_entry(entry, thres: float) -> float:
 
     return np.mean(cur) if len(cur) > 0 else None
 
-def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
+def threshold_influence(
+    data: List,
+    ax=None, resolution: int = 100,
+    fname_app: str = ''
+) -> None:
     """ Plot robustness for varying threshold levels
     """
     threshold_list = np.logspace(-5, 0, resolution)
@@ -309,7 +313,7 @@ def threshold_influence(data: List, ax=None, resolution: int = 100) -> None:
     aty.set(xticklabels=[])
 
     if ax is None:
-        plt.savefig('images/threshold_influence.pdf')
+        plt.savefig(f'images/threshold_influence{fname_app}.pdf')
 
     return df, {'thresholds': thres_vals, 'corr_trans': robust_vals}
 
@@ -522,7 +526,8 @@ def main(fname) -> None:
     with open(fname, 'rb') as fd:
         inp = pickle.load(fd)
 
-    threshold_influence(np.asarray(inp['data']))
+    fapp = f'__{os.path.basename(fname.replace(".", "_"))}'
+    threshold_influence(np.asarray(inp['data']), fname_app=fapp)
 
 if __name__ == '__main__':
     sns.set_style('white')
