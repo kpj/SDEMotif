@@ -134,8 +134,8 @@ def generate_two_node_system(v_in=5, D=1, k_m=.5, k_23=.5):
     """ Generate system with only two nodes
     """
     jacobian = np.array([
-        [-1,    0],
-        [k_m+k_23,  -1]
+        [-(k_m + k_m),    0],
+        [k_m,         -k_23],
     ])
     external_influence = np.array([v_in, 0])
     fluctuation_vector = np.array([D, 0])
