@@ -6,7 +6,7 @@ import os
 import sys
 import copy
 import pickle
-from typing import Tuple, List, Callable
+from typing import Any, Tuple, List, Callable
 from multiprocessing import Pool, cpu_count
 from multiprocessing.pool import ThreadPool
 
@@ -215,7 +215,7 @@ def generate_motif_data(prefix):
                     }, fd)
                 pbar.update()
 
-def handle_enh_entry(entry, thres: float) -> float:
+def handle_enh_entry(entry, thres: float) -> List:
     """ Compare distribution from given simulation results.
         This handles an entry which contains all embeddings per parameter config
     """
@@ -236,7 +236,7 @@ def handle_enh_entry(entry, thres: float) -> float:
             rob = compare_distributions(dis_3, dis_4, thres)
             cur.append(rob)
 
-    return np.mean(cur) if len(cur) > 0 else None
+    return cur
 
 def threshold_influence(
     data: List,
@@ -248,18 +248,26 @@ def threshold_influence(
     threshold_list = np.logspace(-5, 0, resolution)
 
     # generate data
-    df = pd.DataFrame()
-    for thres in tqdm(threshold_list):
-        for i, entry in enumerate(data): # iterate over parameter configurations
-            res = handle_enh_entry(entry, thres)
-            if res is None:
-                continue
+    fname_cache = f'cache/ti_data{fname_app}.csv'
 
-            df = df.append({
-                'threshold': thres,
-                'correlation_transfer': res,
-                'param_config': i
-            }, ignore_index=True)
+    if not os.path.exists(fname_cache):
+        tmp = {'threshold': [], 'correlation_transfer': [], 'param_config': []}
+        for thres in tqdm(threshold_list):
+            for i, entry in enumerate(data): # iterate over parameter configurations
+                res = handle_enh_entry(entry, thres)
+                if len(res) == 0:
+                    continue
+
+                for j, ct in enumerate(res):
+                    tmp['threshold'].append(thres)
+                    tmp['correlation_transfer'].append(ct)
+                    tmp['param_config'].append(f'{i},{j}')
+
+        df = pd.DataFrame(tmp)
+        df.to_csv(fname_cache)
+    else:
+        print('Cached', fname_cache)
+        df = pd.read_csv(fname_cache, index_col=0)
 
     if df.empty:
         return
@@ -308,6 +316,7 @@ def threshold_influence(
 
     ax_new.set_xscale('log')
     ax_new.set_ylim((0, 1))
+    ax_new.set_title(f'#entries: {df.shape[0]}')
 
     atx.set(yticklabels=[])
     aty.set(xticklabels=[])
@@ -317,7 +326,7 @@ def threshold_influence(
 
     return df, {'thresholds': thres_vals, 'corr_trans': robust_vals}
 
-def fixed_threshold(data: List) -> float:
+def fixed_threshold(data: List) -> Tuple[Any, Any]:
     """ Compute robustness with `thres = \sigma / 2` and return values
     """
     robs, thresholds = [], []
@@ -337,7 +346,7 @@ def fixed_threshold(data: List) -> float:
 
         # handle entry
         res = handle_enh_entry(entry, sigmah)
-        robs.append(res)
+        robs.append(np.mean(res))
     return np.asarray(robs), np.asarray(thresholds)
 
 def motif_overview(prefix):
