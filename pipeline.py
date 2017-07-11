@@ -553,15 +553,17 @@ if __name__ == '__main__':
             'results/new_data_link.dat', gen_func=generate_two_node_system)
 
         generate_motif_data('results/new_data_motifs.dat')
-    elif len(sys.argv) == 2:
-        if os.path.exists(sys.argv[1]):
-            main(sys.argv[1])
-        else:
-            # assume it's a motif prefix
-            df = motif_overview(sys.argv[1])
+    elif len(sys.argv) >= 2:
+        for fname in sys.argv[1:]:
+            print(f'>> {fname} <<')
+            if os.path.exists(fname):
+                main(fname)
+            else:
+                # assume it's a motif prefix
+                df = motif_overview(fname)
 
-            df.to_csv('results/motif_statistics.csv')
-            plot_motif_statistics(df)
+                df.to_csv('results/motif_statistics.csv')
+                plot_motif_statistics(df)
     else:
         print('Usage: {} [data file]'.format(sys.argv[0]))
         exit(-1)
