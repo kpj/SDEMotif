@@ -3,6 +3,7 @@ Investigate chemical formulas
 """
 
 import pickle
+import itertools
 
 import pandas as pd
 
@@ -121,6 +122,30 @@ def mz_range_comparison():
 
     plt.legend(loc='best')
     plt.savefig('images/mz_ranges.pdf')
+
+def plot_formdist_nullmodel():
+    """ Plot formula distances in given data
+    """
+    # read data
+    df = read_actual_compounds()
+    forms = itertools.product(df['Formula'].tolist(), repeat=2)
+
+    # compute result
+    dists_all = []
+    for f1, f2 in forms:
+        dist = compute_formula_distance(f1, f2)
+        dists_all.append(dist)
+
+    dists_matched = get_rl_comparison_frame()['dist'].tolist()
+
+    # plot result
+    plt.figure()
+
+    sns.distplot(dists_all, label='all real data', kde=False)
+    sns.distplot(dists_matched, label='matched data', kde=False)
+
+    plt.legend(loc='best')
+    plt.savefig('images/formdist_nullmodel.pdf')
 
 def main():
     mz_range_comparison()
