@@ -4,6 +4,7 @@ Investigate data in various ways
 
 import sys
 import copy
+import pickle
 from itertools import cycle
 
 import numpy as np
@@ -214,6 +215,65 @@ def lyapunov_equation():
 
     plt.savefig('images/lyapunov_equation.pdf')
 
+def correlation_patterns():
+    """ Investigate various correlation patterns
+    """
+    def read(fname):
+        with open(fname, 'rb') as fd:
+            inp = pickle.load(fd)
+            return np.asarray(inp['data'])
+
+    def aggregate_corr_matrices(data):
+        mats = []
+        for entry in data: # for each parameter configuration
+            raw_corr_mats = entry['raw_corr_mats']
+            enh_corr_mat_list = entry['enh_corr_mat_list']
+
+            for enh_corr_mats in enh_corr_mat_list: # for each embedding
+                if enh_corr_mats.size == 0:
+                    continue
+                trans = enh_corr_mats[:,:3,:3]
+
+                mats.extend(trans)
+            mats.extend(raw_corr_mats)
+        mats = np.asarray(mats)
+
+        return mats
+
+    # read data
+    data_ffl = read('results/new_data_ffl.dat')
+    data_vout = read('results/new_data_vout.dat')
+
+    # convert data
+    corr_ffl = aggregate_corr_matrices(data_ffl)
+    corr_vout = aggregate_corr_matrices(data_vout)
+
+    # plot data
+    plt.figure()
+
+    plt.subplot(211)
+    plt.title('FFL')
+    sns.distplot(corr_ffl[:,0,1], kde=False, label=r'$c_{12}$')
+    sns.distplot(corr_ffl[:,0,2], kde=False, label=r'$c_{13}$')
+    plt.legend(loc='best')
+
+    plt.subplot(212)
+    plt.title('Vout')
+    sns.distplot(corr_vout[:,0,1], kde=False, label=r'$c_{12}$')
+    sns.distplot(corr_vout[:,0,2], kde=False, label=r'$c_{13}$')
+    plt.legend(loc='best')
+
+    plt.tight_layout()
+    plt.savefig('images/correlation_patterns.pdf')
+
+    plt.figure()
+    plt.title(r'$c_{23}$')
+    sns.distplot(corr_ffl[:,1,2], kde=False, label=r'FFL')
+    sns.distplot(corr_vout[:,1,2], kde=False, label=r'Vout')
+    plt.legend(loc='best')
+    plt.savefig('images/correlation_patterns_2.pdf')
+
+
 def main(data):
     """ Analyse data
     """
@@ -222,7 +282,8 @@ def main(data):
     #else:
     #    plot_correlation_hist(data)
     #single_corr_coeff_hist()
-    lyapunov_equation()
+    #lyapunov_equation()
+    correlation_patterns()
 
 if __name__ == '__main__':
     main(np.load(sys.argv[1])['data'] if len(sys.argv) == 2 else None)
