@@ -90,7 +90,9 @@ def compute_formula_distance(form1, form2):
     all_atoms = set.union(set(res1.keys()), set(res2.keys()))
 
     diff = sum([abs(res1.get(a,0)-res2.get(a,0)) for a in all_atoms])
-    return diff
+    total = sum(res1.values()) + sum(res2.values())
+
+    return diff / total
 
 def get_rl_comparison_frame():
     """ Return merged DataFrame of actual and combinatorial data

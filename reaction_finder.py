@@ -1236,7 +1236,7 @@ def compare_to_realdata(ass_data, input_data):
 
         # compute quality
         qual_vals = [(x, (cur_dists<=x).sum()/cur_dists.size)
-                     for x in [0, 5, 10, 50]]
+                     for x in [0, .1, .3, 5]]
 
         # plot distance distribution
         ax = plt.subplot(len(ass_data), 1, i+1, sharex=ax, sharey=ax)
