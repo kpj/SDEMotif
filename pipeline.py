@@ -191,7 +191,10 @@ def generate_system_data(motif_idx, motifs_three):
     res = []
     # iterate over three ways of driving given motif
     for i, motif_func in enumerate(motifs_three):
-        cur = generate_data(None, gen_func=motif_func)
+        try:
+            cur = generate_data(None, gen_func=motif_func)
+        except FloatingPointError:
+            cur = None
         res.append(cur)
     return ({
         'motif': motif_func(),
