@@ -141,7 +141,7 @@ def simulate_systems(raw, enhanced, reps=100):
         return np.asarray(corr_mats)
 
     curs = []
-    for enh in tqdm(enhanced):
+    for enh in tqdm(enhanced, desc='For each enhanced motif'):
         curs.append(sim(enh))
 
     return {
@@ -167,7 +167,7 @@ def generate_data(
 
     # simulate data
     data = []
-    with tqdm(total=len(configurations)) as pbar:
+    with tqdm(total=len(configurations), desc='For each configuration') as pbar:
         resolution = max(1, int(cpu_count() * 1/8))
         with Pool(resolution) as p:
             for res in p.starmap(simulate_systems, configurations):
@@ -205,7 +205,7 @@ def generate_motif_data(prefix):
     """ Generate data for all motifs
     """
     motifs = generate_motifs()
-    with tqdm(total=len(motifs)) as pbar:
+    with tqdm(total=len(motifs), desc='For each motif') as pbar:
         resolution = max(1, int(cpu_count() * 1/8))
         with ThreadPool(resolution) as p:
             # iterate over motif topologies
@@ -255,7 +255,7 @@ def threshold_influence(
 
     if not os.path.exists(fname_cache):
         tmp = {'threshold': [], 'correlation_transfer': [], 'param_config': []}
-        for thres in tqdm(threshold_list):
+        for thres in tqdm(threshold_list, desc='For each threshold'):
             for i, entry in enumerate(data): # iterate over parameter configurations
                 res = handle_enh_entry(entry, thres)
                 if len(res) == 0:
@@ -358,7 +358,7 @@ def motif_overview(prefix):
     # get data
     data = {}
     pref_dir = os.path.dirname(prefix)
-    for fn in tqdm(os.listdir(pref_dir)):
+    for fn in tqdm(os.listdir(pref_dir), desc='For each motif'):
         if fn.startswith(os.path.basename(prefix)):
             fname = os.path.join(pref_dir, fn)
 
