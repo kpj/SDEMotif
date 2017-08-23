@@ -342,7 +342,10 @@ def fixed_threshold(data: List) -> Tuple[Any, Any]:
 
         # find \sigma of distribution with lowest \mu
         abs_corr_avg = abs(np.mean(raw_corr_mats, axis=0))
-        min_idx = np.unravel_index(abs_corr_avg.argmin(), abs_corr_avg.shape)
+        corr_std = np.std(raw_corr_mats, axis=0)
+        corr_scaled = abs_corr_avg / corr_std
+
+        min_idx = np.unravel_index(corr_scaled.argmin(), corr_scaled.shape)
         series = raw_corr_mats[:,min_idx[0],min_idx[1]] # better indexing?
         sigmah = np.std(series) / 2
         thresholds.append(sigmah)
